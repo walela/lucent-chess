@@ -1,0 +1,1460 @@
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.29"]
+[Round "1.1"]
+[White "Caruana, Fabiano"]
+[Black "Nakamura, Hikaru"]
+[Result "1-0"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2795"]
+[BlackElo "2810"]
+[ECO "A13"]
+[Opening "English opening"]
+[Variation "Agincourt variation"]
+[WhiteFideId "2020009"]
+[BlackFideId "2016192"]
+[EventDate "2026.03.29"]
+
+1. Nf3 d5 2. c4 e6 3. g3 d4 4. Bg2 Nc6 5. O-O Bc5 6. e3 Nge7 7. Nxd4 Nxd4 8. b4
+Bxb4 9. exd4 O-O 10. Qb3 Ba5 11. Nc3 Nf5 12. Ba3 Re8 13. d5 Nd4 14. Qa4 b6 15.
+Rae1 Bd7 16. Qd1 c5 17. Bb2 Rb8 18. a4 a6 19. dxe6 Bxe6 20. Nd5 Qd6 21. Bxd4
+cxd4 22. Re4 Bxd5 23. Rxe8+ Rxe8 24. Bxd5 Bb4 25. h4 a5 26. d3 Qf6 27. Kg2 Qe5
+28. Qf3 Qf6 29. Qg4 Bc5 30. h5 h6 31. Rh1 Qg5 32. Qd1 Qe7 33. Bc6 Rc8 34. Re1
+Qc7 35. Bd5 Kf8 36. Qg4 Rd8 37. Qe4 Kg8 38. Qf5 Qd7 39. Qf3 Rf8 40. Re5 Bd6 41.
+Rf5 Qe7 42. Qg4 Be5 43. Rf3 Bf6 44. Rf4 Qd8 45. Be4 Re8 46. Rf5 Qd7 47. Qf4 Bg5
+48. Qf3 Qc7 49. Rxf7 Qxf7 50. Bd5 Re6 51. Qg4 Kf8 52. Bxe6 Qe8 53. Bd7 Qa8+ 54.
+Kg1 Bf6 55. Qe6 Qd8 56. Bc6 Qe7 57. Qc8+ Qd8 58. Qb7 Be5 59. Bd5 Qc7 60. Qa8+
+Ke7 61. Qg8 Kd6 62. Be4 Ke7 63. Bg6 Bf6 64. Qf7+ Kd6 65. Qd5+ Ke7 66. Bf5 Be5
+67. f4 Bf6 68. Kg2 Qd6 69. Qb7+ Kf8 70. Kf3 Qe7 71. Qe4 Qxe4+ 72. dxe4 Be7 73.
+e5 Bb4 74. Bd3 Be1 75. g4 Ke7 76. Ke4 Bg3 77. f5 Kd7 78. Kd5 Bh4 79. f6 gxf6 80.
+e6+ Ke7 81. Kc6 Kxe6 82. Kxb6 Be1 83. c5 1-0
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.29"]
+[Round "1.2"]
+[White "Praggnanandhaa, R"]
+[Black "Giri, Anish"]
+[Result "1-0"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2741"]
+[BlackElo "2753"]
+[ECO "B23"]
+[Opening "Sicilian"]
+[Variation "closed"]
+[WhiteFideId "25059530"]
+[BlackFideId "24116068"]
+[EventDate "2026.03.29"]
+
+1. e4 c5 2. Nc3 d6 3. f4 g6 4. Nf3 Bg7 5. Bb5+ Bd7 6. a4 Nc6 7. O-O a6 8. Bc4 e6
+9. d3 Nge7 10. f5 exf5 11. Qe1 Be6 12. exf5 gxf5 13. Bxe6 fxe6 14. Qxe6 Qd7 15.
+Qc4 O-O-O 16. Bg5 Rde8 17. Rae1 Ng6 18. Nd5 Kb8 19. Nf6 Bxf6 20. Bxf6 Rhf8 21.
+Bc3 f4 22. Rxe8+ Rxe8 23. Re1 Rf8 24. Qe6 Qxe6 25. Rxe6 Kc7 26. Ng5 Kd7 27. Re4
+Rf5 28. Nxh7 d5 29. Re2 d4 30. Be1 Nce5 31. Re4 Ng4 32. h3 Ne3 33. c3 Nd5 34. h4
+dxc3 35. bxc3 Rh5 36. Ng5 Nf6 37. Re6 Rxg5 38. Rxf6 Rg4 39. h5 Ne5 40. h6 Nf3+
+41. Kf1 Nxe1 42. Kxe1 Rxg2 43. Rxf4 Rh2 44. Rf6 Rh3 45. Kd2 Rh2+ 46. Ke3 Rh3+
+47. Ke4 c4 48. dxc4 Rxc3 49. Kf5 Ke7 50. Rb6 Rxc4 51. h7 1-0
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.29"]
+[Round "1.3"]
+[White "Bluebaum, Matthias"]
+[Black "Wei, Yi"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2754"]
+[ECO "D41"]
+[Opening "QGD"]
+[Variation "Semi-Tarrasch, 5.cd"]
+[WhiteFideId "24651516"]
+[BlackFideId "8603405"]
+[EventDate "2026.03.29"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 c5 5. cxd5 cxd4 6. Qxd4 exd5 7. Bg5 Be7 8.
+e3 O-O 9. Rd1 Be6 10. Bb5 h6 11. Bh4 a6 12. Ba4 Nc6 13. Qd3 Ne4 14. Bxe7 Nxe7
+15. O-O Nxc3 16. Qxc3 Rc8 17. Qe5 Rc4 18. Bb3 Re4 19. Qc3 Bg4 20. Rd2 Bxf3 21.
+gxf3 Qd7 22. fxe4 Qg4+ 23. Kh1 Qf3+ 24. Kg1 Qg4+ 25. Kh1 Qf3+ 26. Kg1 Qg4+ 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.29"]
+[Round "1.4"]
+[White "Sindarov, Javokhir"]
+[Black "Esipenko, Andrey"]
+[Result "1-0"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2745"]
+[BlackElo "2698"]
+[ECO "D37"]
+[Opening "QGD"]
+[Variation "4.Nf3"]
+[WhiteFideId "14205483"]
+[BlackFideId "24175439"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. Nc3 Be7 5. cxd5 exd5 6. Bf4 O-O 7. e3 c5 8. Bd3
+Nc6 9. O-O c4 10. Bc2 Nh5 11. Be5 f6 12. Bg3 f5 13. Be5 Be6 14. b3 Qa5 15. Ne2
+b5 16. Nf4 Nxf4 17. exf4 Qd8 18. Re1 Qd7 19. Re3 Rae8 20. h4 h6 21. g3 a6 22.
+Kg2 Bf7 23. Qd2 Bb4 24. Qe2 Bh5 25. a4 Ba5 26. axb5 axb5 27. Bd1 Bxf3+ 28. Qxf3
+Bb6 29. Ra6 Nxd4 30. Qh5 Rxe5 31. Rxe5 Qc6 32. bxc4 bxc4 33. Ba4 Qc5 34. Qg6 Ba7
+35. Re8 Rxe8 36. Qxe8+ Kh7 37. Qg6+ Kg8 38. Bd7 c3 39. Qe8+ Kh7 40. Qg6+ Kg8 41.
+Re6 1-0
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.30"]
+[Round "2.1"]
+[White "Wei, Yi"]
+[Black "Praggnanandhaa, R"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2754"]
+[BlackElo "2741"]
+[ECO "C11"]
+[Opening "French"]
+[Variation "Steinitz, Boleslavsky variation"]
+[WhiteFideId "8603405"]
+[BlackFideId "25059530"]
+[EventDate "2026.03.29"]
+
+1. e4 e6 2. d4 d5 3. Nc3 Nf6 4. e5 Nfd7 5. f4 c5 6. Nf3 Nc6 7. Be3 Be7 8. Qd2 a6
+9. Bd3 O-O 10. O-O f6 11. exf6 Nxf6 12. Kh1 b6 13. Ne5 Qc7 14. Rae1 Bd6 15. Nxc6
+Qxc6 16. Be2 Ra7 17. Bf3 Raf7 18. f5 c4 19. Bg5 Bb4 20. Qe2 Bxc3 21. fxe6 Re7
+22. bxc3 Rxe6 23. Qd2 Ne4 24. Bxe4 Rxf1+ 25. Rxf1 Rxe4 26. Bf4 Re7 27. Be5 Qg6
+28. Qf4 Rf7 29. Qxf7+ Qxf7 30. Rxf7 Kxf7 31. Kg1 Bf5 32. Kf2 Bxc2 33. Bc7 b5 34.
+a3 Ke6 35. Ke3 Kf5 36. h3 h5 37. g3 g5 38. Bd8 Bd3 39. h4 Kg4 40. Bxg5 Kxg3 41.
+Bd8 Be4 42. Be7 Kg2 43. Bd8 Kf1 44. Kd2 Kf2 45. Be7 Kf3 46. Bd8 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.30"]
+[Round "2.2"]
+[White "Sindarov, Javokhir"]
+[Black "Bluebaum, Matthias"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2745"]
+[BlackElo "2698"]
+[ECO "C42"]
+[Opening "Petrov's defence"]
+[WhiteFideId "14205483"]
+[BlackFideId "24651516"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nxe5 d6 4. Nd3 Nxe4 5. Qe2 Qe7 6. Nf4 c6 7. f3 Nf6 8. d4
+Bf5 9. c3 Qxe2+ 10. Bxe2 h5 11. Na3 Na6 12. Nc4 Nc7 13. Ne3 Bh7 14. h4 Kd7 15.
+Kf2 Re8 16. g3 Ne6 17. Nh3 d5 18. Ng5 Bg6 19. Bf1 Nh7 20. Bh3 Nxg5 21. hxg5 Kc7
+22. Nf5 Bxf5 23. Bxf5 g6 24. Bc2 Bd6 25. Be3 Re7 26. Rae1 Rhe8 27. f4 Ng7 28.
+Kf3 Kd7 29. Bf2 Rxe1 30. Bxe1 Rf8 31. g4 f5 32. gxh5 Nxh5 33. Bd2 Rh8 34. Bd3
+Rh7 35. Bxf5+ gxf5 36. g6 Rg7 37. Rxh5 Ke6 38. Rh6 Kf6 39. Be1 Rxg6 40. Rh7 Rg7
+41. Rh6+ Rg6 42. Rh7 Rg7 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.30"]
+[Round "2.3"]
+[White "Giri, Anish"]
+[Black "Caruana, Fabiano"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2753"]
+[BlackElo "2795"]
+[ECO "D30"]
+[Opening "Queen's gambit declined"]
+[WhiteFideId "24116068"]
+[BlackFideId "2020009"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nd7 4. g3 dxc4 5. Bg2 Rb8 6. a4 b6 7. Nfd2 a5 8. Nxc4
+Ba6 9. Nba3 Bb4+ 10. Bd2 Bxa3 11. Nxa3 Ne7 12. O-O O-O 13. b4 axb4 14. Bxb4 c5
+15. Bc3 Nf5 16. Nb5 Bxb5 17. axb5 cxd4 18. Bxd4 Nxd4 19. Qxd4 Nc5 20. Rad1 Qxd4
+21. Rxd4 Rfd8 22. Rfd1 Rxd4 23. Rxd4 Kf8 24. Rd6 Ke7 25. Rc6 Rd8 26. f4 Rd6 27.
+Rc7+ Rd7 28. Rc6 Rd6 29. Rc7+ Rd7 30. Rc6 Rd6 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.30"]
+[Round "2.4"]
+[White "Esipenko, Andrey"]
+[Black "Nakamura, Hikaru"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2810"]
+[ECO "A13"]
+[Opening "English opening"]
+[WhiteFideId "24175439"]
+[BlackFideId "2016192"]
+[EventDate "2026.03.29"]
+
+1. c4 e6 2. g3 d5 3. Bg2 Nf6 4. Nf3 c5 5. cxd5 Nxd5 6. O-O Be7 7. d4 cxd4 8.
+Nxd4 O-O 9. Qb3 Nc6 10. Nxc6 bxc6 11. e4 Nf6 12. h3 Ba6 13. Rd1 Qb6 14. Be3 Bc5
+15. Bxc5 Qxc5 16. Qc3 Qb6 17. Nd2 c5 18. b3 Rad8 19. Nc4 Bxc4 20. Qxc4 e5 21.
+Rac1 Rxd1+ 22. Rxd1 a5 23. Rc1 Rc8 24. Qc3 Qc7 25. h4 h6 26. Rc2 g6 27. Qe3 Qd8
+28. Rd2 Qb6 29. Bf1 Kg7 30. a4 Rc6 31. Rc2 c4 32. Qxb6 Rxb6 33. Bxc4 Nxe4 34.
+Re2 f5 35. f3 Nd6 36. Rxe5 Nxc4 37. bxc4 Rb4 38. Rxa5 Rxc4 39. Ra7+ Kf6 40. a5
+Rc3 41. Kf2 Rc2+ 42. Ke3 Rc3+ 43. Ke2 Rc2+ 44. Kd3 Rg2 45. Ra6+ Kf7 46. Kd4 Rxg3
+47. Ke5 Rxf3 48. Ra7+ Ke8 49. a6 Ra3 50. Ke6 Kd8 51. Kf6 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.31"]
+[Round "3.1"]
+[White "Praggnanandhaa, R"]
+[Black "Sindarov, Javokhir"]
+[Result "0-1"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2741"]
+[BlackElo "2745"]
+[ECO "D37"]
+[Opening "QGD"]
+[Variation "classical variation (5.Bf4)"]
+[WhiteFideId "25059530"]
+[BlackFideId "14205483"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Be7 4. Nf3 Nf6 5. Bf4 O-O 6. e3 c5 7. dxc5 Bxc5 8. a3
+Nc6 9. Qc2 Re8 10. Bg5 d4 11. Bxf6 Qxf6 12. Ne4 Qf5 13. b4 Nxb4 14. axb4 Bxb4+
+15. Kd1 dxe3 16. Bd3 Qg6 17. fxe3 f5 18. Ng3 Bc5 19. Qc3 e5 20. Bc2 e4 21. Nd2
+Rd8 22. Kc1 Qg5 23. Re1 Qe7 24. Re2 Bb4 25. Qb2 a5 26. Nb3 Ra6 27. Nd4 Qg5 28.
+Kb1 h5 29. Ka2 h4 30. Nf1 Bd7 31. Rd1 Rc8 32. Nd2 Rb6 33. c5 Rxc5 34. Qb3+ Kh8
+35. Qf7 Rxc2+ 36. Kb1 Rxd2 37. Rdxd2 Bxd2+ 38. Ka2 Bxe3 39. Qxd7 Bxd4 40. Qxd4
+Qf6 0-1
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.31"]
+[Round "3.2"]
+[White "Caruana, Fabiano"]
+[Black "Wei, Yi"]
+[Result "1-0"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2795"]
+[BlackElo "2754"]
+[ECO "A15"]
+[Opening "English opening"]
+[WhiteFideId "2020009"]
+[BlackFideId "8603405"]
+[EventDate "2026.03.29"]
+
+1. Nf3 Nf6 2. c4 c5 3. g3 g6 4. Nc3 d5 5. cxd5 Nxd5 6. Bg2 Bg7 7. Qa4+ Nc6 8.
+Ng5 Nb6 9. Bxc6+ bxc6 10. Qxc6+ Bd7 11. Qxc5 h6 12. Nf3 Rc8 13. Qa5 Bh3 14. Qb5+
+Nd7 15. Rg1 O-O 16. g4 Rc5 17. Qb3 Ne5 18. Nxe5 Rxe5 19. Nd1 1-0
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.31"]
+[Round "3.3"]
+[White "Nakamura, Hikaru"]
+[Black "Giri, Anish"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2810"]
+[BlackElo "2753"]
+[ECO "A28"]
+[Opening "English"]
+[Variation "four knights, Capablanca variation"]
+[WhiteFideId "2016192"]
+[BlackFideId "24116068"]
+[EventDate "2026.03.29"]
+
+1. c4 Nf6 2. Nc3 e5 3. Nf3 Nc6 4. d3 d5 5. cxd5 Nxd5 6. e4 Nf6 7. Be2 Bg4 8. Be3
+Qd7 9. O-O Bxf3 10. Bxf3 Nd4 11. g3 Bc5 12. Rc1 Bb6 13. Bg2 O-O 14. Na4 Rfd8 15.
+a3 h6 16. Re1 Rac8 17. h3 Ne6 18. Nxb6 axb6 19. Bf1 c5 20. Qe2 Nd4 21. Bxd4 Qxd4
+22. Rc4 Qd7 23. b4 Ne8 24. bxc5 bxc5 25. Qb2 Nd6 26. Rcc1 Re8 27. Rb1 b5 28.
+Rec1 Qe6 29. Qb3 c4 30. Qb4 Rc7 31. a4 bxa4 32. Qxa4 Qe7 33. Rc3 Rec8 34. Bg2
+cxd3 35. Rxd3 Ne8 36. Qa3 Qxa3 37. Rxa3 Rc1+ 38. Rxc1 Rxc1+ 39. Bf1 Nf6 40. Kg2
+g6 41. Ra5 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.03.31"]
+[Round "3.4"]
+[White "Bluebaum, Matthias"]
+[Black "Esipenko, Andrey"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2698"]
+[ECO "D37"]
+[Opening "QGD"]
+[Variation "4.Nf3"]
+[WhiteFideId "24651516"]
+[BlackFideId "24175439"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. Nc3 Be7 5. cxd5 exd5 6. Bf4 O-O 7. e3 c5 8. dxc5
+Bxc5 9. Be2 Nc6 10. O-O Be6 11. Rc1 Rc8 12. Bd3 h6 13. h3 a6 14. Bb1 Qe7 15. Re1
+Rfd8 16. Re2 d4 17. exd4 Nxd4 18. Rd2 Nxf3+ 19. Qxf3 Rxd2 20. Bxd2 Rd8 21. Be3
+Bxe3 22. Qxe3 Kf8 23. a3 Bd7 24. Qxe7+ Kxe7 25. Re1+ Be6 26. Ne4 b6 27. Rc1 Rd4
+28. Nc3 Bc4 29. Rd1 Rxd1+ 30. Nxd1 Nd5 31. Ne3 Nxe3 32. fxe3 g5 33. g3 Kd6 34.
+Kf2 Ke5 35. h4 f6 36. Bc2 a5 37. Kf3 Be6 38. Bd3 Bd7 39. Bc2 Bc8 40. Bd3 Bd7 41.
+Bc2 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.01"]
+[Round "4.1"]
+[White "Sindarov, Javokhir"]
+[Black "Caruana, Fabiano"]
+[Result "1-0"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2745"]
+[BlackElo "2795"]
+[ECO "D26"]
+[Opening "QGA"]
+[Variation "classical variation, 6.O-O"]
+[WhiteFideId "14205483"]
+[BlackFideId "2020009"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nf3 dxc4 4. e3 Nf6 5. Bxc4 c5 6. O-O Nc6 7. Qe2 a6 8. Nc3
+b5 9. Bd3 Bb7 10. a4 b4 11. Ne4 Na5 12. Nxf6+ gxf6 13. dxc5 Nb3 14. c6 Bxc6 15.
+Nd4 Nxd4 16. exd4 Rg8 17. g3 f5 18. Bc4 Rg4 19. Be3 Bd5 20. Rac1 Be7 21. Bxa6
+Kf8 22. Bb5 Bf6 23. Rfd1 Kg7 24. Bc6 Ra5 25. Bxd5 Rxd5 26. Rc5 Rd7 27. d5 exd5
+28. Qf3 Bxb2 29. Rcxd5 Rxd5 30. Rxd5 Qe8 31. Rxf5 Rg6 32. h4 Bc3 33. h5 Ra6 34.
+Qg4+ Kh8 35. Bd4+ f6 36. Rc5 1-0
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.01"]
+[Round "4.2"]
+[White "Bluebaum, Matthias"]
+[Black "Praggnanandhaa, R"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2741"]
+[ECO "D45"]
+[Opening "QGD semi-Slav"]
+[Variation "accelerated Meran (Alekhine variation)"]
+[WhiteFideId "24651516"]
+[BlackFideId "25059530"]
+[EventDate "2026.03.29"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 c6 5. e3 a6 6. Qc2 c5 7. cxd5 exd5 8. dxc5
+Bxc5 9. Be2 Nc6 10. O-O Be6 11. a3 Rc8 12. b4 Bd6 13. Bb2 O-O 14. Rac1 Ne5 15.
+Nxe5 Bxe5 16. Qb1 Qd6 17. f4 Bxc3 18. Bxc3 Ne4 19. Be5 Qd7 20. Rxc8 Rxc8 21. Rc1
+f6 22. Bb2 Nd6 23. Rxc8+ Qxc8 24. Qc1 Nc4 25. Bxc4 Qxc4 26. Qxc4 dxc4 27. e4 f5
+28. exf5 Bxf5 29. Kf2 Kf7 30. Ke3 g6 31. Kd4 Bd3 32. Ke5 Bf1 33. g3 Bh3 34. Kd5
+Bf1 35. Ke5 Bh3 36. Kd5 Bf1 37. Ke5 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.01"]
+[Round "4.3"]
+[White "Esipenko, Andrey"]
+[Black "Giri, Anish"]
+[Result "0-1"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2753"]
+[ECO "B95"]
+[Opening "Sicilian"]
+[Variation "Najdorf, 6...e6"]
+[WhiteFideId "24175439"]
+[BlackFideId "24116068"]
+[EventDate "2026.03.29"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Bg5 e6 7. Bd3 Be7 8. Qe2
+Nxe4 9. Nxe4 Bxg5 10. Nf5 Be7 11. Nxg7+ Kd7 12. O-O Nc6 13. c4 Kc7 14. Nh5 Bd7
+15. Rfd1 Rc8 16. b4 Nxb4 17. Rab1 Nxd3 18. Qxd3 Ba4 19. Rd2 Kb8 20. Rdb2 Bc6 21.
+c5 dxc5 22. Qxa6 Qd5 23. f3 Rc7 24. Nhg3 Rd8 25. Nf2 c4 26. Nge4 f5 27. Nc3 Qc5
+28. Re2 Bf6 29. Na4 Bxa4 30. Qxa4 c3 31. Qc2 Bg5 32. Kf1 Qc4 33. Rd1 Rd2 34.
+Rxd2 cxd2 0-1
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.01"]
+[Round "4.4"]
+[White "Wei, Yi"]
+[Black "Nakamura, Hikaru"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2754"]
+[BlackElo "2810"]
+[ECO "B90"]
+[Opening "Sicilian"]
+[Variation "Najdorf, Lipnitzky attack"]
+[WhiteFideId "8603405"]
+[BlackFideId "2016192"]
+[EventDate "2026.03.29"]
+
+1. e4 c5 2. Nf3 d6 3. Nc3 Nf6 4. Bc4 a6 5. d4 cxd4 6. Nxd4 g6 7. f3 b5 8. Bb3
+Bb7 9. Be3 Nbd7 10. a4 bxa4 11. Bxa4 Bg7 12. Nc6 Qc7 13. Na5 O-O 14. Bxd7 Nxd7
+15. Bd4 Bh6 16. O-O e6 17. Qe1 Rab8 18. Qh4 Bg7 19. Bxg7 Kxg7 20. Qf2 Bc8 21.
+Nd1 Nf6 22. c4 d5 23. cxd5 exd5 24. e5 Ng8 25. Nc3 Ne7 26. Rfc1 Qd8 27. Rd1 Be6
+28. Nc4 Nf5 29. Nd6 Nxd6 30. exd6 Qxd6 31. Qd4+ Kg8 32. Nxd5 Bxd5 33. Qxd5 Qb6+
+34. Qd4 Qxd4+ 35. Rxd4 Rxb2 36. Rxa6 Rc8 37. h4 Rcc2 38. Rg4 h5 39. Rg5 Rc4 40.
+Kh2 Rxh4+ 41. Kg1 Rb1+ 42. Kf2 Rhh1 43. Ra2 Kg7 44. Re5 Kh6 45. Ree2 Rhf1+ 46.
+Kg3 Kg5 47. Ra4 Rh1 48. Ree4 Rb2 49. Rab4 Rxb4 50. Rxb4 h4+ 51. Kf2 f5 52. Ra4
+Rb1 53. Rc4 Ra1 54. Rb4 Rd1 55. Ra4 Rb1 56. Rc4 Rb2+ 57. Kg1 h3 58. gxh3 f4 59.
+h4+ Kxh4 60. Rxf4+ Kg3 61. Rg4+ Kxf3 62. Rxg6 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.03"]
+[Round "5.1"]
+[White "Nakamura, Hikaru"]
+[Black "Sindarov, Javokhir"]
+[Result "0-1"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2810"]
+[BlackElo "2745"]
+[ECO "D31"]
+[Opening "QGD"]
+[Variation "semi-Slav, Marshall gambit"]
+[WhiteFideId "2016192"]
+[BlackFideId "14205483"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c6 4. e4 dxe4 5. Nxe4 Bb4+ 6. Bd2 Qxd4 7. Bxb4 Qxe4+ 8.
+Be2 Na6 9. Bd6 Qxg2 10. Bf3 Qg5 11. Ne2 Ne7 12. Ng3 O-O 13. h4 Qa5+ 14. b4 Nxb4
+15. O-O Re8 16. Qd2 c5 17. Rad1 Nf5 18. Nxf5 exf5 19. Qf4 Nc6 20. Kh1 Nd4 21.
+Rg1 g6 22. Bd5 Be6 23. Bxb7 Ne2 24. Qd2 Qxd2 25. Rxd2 Nxg1 26. Bxa8 Rxa8 27.
+Kxg1 Rd8 28. Bf4 Rxd2 29. Bxd2 Bxc4 30. Be3 Bxa2 31. Bxc5 a5 32. f4 f6 33. Kf2
+Kf7 34. Ba3 Ke6 35. Bf8 a4 36. Ke3 Kf7 37. Bb4 h6 38. Kf2 g5 39. Kg3 Bd5 40. Ba3
+Be4 41. Bc1 gxh4+ 0-1
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.03"]
+[Round "5.2"]
+[White "Caruana, Fabiano"]
+[Black "Bluebaum, Matthias"]
+[Result "1-0"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2795"]
+[BlackElo "2698"]
+[ECO "C42"]
+[Opening "Petrov"]
+[Variation "Paulsen attack"]
+[WhiteFideId "2020009"]
+[BlackFideId "24651516"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nxe5 d6 4. Nc4 Nxe4 5. Nc3 Nxc3 6. dxc3 d5 7. Ne3 c6 8.
+Bd2 g6 9. f4 Bg7 10. Qf3 Nd7 11. O-O-O Nc5 12. f5 O-O 13. g4 Ne4 14. Bd3 Re8 15.
+Bxe4 Rxe4 16. h4 Be5 17. c4 Qb6 18. c3 Qa5 19. h5 g5 20. cxd5 Rf4 21. Qe2 cxd5
+22. Kb1 Ra4 23. c4 Qa6 24. Nxd5 f6 25. Bc3 Qxc4 26. Nxf6+ Bxf6 27. Qe8+ Kg7 28.
+h6# 1-0
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.03"]
+[Round "5.3"]
+[White "Praggnanandhaa, R"]
+[Black "Esipenko, Andrey"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2741"]
+[BlackElo "2698"]
+[ECO "A06"]
+[Opening "Reti opening"]
+[WhiteFideId "25059530"]
+[BlackFideId "24175439"]
+[EventDate "2026.03.29"]
+
+1. Nf3 d5 2. e3 Nf6 3. c4 e6 4. b3 Be7 5. Bb2 O-O 6. Be2 c5 7. cxd5 Nxd5 8. Nc3
+b6 9. Nxd5 exd5 10. O-O Be6 11. d4 Nd7 12. Ba6 Nf6 13. Qe2 Bd6 14. Rac1 Qe7 15.
+Ne5 Ne4 16. Rfd1 Rae8 17. f3 Nf6 18. Qf2 Qc7 19. Bd3 Rc8 20. f4 Qe7 21. Qf3 Rc7
+22. Rd2 Bc8 23. Rdc2 Bb7 24. Qg3 h6 25. h3 Qe6 26. Kh1 Rfc8 27. Kh2 Re8 28. Kh1
+Rec8 29. Kh2 Re8 30. Kh1 Rec8 31. Kh2 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.03"]
+[Round "5.4"]
+[White "Giri, Anish"]
+[Black "Wei, Yi"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2753"]
+[BlackElo "2754"]
+[ECO "A14"]
+[Opening "English"]
+[Variation "Neo-Catalan declined"]
+[WhiteFideId "24116068"]
+[BlackFideId "8603405"]
+[EventDate "2026.03.29"]
+
+1. c4 e6 2. g3 d5 3. Bg2 Nf6 4. Nf3 Be7 5. O-O O-O 6. d4 dxc4 7. Qc2 a6 8. a4
+Bd7 9. Qxc4 c5 10. dxc5 Bc6 11. Nc3 a5 12. Ne5 Bxg2 13. Kxg2 Nbd7 14. Nd3 Nxc5
+15. Nxc5 Qc7 16. Be3 Rac8 17. N3e4 Nxe4 18. Qxe4 Bxc5 19. Rac1 b6 20. Rfd1 Qe7
+21. Bxc5 Rxc5 22. Rxc5 Qxc5 23. Rd7 g6 24. b3 Qc3 25. Qf3 Qxf3+ 26. exf3 Rc8 27.
+Rd6 b5 28. axb5 Rb8 29. b6 Kf8 30. Rc6 Rb7 31. g4 Ke8 32. h4 Kd7 33. Rc5 Rxb6
+34. Rxa5 Ke7 35. h5 h6 36. f4 Rxb3 37. hxg6 fxg6 38. Ra7+ Kf6 39. Rh7 h5 40.
+gxh5 gxh5 41. Rxh5 Rd3 42. f3 Rd5 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.04"]
+[Round "6.1"]
+[White "Wei, Yi"]
+[Black "Sindarov, Javokhir"]
+[Result "0-1"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2754"]
+[BlackElo "2745"]
+[ECO "C28"]
+[Opening "Vienna game"]
+[WhiteFideId "8603405"]
+[BlackFideId "14205483"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nc3 Nc6 3. Bc4 Nf6 4. d3 Na5 5. a3 Nxc4 6. dxc4 Bc5 7. Nf3 d6 8. Qd3
+Be6 9. Bg5 a5 10. Nd5 c6 11. Nxf6+ gxf6 12. Bh4 Rg8 13. O-O a4 14. b4 axb3 15.
+cxb3 Bg4 16. b4 Bxf3 17. Qxf3 Bd4 18. Bxf6 Qd7 19. Rad1 Qe6 20. h3 Qxc4 21. Rd3
+Qe6 22. Rfd1 Rg6 23. Bh4 Kf8 24. Qh5 Kg8 25. Kh1 c5 26. f4 exf4 27. Qf3 Re8 28.
+Bf2 Bxf2 29. Qxf2 Qxe4 30. Rxd6 Rxd6 31. Rxd6 Qe3 32. Qf3 c4 33. Qg4+ Kf8 34.
+Rd1 c3 35. Qg5 f3 36. Qxe3 Rxe3 0-1
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.04"]
+[Round "6.2"]
+[White "Caruana, Fabiano"]
+[Black "Esipenko, Andrey"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2795"]
+[BlackElo "2698"]
+[ECO "A14"]
+[Opening "English"]
+[Variation "Neo-Catalan declined"]
+[WhiteFideId "2020009"]
+[BlackFideId "24175439"]
+[EventDate "2026.03.29"]
+
+1. Nf3 d5 2. c4 e6 3. g3 Nf6 4. Bg2 Be7 5. O-O O-O 6. b3 c5 7. Bb2 Nc6 8. e3 b6
+9. Qe2 Bb7 10. Rd1 Qd7 11. d4 cxd4 12. Nxd4 Nxd4 13. Bxd4 Qc8 14. cxd5 Bxd5 15.
+Nc3 Bxg2 16. Kxg2 Qb7+ 17. Qf3 Qxf3+ 18. Kxf3 Rfc8 19. Rd3 Nd7 20. Rdd1 f6 21.
+Nb5 a6 22. Bb2 axb5 23. Rxd7 Bf8 24. Bd4 b4 25. Bxb6 Ra6 26. Bd8 Rd6 27. Rxd6
+Bxd6 28. Bb6 Rc6 29. Ba7 Rc2 30. Bd4 e5 31. Ba7 Kf7 32. e4 Ke6 33. g4 g6 34. Be3
+Be7 35. h3 f5 36. gxf5+ gxf5 37. Rc1 Rxa2 38. Rc6+ Kd7 39. Rc4 fxe4+ 40. Kxe4
+Rb2 41. Kxe5 Rxb3 42. Kd5 Ra3 43. Re4 Ra5+ 44. Kc4 Rh5 45. Bd2 Rxh3 46. Bxb4
+Bxb4 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.04"]
+[Round "6.3"]
+[White "Giri, Anish"]
+[Black "Bluebaum, Matthias"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2753"]
+[BlackElo "2698"]
+[ECO "D35"]
+[Opening "QGD"]
+[Variation "exchange, positional line, 5...c6"]
+[WhiteFideId "24116068"]
+[BlackFideId "24651516"]
+[EventDate "2026.03.29"]
+
+1. c4 e6 2. Nc3 d5 3. d4 Nf6 4. cxd5 exd5 5. Bg5 c6 6. e3 Bf5 7. Qf3 Bg6 8. Bxf6
+Qxf6 9. Qxf6 gxf6 10. h4 h5 11. Nge2 Bd6 12. g3 Nd7 13. Bg2 Kf8 14. O-O Kg7 15.
+a3 a5 16. b3 Rhe8 17. Rfc1 Ra7 18. Na4 Bf5 19. Bf3 Kh6 20. Nb2 Ra6 21. Nc3 Ra7
+22. Kg2 Bg6 23. Be2 Rea8 24. Nd3 Bf5 25. Na4 Be4+ 26. Kf1 Bf5 27. Nac5 Nb6 28.
+Nb2 Be7 29. Nba4 Nc8 30. Nd3 Nd6 31. Nc3 Bg6 32. Nf4 Ne8 33. Na4 Nd6 34. Nc5 Ne8
+35. Ra2 Bd6 36. Nfd3 Be7 37. Na4 Nd6 38. Nf4 Ne8 39. Nb6 Rd8 40. Nd3 Nd6 41. Nf4
+Re8 42. Kg1 Bd8 43. Na4 Be7 44. Bf1 Bf5 45. Nc5 Rea8 46. Kh2 Ne8 47. Na4 Nd6 48.
+Nc3 Ne8 49. Bd3 Bxd3 50. Nxd3 f5 51. Kg2 Nf6 52. Na4 Bd6 53. Nac5 Kg7 54. Rcc2
+Ne4 55. Na4 Nf6 56. Nc3 Ne4 57. Ne2 Nf6 58. Nb2 Ne4 59. Na4 Nf6 60. Nac3 Ne4 61.
+Kf3 Nf6 62. Nf4 Kh6 63. Nd3 Ne4 64. Ne2 Kg7 65. Rc1 Nf6 66. Kg2 Ne4 67. Ne1 Nf6
+68. Rd1 Ne4 69. Rd3 Nf6 70. Nc2 Ne4 71. Rb2 Ra6 72. Kf1 Nf6 73. Ra2 Ne4 74. Kg2
+R6a7 75. Ne1 Nf6 76. Nf3 Ne4 77. Nd2 Nf6 78. Nb1 Ne4 79. Rb2 Ra6 80. Rd1 Rb6 81.
+Rc1 Rba6 82. Nec3 Rb6 83. Na4 Rba6 84. Nac3 Rb6 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.04"]
+[Round "6.4"]
+[White "Nakamura, Hikaru"]
+[Black "Praggnanandhaa, R"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2810"]
+[BlackElo "2741"]
+[ECO "E44"]
+[Opening "Nimzo-Indian"]
+[Variation "Fischer variation, 5.Ne2"]
+[WhiteFideId "2016192"]
+[BlackFideId "25059530"]
+[EventDate "2026.03.29"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. e3 b6 5. Ne2 c5 6. a3 Ba5 7. Bd2 O-O 8. d5 exd5
+9. Nxd5 Nxd5 10. cxd5 Bxd2+ 11. Qxd2 Ba6 12. Ng3 Bxf1 13. Kxf1 d6 14. h4 Nd7 15.
+e4 Qf6 16. Re1 g6 17. h5 Ne5 18. Rh3 b5 19. Kg1 c4 20. Qh6 Ng4 21. Qd2 Ne5 22.
+Qh6 Ng4 23. Qd2 Ne5 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.05"]
+[Round "7.1"]
+[White "Sindarov, Javokhir"]
+[Black "Giri, Anish"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2745"]
+[BlackElo "2753"]
+[ECO "D38"]
+[Opening "QGD"]
+[Variation "Ragozin variation"]
+[WhiteFideId "14205483"]
+[BlackFideId "24116068"]
+[EventDate "2026.03.29"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 Bb4 5. Bg5 h6 6. Bxf6 Qxf6 7. e3 O-O 8. Rc1
+dxc4 9. Bxc4 c5 10. O-O cxd4 11. Ne4 Qe7 12. exd4 Rd8 13. Qe2 Nc6 14. Rfd1 Ba5
+15. Bb5 Bd7 16. Nc5 Be8 17. d5 exd5 18. Qxe7 Nxe7 19. Nxb7 Rdb8 20. Nxa5 Rxb5
+21. Nb3 a5 22. Rd2 a4 23. Nbd4 Rb7 24. h3 Rab8 25. b3 axb3 26. axb3 f6 27. g4 h5
+28. Ne1 hxg4 29. hxg4 Ng6 30. f3 Ne5 31. Kf2 g5 32. Nd3 Bd7 33. Kg3 Nxd3 34.
+Rxd3 Rb6 35. Rd2 Kf7 36. Rc5 R8b7 37. Rh2 Rd6 38. Kf2 Kg7 39. Ra5 Rb4 40. Ke3
+Rdb6 41. Rxd5 Be6 42. Rd8 Rxb3+ 43. Nxb3 Rxb3+ 44. Kf2 Rb2+ 45. Kg3 Rxh2 46.
+Kxh2 Kf7 47. Kg3 Ke7 48. Ra8 Kf7 49. Ra7+ Kf8 50. Kf2 Ke8 51. Ke3 Kf8 52. Kd4
+Ke8 53. Kc5 Kf8 54. Rb7 Ba2 55. Rc7 Bb3 56. Kd6 Ba2 57. Rc2 Bb3 58. Rb2 Bc4 59.
+Rb4 Ba2 60. Rb5 Kf7 61. Rb7+ Kf8 62. Rb2 Bc4 63. Rf2 Bb3 64. Rf1 Bc4 65. Ra1 Bb3
+66. Ra3 Bc4 67. Ra5 Kf7 68. Ra7+ Kf8 69. Kd7 Kf7 70. Rc7 Bb3 71. Rc5 Be6+ 72.
+Kc6 Bb3 73. Rf5 Be6 74. Kd6 Bb3 75. Rb5 Ba2 76. Rb4 Kf8 77. f4 gxf4 78. Rxf4 Kg7
+79. Ke7 Kg6 80. Rxf6+ Kg5 81. Rf2 Bb3 82. Rg2 Bd1 83. Ke6 Bxg4+ 84. Ke5 Kh5 85.
+Rxg4 Kxg4 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.05"]
+[Round "7.2"]
+[White "Praggnanandhaa, R"]
+[Black "Caruana, Fabiano"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2741"]
+[BlackElo "2795"]
+[ECO "D17"]
+[Opening "QGD Slav"]
+[Variation "Krause attack"]
+[WhiteFideId "25059530"]
+[BlackFideId "2020009"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3 dxc4 5. a4 Bf5 6. Ne5 Qc7 7. Nxc4 Na6 8. f3
+Rd8 9. e4 Be6 10. Ne5 Nb4 11. Be3 a5 12. Bc4 Nd7 13. Bxe6 Nxe5 14. O-O fxe6 15.
+Bf4 Nbd3 16. Qxd3 Nxd3 17. Bxc7 Rxd4 18. Rfd1 Rd7 19. Bxa5 g6 20. Ne2 Bg7 21.
+Bc3 Bxc3 22. Nxc3 Kf7 23. a5 Rhd8 24. a6 bxa6 25. Rxa6 Rd6 26. h4 Rb8 27. Rd2 h6
+28. Nd1 g5 29. h5 Ne5 30. Rxd6 exd6 31. Ra7+ Kf8 32. Kf1 d5 33. exd5 cxd5 34.
+Ra6 Ke7 35. Ra7+ Kf8 36. Ra6 Ke7 37. Ra7+ Kf8 38. Ra6 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.05"]
+[Round "7.3"]
+[White "Bluebaum, Matthias"]
+[Black "Nakamura, Hikaru"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2810"]
+[ECO "D37"]
+[Opening "QGD"]
+[Variation "4.Nf3"]
+[WhiteFideId "24651516"]
+[BlackFideId "2016192"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. Nc3 h6 5. a3 c6 6. e3 Nbd7 7. Bd3 Bd6 8. e4 dxe4
+9. Nxe4 Nxe4 10. Bxe4 O-O 11. O-O e5 12. Bc2 Bc7 13. Re1 exd4 14. Qxd4 Ne5 15.
+Qe4 Nxf3+ 16. Kh1 g6 17. Qxf3 Qh4 18. h3 Bd7 19. Be3 Rfe8 20. Rad1 Rad8 21. Bxa7
+Qxc4 22. Bb6 Rxe1+ 23. Rxe1 Qxc2 24. Bxc7 Re8 25. Rxe8+ Bxe8 26. Be5 Qb1+ 27.
+Kh2 Qf5 28. Qe3 Qe6 29. Qd4 g5 30. Bh8 Kf8 31. f4 gxf4 32. Qxf4 Ke7 33. Bg7 h5
+34. Bc3 Kd7 35. Kh1 b5 36. Ba5 Qd5 37. Qb8 Qd1+ 38. Kh2 Qd6+ 39. Qxd6+ Kxd6 40.
+Kg3 f6 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.05"]
+[Round "7.4"]
+[White "Esipenko, Andrey"]
+[Black "Wei, Yi"]
+[Result "0-1"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2754"]
+[ECO "C43"]
+[Opening "Petrov"]
+[Variation "modern attack, Symmetrical variation"]
+[WhiteFideId "24175439"]
+[BlackFideId "8603405"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nf3 Nf6 3. d4 Nxe4 4. Qe2 d5 5. Nxe5 Be7 6. f3 Nd6 7. Nc3 Nf5 8. Qf2
+O-O 9. Bf4 f6 10. Nd3 Nc6 11. Ne2 Nb4 12. Nxb4 Bxb4+ 13. c3 Bd6 14. Bd2 Qe8 15.
+Kd1 Qa4+ 16. Kc1 b5 17. Nf4 c5 18. Bd3 cxd4 19. Bc2 Qa6 20. cxd4 Bd7 21. Kb1
+Rac8 22. Bd3 Rc4 23. Ne2 Ne7 24. g4 Rfc8 25. h4 b4 26. b3 Bb5 27. bxc4 Bxc4 28.
+Bc2 Bd3 29. Bc3 bxc3 30. Nc1 Rb8+ 0-1
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.07"]
+[Round "8.1"]
+[White "Esipenko, Andrey"]
+[Black "Sindarov, Javokhir"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2745"]
+[ECO "A13"]
+[Opening "English opening"]
+[WhiteFideId "24175439"]
+[BlackFideId "14205483"]
+[EventDate "2026.03.29"]
+
+1. c4 e6 2. g3 d5 3. Bg2 Nf6 4. Nf3 Bd6 5. O-O O-O 6. d4 Nc6 7. e3 Re8 8. Nbd2
+a5 9. b3 a4 10. Bb2 Bb4 11. a3 Bxd2 12. Nxd2 axb3 13. Qxb3 Na5 14. Qc2 Bd7 15.
+Rfc1 dxc4 16. Nxc4 Bc6 17. Nxa5 Bxg2 18. Kxg2 Qd5+ 19. Kg1 Rxa5 20. Qxc7 h5 21.
+Qe5 Qd8 22. Qc7 Qd5 23. Qe5 Qd8 24. Qc7 Qd5 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.07"]
+[Round "8.2"]
+[White "Nakamura, Hikaru"]
+[Black "Caruana, Fabiano"]
+[Result "1-0"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2810"]
+[BlackElo "2795"]
+[ECO "A33"]
+[Opening "English"]
+[Variation "symmetrical variation"]
+[WhiteFideId "2016192"]
+[BlackFideId "2020009"]
+[EventDate "2026.03.29"]
+
+1. c4 c5 2. Nf3 Nc6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 e6 6. Bf4 d5 7. cxd5 Nxd5 8.
+Nxc6 bxc6 9. Bd2 Bb4 10. Qa4 a5 11. e4 Nxc3 12. bxc3 Be7 13. Be2 O-O 14. Bf4 Ba6
+15. Bxa6 Rxa6 16. Rd1 Qb6 17. O-O Qb5 18. Qc2 Bc5 19. c4 Qb7 20. Be5 Qe7 21. Qd3
+f6 22. Bd6 Bxd6 23. Qxd6 Qxd6 24. Rxd6 Rb8 25. Rxe6 Rb2 26. Re7 Rab6 27. Ra7
+Rxa2 28. h3 h5 29. Rd1 Rbb2 30. Rd8+ Kh7 31. Rdd7 Rxf2 32. Rxg7+ Kh8 33. Rh7+
+Kg8 34. Rag7+ Kf8 35. Rf7+ Kg8 36. Rhg7+ Kh8 37. Rg6 Rf4 38. Rfxf6 Rxf6 39. Rxf6
+Kg7 40. Rxc6 Rc2 41. Rc5 Kg6 42. Rxa5 Rxc4 43. Re5 h4 44. Kf2 Rc2+ 45. Kf3 Rc3+
+46. Kg4 Rg3+ 47. Kxh4 Rxg2 48. Rf5 Rg1 49. Rf4 Ra1 50. Kg3 Rg1+ 51. Kf3 Rf1+ 52.
+Ke3 Re1+ 53. Kd4 Ra1 54. Rf5 Rh1 55. Rf3 Ra1 56. h4 Ra4+ 57. Ke5 Ra5+ 58. Kf4
+Rh5 59. Kg4 Re5 60. Rf4 Kh6 61. Kf3 Kg6 62. Ke3 Ra5 63. Rg4+ Kf6 64. Rg5 Ra1 65.
+Rf5+ Kg6 66. h5+ Kh6 67. e5 1-0
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.07"]
+[Round "8.3"]
+[White "Giri, Anish"]
+[Black "Praggnanandhaa, R"]
+[Result "1-0"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2753"]
+[BlackElo "2741"]
+[ECO "D37"]
+[Opening "QGD"]
+[Variation "4.Nf3"]
+[WhiteFideId "24116068"]
+[BlackFideId "25059530"]
+[EventDate "2026.03.29"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 dxc4 5. e4 b5 6. e5 Nd5 7. Nxb5 Nb6 8. Be2
+Be7 9. O-O O-O 10. a4 Ba6 11. Na3 c5 12. a5 Nd5 13. Bxc4 Qxa5 14. Nc2 Qb6 15.
+Bxd5 exd5 16. Re1 Bb7 17. Bg5 Bxg5 18. Nxg5 h6 19. dxc5 Qxc5 20. Nf3 Nc6 21.
+Ncd4 Nxd4 22. Nxd4 Bc8 23. Qd2 Rb8 24. Rec1 Qb6 25. b3 Bd7 26. h3 Rfc8 27. Rd1
+Rc5 28. Kh2 a5 29. f4 f6 30. Re1 Re8 31. Re2 fxe5 32. fxe5 Qc7 33. Rae1 a4 34.
+bxa4 Bxa4 35. Kh1 Qf7 36. e6 Qg6 37. Rf2 Rc4 38. Rf4 h5 39. Qf2 Bc2 40. e7 Be4
+41. Rf8+ Kh7 42. Rxe8 Qxe8 43. Rxe4 dxe4 44. Qf5+ 1-0
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.07"]
+[Round "8.4"]
+[White "Wei, Yi"]
+[Black "Bluebaum, Matthias"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2754"]
+[BlackElo "2698"]
+[ECO "C28"]
+[Opening "Vienna game"]
+[WhiteFideId "8603405"]
+[BlackFideId "24651516"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nc3 Nf6 3. Bc4 Nc6 4. d3 Bb4 5. Nf3 d5 6. exd5 Nxd5 7. O-O Bxc3 8.
+bxc3 Bg4 9. Re1 O-O 10. Bd2 Bh5 11. a4 Kh8 12. a5 Rb8 13. Bb5 Nde7 14. Ra4 Qd5
+15. Bc4 Qd6 16. Bc1 f6 17. Ba3 Qd7 18. Bb5 Rfd8 19. Rh4 Bf7 20. Bxe7 Qxe7 21. d4
+Bg6 22. a6 Qd6 23. Bd3 Bxd3 24. Qxd3 h6 25. axb7 Rxb7 26. g4 Kg8 27. Rh5 Qd7 28.
+h3 Qf7 29. Qe4 Qd5 30. Qe2 Re8 31. c4 Qf7 32. Qe4 Qxc4 33. Rxh6 gxh6 34. Qg6+
+Kf8 35. Qxf6+ Kg8 36. Qg6+ Kf8 37. Qf6+ Kg8 38. Qg6+ Kf8 39. Qxh6+ Kg8 40. Qg6+
+Kf8 41. Qf6+ Kg8 42. Ng5 Nxd4 43. Qg6+ Kf8 44. Qf6+ Kg8 45. Qg6+ Kf8 46. Qh6+
+Ke7 47. Rxe5+ Kd8 48. Qf6+ Kd7 49. Qg7+ Kd8 50. Qf6+ Kd7 51. Qg7+ Kd8 52. Qf6+ 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.08"]
+[Round "9.1"]
+[White "Bluebaum, Matthias"]
+[Black "Sindarov, Javokhir"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2745"]
+[ECO "D37"]
+[Opening "QGD"]
+[Variation "classical variation (5.Bf4)"]
+[WhiteFideId "24651516"]
+[BlackFideId "14205483"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. Nc3 Be7 5. Bf4 dxc4 6. e4 b5 7. Nxb5 Bb4+ 8. Bd2
+Bxd2+ 9. Nxd2 O-O 10. Bxc4 a6 11. Nc3 Qxd4 12. Qe2 Bb7 13. O-O-O Qb6 14. f4 Nbd7
+15. g4 Nc5 16. g5 Ne8 17. Bb3 Nd6 18. Bc2 a5 19. Nc4 Nxc4 20. Qxc4 Rfb8 21. Qd4
+Bc6 22. b3 a4 23. Nxa4 Nxa4 24. bxa4 Bxa4 25. Qxb6 cxb6 26. Bb3 Bxb3 27. axb3
+Ra2 28. Kb1 Rba8 29. f5 exf5 30. exf5 R2a5 31. Rhf1 g6 32. fxg6 hxg6 33. h4 Ra2
+34. Rd8+ Rxd8 35. Kxa2 Rd4 36. Rh1 b5 37. Kb2 b4 38. Kc2 Kg7 39. Rh2 f5 40.
+gxf6+ Kxf6 41. Rh1 Kf7 42. Rh2 Kg8 43. h5 g5 44. h6 Rh4 45. Rg2 g4 46. Kd3 Kh7
+47. Ke4 Kxh6 48. Kf5 Rh5+ 49. Kf4 Rh3 50. Kxg4 Rxb3 51. Kf4 Rc3 52. Rb2 b3 53.
+Ke4 Rc4+ 54. Kd3 Rb4 55. Kc3 Rb8 56. Rb1 b2 57. Kc2 Rc8+ 58. Kxb2 Rb8+ 59. Kc2
+Rxb1 60. Kxb1 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.08"]
+[Round "9.2"]
+[White "Caruana, Fabiano"]
+[Black "Giri, Anish"]
+[Result "0-1"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2795"]
+[BlackElo "2753"]
+[ECO "C50"]
+[Opening "Giuoco Piano"]
+[WhiteFideId "2020009"]
+[BlackFideId "24116068"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. O-O Nf6 5. d3 O-O 6. Nbd2 d6 7. c3 a5 8. h3
+Be6 9. Bb5 Ba7 10. Re1 Ne7 11. d4 Ng6 12. Bd3 Nh5 13. Nf1 Nhf4 14. Ng3 Nxd3 15.
+Qxd3 a4 16. d5 Bd7 17. Bg5 f6 18. Be3 Bxe3 19. fxe3 b5 20. b4 axb3 21. axb3 Qb8
+22. c4 Qb6 23. Nf5 Rfe8 24. N3h4 b4 25. Kh2 Ra3 26. Rab1 Ra2 27. Qd1 Nxh4 28.
+Nxh4 Rea8 29. Re2 Qa7 30. Rc1 Qb6 31. Nf3 h6 32. Ne1 Kh7 33. Rxa2 Rxa2 34. Nc2
+Be8 35. Qd3 Bg6 36. Ra1 Rxa1 37. Nxa1 c5 38. Kg3 Qa7 39. Qb1 h5 40. Kf3 h4 41.
+Kg4 Qe7 42. Qd3 f5+ 43. exf5 Kh6 0-1
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.08"]
+[Round "9.3"]
+[White "Praggnanandhaa, R"]
+[Black "Wei, Yi"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2741"]
+[BlackElo "2754"]
+[ECO "D40"]
+[Opening "QGD"]
+[Variation "Semi-Tarrasch defence, Pillsbury variation"]
+[WhiteFideId "25059530"]
+[BlackFideId "8603405"]
+[EventDate "2026.03.29"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 c5 5. Bg5 cxd4 6. Nxd4 dxc4 7. e3 Be7 8.
+Bxc4 O-O 9. O-O Bd7 10. Nf3 Nc6 11. e4 Rc8 12. Qe2 Ng4 13. Bf4 Bf6 14. Bd6 Re8
+15. Rad1 Nge5 16. Nxe5 Bxe5 17. Bb3 Qb6 18. Bxe5 Nxe5 19. Kh1 Rcd8 20. Qh5 Nc6
+21. e5 Qb4 22. Rd3 Qf4 23. Rf3 Qxe5 24. Qxf7+ Kh8 25. Rd1 Bc8 26. h3 Rxd1+ 27.
+Nxd1 Rg8 28. Re3 Qd6 29. Nc3 Nd4 30. Ne4 Qe5 31. f4 Qf5 32. Nd6 Qc5 33. Qe7 Qc1+
+34. Kh2 h6 35. Re4 Nxb3 36. axb3 Kh7 37. Rc4 Qd2 38. Qc7 b5 39. Re4 Qd3 40. Re1
+Qd2 41. Rf1 Ba6 42. Qc6 Rd8 43. Nf7 Rd7 44. Qe4+ g6 45. f5 exf5 46. Qe8 Qd4 47.
+Rf3 Rc7 48. Ne5 Rg7 49. Nf7 Rg8 50. Qe7 Qg7 51. Rd3 Bc8 52. Rc3 Rf8 53. Rc7 Kg8
+54. Nd6 Qxe7 55. Rxe7 a6 56. Nxc8 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.08"]
+[Round "9.4"]
+[White "Nakamura, Hikaru"]
+[Black "Esipenko, Andrey"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2810"]
+[BlackElo "2698"]
+[ECO "D55"]
+[Opening "QGD"]
+[Variation "6.Nf3"]
+[WhiteFideId "2016192"]
+[BlackFideId "24175439"]
+[EventDate "2026.03.29"]
+
+1. c4 e6 2. Nc3 d5 3. d4 Be7 4. Nf3 Nf6 5. Bg5 O-O 6. e3 c5 7. cxd5 Nxd5 8. Bxe7
+Qxe7 9. Nxd5 exd5 10. dxc5 Qxc5 11. Be2 Nc6 12. O-O Qb6 13. Qd2 Rd8 14. Rfd1 Bg4
+15. h3 Bxf3 16. Bxf3 d4 17. Bxc6 dxe3 18. Qxe3 bxc6 19. Qc3 h6 20. Rac1 c5 21.
+b3 Qa6 22. Rd2 Rxd2 23. Qxd2 Qb6 24. Qe3 Rc8 25. Rc4 a5 26. g3 h5 27. h4 g6 28.
+Qc3 Kh7 29. Qe5 Qc7 30. Qe3 Qd6 31. Kh2 Kg8 32. Qc3 Qb6 33. Qc2 Kg7 34. Qe2 Kg8
+35. Qe3 Kg7 36. Ra4 Kg8 37. Re4 Kg7 38. Rf4 Qc7 39. Ra4 Kg8 40. Qc3 Qb6 41. Rxa5
+c4 42. Kg1 Qc6 43. Re5 cxb3 44. Qxc6 Rxc6 45. axb3 Rb6 46. Re3 f6 47. f4 Kf7 48.
+Kf2 g5 49. fxg5 fxg5 50. hxg5 Kg6 51. Ke2 Kxg5 52. Kd2 Rb8 53. Kc3 Rc8+ 54. Kb2
+Rb8 55. Re7 Kg4 56. Rg7+ Kf5 57. Ka2 Ra8+ 58. Kb1 Rc8 59. Kb2 Rb8 60. Rd7 Kg4
+61. Rd5 Rh8 62. Rd3 Rb8 63. Kc3 Rc8+ 64. Kd2 Rb8 65. Ke2 Rb4 66. Rc3 Rb8 67. Kf2
+Kg5 68. Rd3 Rb7 69. Kf3 Rb8 70. Ke4 Kg4 71. Rc3 Re8+ 72. Kd5 Rd8+ 73. Ke5 Rb8
+74. Kd6 Kh3 75. Kd5 Kg4 76. Re3 Kh3 77. Kc4 Rc8+ 78. Kd3 Rb8 79. Kc3 Rc8+ 80.
+Kb2 Rb8 81. Re5 Kg4 82. Rc5 Rh8 83. Rc3 Rb8 84. Rd3 Kh3 85. Kc3 Rc8+ 86. Kd2 Rb8
+87. Ke2 Kg4 88. Kf2 Kg5 89. Kg2 Rb7 90. Kf3 Rb8 91. Rc3 Rf8+ 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.09"]
+[Round "10.1"]
+[White "Sindarov, Javokhir"]
+[Black "Praggnanandhaa, R"]
+[Result "1-0"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2745"]
+[BlackElo "2741"]
+[ECO "D37"]
+[Opening "QGD"]
+[Variation "4.Nf3"]
+[WhiteFideId "14205483"]
+[BlackFideId "25059530"]
+[EventDate "2026.03.29"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 Nbd7 5. Bf4 Bb4 6. cxd5 exd5 7. e3 Ne4 8.
+Qc2 g5 9. Bg3 h5 10. Bd3 h4 11. Bxe4 dxe4 12. Qxe4+ Kf8 13. Be5 f6 14. Nxg5
+Bxc3+ 15. bxc3 Nxe5 16. dxe5 fxg5 17. f4 h3 18. Rd1 Qe7 19. g3 gxf4 20. O-O Rh6
+21. Rxf4+ Kg8 22. Rdf1 Bd7 23. Rf7 Qxf7 24. Rxf7 Kxf7 25. Qf4+ Kg7 26. Qg5+ Kh7
+27. Qe7+ Kg8 28. Qxd7 Rf8 29. Qg4+ Kh8 30. a4 a5 31. Qg5 Rh7 32. e6 Re8 33. Qxa5
+b6 34. Qe5+ Kg8 35. Qg5+ Rg7 36. Qf5 Rge7 37. Qg4+ Kf8 38. Qxh3 Rxe6 39. Kf2
+R8e7 40. Qh8+ Kf7 41. g4 Re4 42. Qh5+ Kg7 43. Qg5+ Kf7 44. Kf3 Rxa4 45. h4 Ra5
+46. Qh6 Rae5 47. Qh7+ Kf8 48. Qh8+ Kf7 49. e4 b5 50. h5 c5 51. h6 Rg5 52. Qd8
+Rg8 53. Qd5+ 1-0
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.09"]
+[Round "10.2"]
+[White "Giri, Anish"]
+[Black "Nakamura, Hikaru"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2753"]
+[BlackElo "2810"]
+[ECO "D31"]
+[Opening "QGD"]
+[Variation "3.Nc3"]
+[WhiteFideId "24116068"]
+[BlackFideId "2016192"]
+[EventDate "2026.03.29"]
+
+1. c4 e6 2. Nc3 d5 3. d4 h6 4. cxd5 exd5 5. Bf4 c6 6. e3 Bd6 7. Nge2 Na6 8. Bxd6
+Qxd6 9. Ng3 Nc7 10. Bd3 Nf6 11. h3 Bd7 12. Qb3 b6 13. O-O O-O 14. Rad1 Rfe8 15.
+Rfe1 Rad8 16. Bb1 Ne6 17. e4 dxe4 18. Ncxe4 Nxe4 19. Nxe4 Qb8 20. Qc2 Nf8 21.
+Re3 Kh8 22. a3 Re7 23. Nc5 Rxe3 24. Nxd7 Rxd7 25. fxe3 c5 26. dxc5 Rxd1+ 27.
+Qxd1 bxc5 28. Ba2 Qxb2 29. Bxf7 Qxa3 30. Qd6 Qxe3+ 31. Kh2 Nd7 32. Qxd7 Qe5+ 33.
+Kh1 Qe1+ 34. Kh2 Qe5+ 35. Kh1 Qe1+ 36. Kh2 Qe5+ 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.09"]
+[Round "10.3"]
+[White "Esipenko, Andrey"]
+[Black "Bluebaum, Matthias"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2698"]
+[ECO "C42"]
+[Opening "Petrov"]
+[Variation "Paulsen attack"]
+[WhiteFideId "24175439"]
+[BlackFideId "24651516"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nxe5 d6 4. Nc4 Nxe4 5. Qe2 Qe7 6. d4 Nc6 7. c3 d5 8. Ne3
+Be6 9. Nd2 f5 10. Nxe4 fxe4 11. f3 exf3 12. Qxf3 O-O-O 13. Bd3 Qd7 14. O-O g6
+15. Nc2 Bg7 16. Bg5 Rdf8 17. Qg3 Rxf1+ 18. Rxf1 Rf8 19. Qh4 Rxf1+ 20. Bxf1 Bf8
+21. Ne3 Qf7 22. Qf2 Qxf2+ 23. Kxf2 Nd8 24. Bd3 Nf7 25. Bf4 Kd7 26. h4 c5 27. Nc2
+c4 28. Be2 Be7 29. g3 g5 30. hxg5 Nxg5 31. Ke3 Bf5 32. Ne1 a6 33. Nf3 Nxf3 34.
+Bxf3 Ke6 35. a3 b5 36. Bc7 Bg5+ 37. Bf4 Be7 38. Bc7 Bg5+ 39. Bf4 Be7 40. Bc7
+Bg5+ 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.09"]
+[Round "10.4"]
+[White "Wei, Yi"]
+[Black "Caruana, Fabiano"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2754"]
+[BlackElo "2795"]
+[ECO "C15"]
+[Opening "French"]
+[Variation "Winawer, Alekhine (Maroczy) gambit"]
+[WhiteFideId "8603405"]
+[BlackFideId "2020009"]
+[EventDate "2026.03.29"]
+
+1. e4 e6 2. d4 d5 3. Nc3 Bb4 4. Ne2 Ne7 5. a3 Bxc3+ 6. Nxc3 Nbc6 7. Bf4 dxe4 8.
+Qd2 e5 9. dxe5 Qxd2+ 10. Bxd2 Bf5 11. O-O-O O-O-O 12. Re1 Nxe5 13. Nxe4 f6 14.
+Ng3 Bg6 15. f4 N5c6 16. Bc4 Nd5 17. Rhf1 h5 18. f5 Bf7 19. Ne4 h4 20. g4 hxg3
+21. hxg3 Ne5 22. Be2 Ne7 23. g4 Bd5 24. Nc5 N7c6 25. Bc3 Rh2 26. Nd3 Bc4 27.
+Nxe5 Bxe2 28. Nxc6 bxc6 29. Rg1 Rd5 30. g5 Rxf5 31. gxf6 gxf6 32. Rg6 Bf3 33.
+Rxf6 Rxf6 34. Bxf6 Rh1 35. Rxh1 Bxh1 36. Kb1 Bg2 37. Kc1 Bh1 38. Kb1 Bg2 39. Kc1
+Bh1 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.11"]
+[Round "11.1"]
+[White "Caruana, Fabiano"]
+[Black "Sindarov, Javokhir"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2795"]
+[BlackElo "2745"]
+[ECO "A14"]
+[Opening "English"]
+[Variation "Neo-Catalan declined"]
+[WhiteFideId "2020009"]
+[BlackFideId "14205483"]
+[EventDate "2026.03.29"]
+
+1. Nf3 d5 2. c4 e6 3. g3 Nf6 4. Bg2 Be7 5. O-O O-O 6. d4 dxc4 7. Ne5 Nc6 8. Bxc6
+bxc6 9. Nxc6 Qe8 10. Nxe7+ Qxe7 11. Be3 Nd5 12. Qc1 Rb8 13. Nc3 Nxe3 14. Qxe3
+Rxb2 15. Rab1 Rxb1 16. Rxb1 a6 17. f3 Bd7 18. Kf2 Bc6 19. d5 Bd7 20. Rb7 Qd6 21.
+Ne4 Qxd5 22. Rxc7 e5 23. Qc5 Be6 24. Qxd5 Bxd5 25. Nc3 Be6 26. Rc5 f6 27. Rc6
+Kf7 28. Rxa6 Rb8 29. Ra7+ Kg6 30. Re7 Rb6 31. g4 h5 32. gxh5+ Kh6 33. Ke1 Bf5
+34. Rc7 Be6 35. Kd2 Rd6+ 36. Kc2 Rd7 37. Rc6 Bf7 38. a4 Ra7 39. Kb2 Kxh5 40. Ka3
+Rb7 41. Nb5 Kg5 42. Rc5 Kf4 43. a5 Ke3 44. a6 Rb6 45. a7 Ra6+ 46. Kb4 Be8 47.
+Rc7 Kxe2 48. Nc3+ Kxf3 49. Rxg7 e4 50. Re7 f5 51. Rxe8 Rxa7 52. Rf8 Rh7 53.
+Rxf5+ Kg2 54. Nxe4 Kxh2 55. Nf6 Rc7 56. Rc5 Rxc5 57. Kxc5 c3 58. Ng4+ 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.11"]
+[Round "11.2"]
+[White "Giri, Anish"]
+[Black "Esipenko, Andrey"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2753"]
+[BlackElo "2698"]
+[ECO "D31"]
+[Opening "QGD"]
+[Variation "Charousek (Petrosian) variation"]
+[WhiteFideId "24116068"]
+[BlackFideId "24175439"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Be7 4. cxd5 exd5 5. Bf4 Nf6 6. e3 O-O 7. Nf3 c5 8. dxc5
+Bxc5 9. Be2 Nc6 10. O-O Be6 11. Qa4 h6 12. Rfd1 Qb6 13. Qb5 a6 14. Qxb6 Bxb6 15.
+Na4 Ba7 16. Bd6 Rfc8 17. Bc5 Bxc5 18. Nxc5 Ne5 19. Rac1 Ned7 20. Nd3 Kf8 21. Nd4
+Ke7 22. f3 Ne8 23. Kf2 Nd6 24. g4 g5 25. h4 Nc4 26. Rh1 Nce5 27. Nxe5 Nxe5 28.
+Rcd1 Rh8 29. Kg3 Nc6 30. Nxe6 fxe6 31. f4 Rag8 32. fxg5 hxg5 33. hxg5 Ne5 34.
+Rxh8 Rxh8 35. e4 dxe4 36. Rd4 Rg8 37. Rb4 b5 38. Rxe4 Rxg5 39. a4 Nf7 40. axb5
+axb5 41. Rd4 Nd6 42. Kf2 Rc5 43. Ke3 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.11"]
+[Round "11.3"]
+[White "Nakamura, Hikaru"]
+[Black "Wei, Yi"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2810"]
+[BlackElo "2754"]
+[ECO "A14"]
+[Opening "English"]
+[Variation "Neo-Catalan declined"]
+[WhiteFideId "2016192"]
+[BlackFideId "8603405"]
+[EventDate "2026.03.29"]
+
+1. Nf3 Nf6 2. c4 e6 3. g3 d5 4. Bg2 Be7 5. O-O O-O 6. d4 dxc4 7. Qc2 a6 8. a4
+Bd7 9. Qxc4 Bc6 10. Bg5 Bd5 11. Qc2 Be4 12. Qc1 Nc6 13. e3 h6 14. Bxf6 Bxf6 15.
+Nbd2 Bd3 16. Rd1 Nb4 17. Qc3 a5 18. Nb3 Be4 19. Rdc1 Nd3 20. Rd1 Nb4 21. Rdc1
+Nd3 22. Rd1 Nb4 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.11"]
+[Round "11.4"]
+[White "Praggnanandhaa, R"]
+[Black "Bluebaum, Matthias"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2741"]
+[BlackElo "2698"]
+[ECO "C42"]
+[Opening "Petrov's defence"]
+[WhiteFideId "25059530"]
+[BlackFideId "24651516"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nxe5 d6 4. Nd3 Nxe4 5. Nc3 Nf6 6. Nf4 d5 7. d4 Be7 8. Qf3
+c6 9. Bd3 O-O 10. h3 Na6 11. Bxa6 bxa6 12. Nd3 a5 13. O-O Ba6 14. Re1 Re8 15.
+Bg5 Qb6 16. Ne5 Rac8 17. Re3 Qxd4 18. Rae1 h6 19. Nd7 Nxd7 20. Rxe7 Rxe7 21.
+Rxe7 Ne5 22. Qe3 Qb4 23. Qxe5 hxg5 24. b3 Rf8 25. Rc7 Qb6 26. Na4 Qb5 27. Kh2
+Qb4 28. c3 Qa3 29. Rxa7 Bb5 30. Nb6 Qxa2 31. Qe3 Qxb3 32. Nd7 Rc8 33. Ne5 Re8
+34. Qf3 d4 35. Nxf7 Rf8 36. Nh6+ gxh6 37. Qe4 Bd3 38. Qe5 Rf7 39. Ra8+ Rf8 40.
+Ra7 Rf7 41. Ra8+ Rf8 42. Ra7 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.12"]
+[Round "12.1"]
+[White "Sindarov, Javokhir"]
+[Black "Nakamura, Hikaru"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2745"]
+[BlackElo "2810"]
+[ECO "D37"]
+[Opening "QGD"]
+[Variation "4.Nf3"]
+[WhiteFideId "14205483"]
+[BlackFideId "2016192"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. Nc3 h6 5. g3 Be7 6. Bg2 O-O 7. O-O dxc4 8. Ne5
+Nc6 9. Bxc6 bxc6 10. Nxc6 Qe8 11. Nxe7+ Qxe7 12. Qa4 a5 13. Qxc4 Ba6 14. Qc5
+Qxc5 15. dxc5 Rfd8 16. Re1 Nd5 17. Nxd5 Rxd5 18. Be3 a4 19. f3 f6 20. Kf2 c6 21.
+Red1 Bc4 22. Rd4 Rxd4 23. Bxd4 Rd8 24. Bc3 h5 25. Ke1 e5 26. Rd1 Rxd1+ 27. Kxd1
+Bxa2 28. e4 Bb3+ 29. Kd2 Bc4 30. Ba5 Bb3 31. Bc3 Bc4 32. Ba5 Bb3 33. Bc3 Bc4 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.12"]
+[Round "12.2"]
+[White "Wei, Yi"]
+[Black "Giri, Anish"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2754"]
+[BlackElo "2753"]
+[ECO "C26"]
+[Opening "Vienna game"]
+[WhiteFideId "8603405"]
+[BlackFideId "24116068"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nc3 Nf6 3. Bc4 Bc5 4. d3 O-O 5. f4 exf4 6. Bxf4 c6 7. d4 Bb4 8. Ne2
+Nxe4 9. O-O d5 10. Nxe4 dxc4 11. c3 Be7 12. N2g3 Na6 13. Qe2 Nc7 14. Qxc4 Nd5
+15. Bd2 a5 16. Nf5 Bxf5 17. Rxf5 g6 18. Rf3 f5 19. Nc5 b5 20. Qf1 Bxc5 21. dxc5
+a4 22. c4 bxc4 23. Qxc4 Re8 24. Re3 Rxe3 25. Bxe3 Rb8 26. Bh6 Qf6 27. Rd1 g5 28.
+Rxd5 cxd5 29. Qxd5+ Qf7 30. Qd2 f4 31. c6 Qa7+ 32. Kh1 Qc5 33. c7 Re8 34. h3
+Qxc7 35. Bxg5 f3 36. gxf3 Qc4 37. Kg1 Qxa2 38. Kf2 Qe6 39. h4 Rb8 40. Bf4 Qb6+
+41. Kg3 Rd8 42. Qe2 Qc6 43. h5 Kf7 44. Qe5 Qd5 45. Qc7+ Rd7 46. Qc2 Qxh5 47.
+Qc4+ Kf8 48. Qb4+ Kg8 49. Qc4+ Rf7 50. Qc8+ Rf8 51. Qc4+ Qf7 52. Qxa4 Qg6+ 53.
+Kh2 h6 54. Qb3+ Kh7 55. Bg3 Rg8 56. Qb7+ Rg7 57. Qb8 Qc2+ 58. Kh3 Qf5+ 59. Kg2
+Qc2+ 60. Kh3 Qd1 61. Qf4 Qh1+ 62. Bh2 Qf1+ 63. Kh4 Qe1+ 64. Bg3 Qh1+ 65. Bh2 Qb1
+66. Bg3 Re7 67. b4 Qh1+ 68. Bh2 Qe1+ 69. Bg3 Qb1 70. Kh3 Qf1+ 71. Kh4 Qb5 72.
+Kh3 Qd5 73. Kg2 Re2+ 74. Bf2 Re7 75. Bg3 Qa2+ 76. Kh3 Qd5 77. Kg2 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.12"]
+[Round "12.3"]
+[White "Bluebaum, Matthias"]
+[Black "Caruana, Fabiano"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2795"]
+[ECO "D37"]
+[Opening "QGD"]
+[Variation "4.Nf3"]
+[WhiteFideId "24651516"]
+[BlackFideId "2020009"]
+[EventDate "2026.03.29"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 Nbd7 5. cxd5 exd5 6. Qc2 Bb4 7. Bf4 O-O 8.
+e3 Nh5 9. Bg5 f6 10. Bh4 Nb6 11. Be2 g6 12. Nd2 Ng7 13. Bg3 c6 14. h3 Nf5 15.
+Bh2 Bd6 16. O-O Bxh2+ 17. Kxh2 Nd6 18. b4 Bf5 19. Qb3 Kg7 20. b5 cxb5 21. Nxb5
+Nxb5 22. Bxb5 Rf7 23. Rfc1 Rc7 24. Rxc7+ Qxc7+ 25. Kg1 Rc8 26. Qb4 Kf7 27. Nb3
+Nc4 28. Rc1 Qe7 29. Qa4 Nd6 30. Rxc8 Bxc8 31. Be2 b6 32. Bf3 Qb7 33. Nc1 Bf5 34.
+Ne2 Be4 35. Nc3 Bxf3 36. gxf3 Nf5 37. Qb3 Ne7 38. e4 Qd7 39. Kg2 Ke6 40. a4 g5
+41. Qc2 f5 42. Qb3 fxe4 43. fxe4 Kf6 44. Nxd5+ Nxd5 45. exd5 g4 46. Qc4 gxh3+
+47. Kh2 Qf5 48. Qc6+ Kg5 49. d6 Qxf2+ 50. Kxh3 Qe3+ 51. Kg2 Qd2+ 52. Kg3 Qd3+ 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.12"]
+[Round "12.4"]
+[White "Esipenko, Andrey"]
+[Black "Praggnanandhaa, R"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2741"]
+[ECO "A13"]
+[Opening "English opening"]
+[WhiteFideId "24175439"]
+[BlackFideId "25059530"]
+[EventDate "2026.03.29"]
+
+1. c4 e6 2. g3 d5 3. Bg2 d4 4. Nf3 Nc6 5. O-O Nh6 6. e3 g6 7. b4 dxe3 8. Bb2
+exf2+ 9. Rxf2 f6 10. b5 Na5 11. Qe2 a6 12. Ng5 Bc5 13. Ne4 Bxf2+ 14. Qxf2 Ng4
+15. Nxf6+ Nxf6 16. Bxf6 Rf8 17. Bxd8 Rxf2 18. Kxf2 Kxd8 19. Na3 axb5 20. cxb5
+Ra7 21. b6 cxb6 22. Nb5 Ra8 23. Nc3 Bd7 24. Rb1 Kc7 25. Rb4 Rf8+ 26. Ke3 Bc6 27.
+Be4 Kd6 28. Bd3 Kc5 29. a3 e5 30. Ne4+ Bxe4 31. Rxe4 Nc6 32. a4 Kd6 33. Rc4 Rd8
+34. h4 Rf8 35. Rc1 Nb4 36. Be4 Ra8 37. Rf1 Rxa4 38. Rf7 Ra3+ 39. d3 Nc2+ 40. Kf3
+Nb4 41. Rxh7 Nxd3 42. Kg2 Ra2+ 43. Kg1 Ra1+ 44. Kg2 Ra2+ 45. Kg1 Ra1+ 46. Kg2
+Ra2+ 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.14"]
+[Round "13.1"]
+[White "Giri, Anish"]
+[Black "Sindarov, Javokhir"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2753"]
+[BlackElo "2745"]
+[ECO "D31"]
+[Opening "QGD"]
+[Variation "Charousek (Petrosian) variation"]
+[WhiteFideId "24116068"]
+[BlackFideId "14205483"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Be7 4. cxd5 exd5 5. Bf4 Nf6 6. e3 O-O 7. Bd3 c5 8. Nge2
+Nc6 9. O-O Bg4 10. dxc5 Bxc5 11. h3 Bxe2 12. Nxe2 d4 13. e4 Re8 14. Ng3 Nd7 15.
+a3 Nde5 16. Bxe5 Nxe5 17. f4 Nxd3 18. Qxd3 Qb6 19. e5 Qa6 20. Qxa6 bxa6 21. Ne4
+Bb6 22. Nd6 Re6 23. Nc4 f6 24. Rad1 fxe5 25. fxe5 Rd8 26. Rf4 d3+ 27. Kf1 Bc7
+28. Re4 Rd5 29. Kf2 Bxe5 30. Rxe5 Rexe5 31. Nxe5 Rxe5 32. Rxd3 Rb5 33. b3 Kf7
+34. a4 Rb7 35. Ke2 Ke6 36. Re3+ Kd6 37. Kd2 a5 38. Rg3 g6 39. Kc3 Rc7+ 40. Kb2
+Rc5 41. h4 Re5 42. Rg4 Kc6 43. Rc4+ Kd6 44. g4 Re2+ 45. Ka3 h6 46. Rd4+ Kc6 47.
+Rf4 Rh2 48. g5 hxg5 49. Rf6+ Kb7 50. hxg5 Rg2 51. Rxg6 a6 52. Rg8 Ka7 53. Rg7+
+Kb6 54. g6 Kc6 55. Ra7 Kb6 56. Rg7 Kc6 57. Ra7 Kb6 58. Rg7 Kc6 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.14"]
+[Round "13.2"]
+[White "Caruana, Fabiano"]
+[Black "Praggnanandhaa, R"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2795"]
+[BlackElo "2741"]
+[ECO "E21"]
+[Opening "Nimzo-Indian"]
+[Variation "three knights variation"]
+[WhiteFideId "2020009"]
+[BlackFideId "25059530"]
+[EventDate "2026.03.29"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. Nf3 b6 5. Bg5 h6 6. Bh4 g5 7. Bg3 Ne4 8. Qc2
+Bb7 9. e3 d6 10. Bd3 Bxc3+ 11. bxc3 f5 12. c5 Nd7 13. cxd6 cxd6 14. O-O Qe7 15.
+Bxe4 Bxe4 16. Qe2 Bb7 17. Nd2 h5 18. Nc4 f4 19. exf4 h4 20. fxg5 hxg3 21. fxg3
+Rc8 22. g6 Ba6 23. g7 Rg8 24. Qh5+ Kd8 25. Rf7 Bxc4 26. Rxe7 Kxe7 27. Qg6 Nf6
+28. d5 Nxd5 29. h4 Nf6 30. h5 Nxh5 31. Qxh5 Rxg7 32. Rd1 Bd5 33. Qh4+ Kd7 34.
+Qa4+ Kd8 35. Rf1 Rxc3 36. Rf8+ Kc7 37. Qxa7+ Bb7 38. Qb8+ Kc6 39. Qe8+ Kc5 40.
+Qxe6 Rcxg3 41. Rf5+ Kc6 42. Rf2 Kc7 43. Rf7+ 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.14"]
+[Round "13.3"]
+[White "Nakamura, Hikaru"]
+[Black "Bluebaum, Matthias"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2810"]
+[BlackElo "2698"]
+[ECO "D53"]
+[Opening "QGD"]
+[Variation "4.Bg5 Be7"]
+[WhiteFideId "2016192"]
+[BlackFideId "24651516"]
+[EventDate "2026.03.29"]
+
+1. c4 e6 2. Nc3 d5 3. d4 Nf6 4. Bg5 Be7 5. Nf3 h6 6. Bxf6 Bxf6 7. cxd5 exd5 8.
+e3 O-O 9. Qb3 c6 10. Bd3 Qb6 11. Qc2 Be6 12. O-O Nd7 13. Na4 Qb4 14. a3 Qe7 15.
+b4 b5 16. Nc5 Nxc5 17. bxc5 a5 18. a4 b4 19. Rae1 Qd7 20. Nd2 g6 21. f4 Bf5 22.
+Bxf5 Qxf5 23. Qxf5 gxf5 24. Nf3 Kh7 25. Kf2 Rae8 26. Ke2 Rg8 27. g3 Re6 28. Kd3
+Rg7 29. Rg1 h5 30. h3 Kg8 31. Ref1 Bd8 32. Ne5 Bc7 33. Nf3 Bd8 34. Rf2 Rh6 35.
+Rfg2 Kf8 36. Ke2 Rg8 37. Rh2 Rg7 38. Ne5 Bc7 39. Nd3 Ke7 40. Kf3 Rg8 41. Rhg2 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.14"]
+[Round "13.4"]
+[White "Wei, Yi"]
+[Black "Esipenko, Andrey"]
+[Result "1-0"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2754"]
+[BlackElo "2698"]
+[ECO "C42"]
+[Opening "Petrov"]
+[Variation "Kaufmann attack"]
+[WhiteFideId "8603405"]
+[BlackFideId "24175439"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nxe5 d6 4. Nf3 Nxe4 5. c4 Be7 6. d4 d5 7. Bd3 Bb4+ 8. Kf1
+c6 9. Qc2 O-O 10. a3 Ba5 11. Bf4 Nd7 12. Nc3 Bxc3 13. bxc3 Qa5 14. cxd5 cxd5 15.
+c4 b6 16. Nd2 f5 17. Kg1 Bb7 18. f3 Rac8 19. h4 Ndc5 20. dxc5 Qxc5+ 21. Kh2 Qf2
+22. Kh3 Qd4 23. Bxe4 fxe4 24. Bg3 e3 25. Nb3 Qf6 26. c5 Ba6 27. Rac1 bxc5 28.
+Qd1 Bc4 29. Na5 Qe6+ 30. Kh2 Ba6 31. Nb3 Bc4 32. Na5 Ba6 33. Nb3 Bc4 34. Re1
+Rfe8 35. Na5 Ba6 36. Nb3 Bc4 37. Na5 Ba6 38. Qa4 Red8 39. Nb3 Bc4 40. Na5 Ba6
+41. Nb3 Bc4 42. Rc3 e2 43. Nc1 Qa6 44. Qc2 Re8 45. Nd3 Qf6 46. Rxe2 1-0
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.15"]
+[Round "14.1"]
+[White "Sindarov, Javokhir"]
+[Black "Wei, Yi"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2745"]
+[BlackElo "2754"]
+[ECO "C48"]
+[Opening "Four knights"]
+[Variation "Rubinstein counter-gambit, exchange variation"]
+[WhiteFideId "14205483"]
+[BlackFideId "8603405"]
+[EventDate "2026.03.29"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nc3 Nc6 4. Bb5 Nd4 5. Nxd4 exd4 6. e5 dxc3 7. exf6 Qxf6
+8. dxc3 Bc5 9. Qe2+ Qe6 10. O-O Qxe2 11. Bxe2 d5 12. Bf4 c6 13. c4 dxc4 14. Bxc4
+O-O 15. Rfe1 Bd7 16. Be3 Bxe3 17. Rxe3 Rfe8 18. Rae1 Rxe3 19. Rxe3 Re8 20. Rxe8+
+Bxe8 21. f4 Kf8 22. Kf2 Ke7 23. Ke3 f6 24. c3 Kd6 25. Bd3 h6 26. a3 c5 27. g3 b6
+28. Bc2 Bd7 29. Bd3 Be8 30. Bc2 Bd7 31. Bd3 Be8 32. Bc2 Bd7 1/2-1/2
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.15"]
+[Round "14.2"]
+[White "Bluebaum, Matthias"]
+[Black "Giri, Anish"]
+[Result "0-1"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2753"]
+[ECO "D38"]
+[Opening "QGD"]
+[Variation "Ragozin variation"]
+[WhiteFideId "24651516"]
+[BlackFideId "24116068"]
+[EventDate "2026.03.29"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 Bb4 5. Qa4+ Nc6 6. e3 O-O 7. Bd2 dxc4 8.
+Bxc4 Bd6 9. Ng5 a6 10. Qc2 h6 11. h4 Re8 12. a3 b5 13. Ba2 Bb7 14. O-O-O b4 15.
+d5 Nd4 16. exd4 bxc3 17. dxe6 cxd2+ 18. Qxd2 fxe6 19. Nxe6 Qc8 20. Qa5 Bd5 21.
+Bxd5 Nxd5 22. Nxg7 Kxg7 23. Qxd5 Qe6 24. Qxe6 Rxe6 25. g3 Rf8 26. Rd2 Ref6 27.
+Rf1 Rf3 28. Kd1 Rxg3 0-1
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.15"]
+[Round "14.3"]
+[White "Esipenko, Andrey"]
+[Black "Caruana, Fabiano"]
+[Result "0-1"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2698"]
+[BlackElo "2795"]
+[ECO "B90"]
+[Opening "Sicilian"]
+[Variation "Najdorf"]
+[WhiteFideId "24175439"]
+[BlackFideId "2020009"]
+[EventDate "2026.03.29"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. Qd3 g6 7. Bg5 Bg7 8.
+O-O-O O-O 9. Be2 Nc6 10. Nb3 Be6 11. Qe3 Rc8 12. Kb1 Ne5 13. h3 Rxc3 14. bxc3
+Qc7 15. f4 Ned7 16. Rd4 b5 17. g4 Nb6 18. f5 Bc4 19. Bxc4 Nxc4 20. Qe1 a5 21.
+Bc1 Nd7 22. h4 Rc8 23. fxg6 hxg6 24. h5 a4 25. hxg6 fxg6 26. e5 Ncxe5 27. Na1
+Qc6 28. Rh3 Nf6 29. g5 Nd5 30. Bd2 Rf8 31. Rdh4 Rf3 32. Kc1 Qd7 33. Qh1 Qf5 34.
+Rh8+ Bxh8 35. Rxh8+ Kf7 36. Qh7+ Ke6 37. Qg8+ Qf7 38. Qc8+ Nd7 39. Rh2 Rf1+ 40.
+Kb2 Nb6 0-1
+
+[Event "FIDE Candidates 2026"]
+[Site "Pegeia CYP"]
+[Date "2026.04.15"]
+[Round "14.4"]
+[White "Praggnanandhaa, R"]
+[Black "Nakamura, Hikaru"]
+[Result "1/2-1/2"]
+[WhiteTitle "GM"]
+[BlackTitle "GM"]
+[WhiteElo "2741"]
+[BlackElo "2810"]
+[ECO "D37"]
+[Opening "QGD"]
+[Variation "4.Nf3"]
+[WhiteFideId "25059530"]
+[BlackFideId "2016192"]
+[EventDate "2026.03.29"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. Nc3 h6 5. g3 Be7 6. Bg2 O-O 7. Ne5 Nc6 8. Nxc6
+bxc6 9. c5 e5 10. dxe5 Ng4 11. Qd4 f6 12. f4 Rb8 13. h3 fxe5 14. fxe5 Nf2 15.
+Rh2 Ne4 16. Nxe4 dxe4 17. Be3 Bf5 18. O-O-O Bg5 19. Qc4+ Kh8 20. Rxd8 Bxe3+ 21.
+Rd2 Rfd8 22. Qc3 Bxd2+ 23. Qxd2 Rxd2 24. Kxd2 Rxb2+ 25. Ke3 Kg8 26. Bxe4 Be6 27.
+Rh1 Kf7 28. h4 Rxa2 29. Rb1 Ra3+ 30. Kd4 Ra4+ 31. Ke3 Ra3+ 32. Kd4 Ra4+ 33. Ke3
+Ra3+ 1/2-1/2

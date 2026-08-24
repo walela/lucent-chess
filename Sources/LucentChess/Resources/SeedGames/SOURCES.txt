@@ -1,0 +1,24 @@
+LUCENT CHESS STARTER GAME COLLECTIONS
+
+These files contain unannotated chess game records in Portable Game Notation.
+They are bundled as offline reference material. Lucent Chess does not add or
+redistribute third-party prose annotations or engine analysis with these games.
+
+FIDE Candidates 2026 (Open and Women's)
+Source: The Week in Chess, Mark Crowther
+Event page: https://theweekinchess.com/chessnews/events/fide-candidates-tournaments-2026
+PGN files:
+  https://theweekinchess.com/assets/files/pgn/wchcand26.pgn
+  https://theweekinchess.com/assets/files/pgn/wchwcand26.pgn
+Retrieved: 2026-08-23
+
+Kasparov–Karpov World Championship matches, 1984, 1985, 1986, 1987 and 1990
+Source: PGN Mentor event files
+Index: https://www.pgnmentor.com/files.html
+PGN files:
+  https://www.pgnmentor.com/events/WorldChamp1984.pgn
+  https://www.pgnmentor.com/events/WorldChamp1985.pgn
+  https://www.pgnmentor.com/events/WorldChamp1986.pgn
+  https://www.pgnmentor.com/events/WorldChamp1987.pgn
+  https://www.pgnmentor.com/events/WorldChamp1990.pgn
+Retrieved: 2026-08-23

@@ -1,0 +1,16 @@
+Lucent Chess — Third-Party Visual Assets
+
+Except for Lucent's locally generated Fritz-inspired set, the bundled chess
+piece sets and board themes come from the official Lichess
+source repository:
+https://github.com/lichess-org/lila/tree/master/public/piece
+https://github.com/lichess-org/lila/tree/master/public/images/board
+
+Authors and per-set licenses are documented in the accompanying
+LICHESS-COPYING.md. The Lichess AGPLv3 license is included as
+LICHESS-AGPL-3.0.txt, and GPLv2 as GPL-2.0.txt.
+
+The reillycraig and riohacha piece directories are not bundled because the
+upstream license table does not state redistribution terms for them.
+
+All included upstream assets are unmodified.
