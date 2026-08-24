@@ -10,6 +10,7 @@ struct EngineChecks {
 
         try checkParser()
         try checkRecommendations()
+        try checkEngineRediscovery()
         try checkOutputCoalescing()
 
         let stockfish = ["/opt/homebrew/bin/stockfish", "/usr/local/bin/stockfish"]
@@ -115,6 +116,17 @@ struct EngineChecks {
         }
         try check("16 GB Macs receive a 1 GB Stockfish hash") {
             StockfishService.recommendedHashSize(for: 16 * 1_073_741_824) == 1024
+        }
+    }
+
+    private static func checkEngineRediscovery() throws {
+        try check("a newly installed Homebrew engine replaces an empty saved path") {
+            StockfishService.resolveEnginePath(savedPath: "", detectedPath: "/opt/homebrew/bin/stockfish")
+                == "/opt/homebrew/bin/stockfish"
+        }
+        try check("an unavailable saved engine falls back to a newly detected installation") {
+            StockfishService.resolveEnginePath(savedPath: "/missing/stockfish", detectedPath: "/usr/local/bin/stockfish")
+                == "/usr/local/bin/stockfish"
         }
     }
 

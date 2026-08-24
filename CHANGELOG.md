@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.11.1 — 2026-08-24
+
+- Detects Stockfish installed after Lucent Chess has already launched, including installations that replace a missing saved engine path.
+
 ## 1.11.0 — 2026-08-24
 
 Initial public release.

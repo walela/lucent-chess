@@ -226,7 +226,10 @@ final class StockfishService: ObservableObject {
         hashMB = installsRecommendedDefaults ? recommendedHash : (savedHash ?? recommendedHash)
         multiPV = installsRecommendedDefaults ? 3 : (savedMultiPV ?? 3)
         showWDL = installsRecommendedDefaults ? true : (savedWDL ?? true)
-        enginePath = defaults.string(forKey: "enginePath") ?? Self.detectEngine() ?? ""
+        enginePath = Self.resolveEnginePath(
+            savedPath: defaults.string(forKey: "enginePath"),
+            detectedPath: Self.detectEngine()
+        )
         analysisMode = EngineAnalysisMode(rawValue: defaults.string(forKey: "engineAnalysisMode") ?? "") ?? .infinite
         analysisDepth = defaults.object(forKey: "engineAnalysisDepth") as? Int ?? 28
         analysisTimeSeconds = defaults.object(forKey: "engineAnalysisTime") as? Double ?? 10
@@ -241,7 +244,7 @@ final class StockfishService: ObservableObject {
             }
             defaults.set(1, forKey: "engineRecommendedDefaultsVersion")
         }
-        if enginePath.isEmpty { state = .unavailable }
+        if !FileManager.default.isExecutableFile(atPath: enginePath) { state = .unavailable }
     }
 
     deinit { process?.terminate() }
@@ -476,6 +479,11 @@ final class StockfishService: ObservableObject {
     }
 
     private func startEngine() {
+        if !FileManager.default.isExecutableFile(atPath: enginePath), let detectedPath = Self.detectEngine() {
+            enginePath = detectedPath
+            engineName = URL(fileURLWithPath: detectedPath).lastPathComponent
+            persistSettings()
+        }
         guard !enginePath.isEmpty, FileManager.default.isExecutableFile(atPath: enginePath) else {
             state = .unavailable
             lastError = "Stockfish was not found. Install it with Homebrew (`brew install stockfish`) or choose another UCI engine."
@@ -717,6 +725,14 @@ final class StockfishService: ObservableObject {
         if gibibytes >= 16 { return 1024 }
         if gibibytes >= 8 { return 512 }
         return 256
+    }
+
+    nonisolated static func resolveEnginePath(savedPath: String?, detectedPath: String?) -> String {
+        let savedPath = savedPath ?? ""
+        if !savedPath.isEmpty, FileManager.default.isExecutableFile(atPath: savedPath) {
+            return savedPath
+        }
+        return detectedPath ?? savedPath
     }
 
     private static func detectEngine() -> String? {
