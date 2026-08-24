@@ -57,7 +57,7 @@ The project has no third-party package dependencies. It targets Apple Silicon an
 
 1. Download `Lucent-Chess-macOS.zip` from the latest GitHub release.
 2. Unzip it and move **Lucent Chess.app** to Applications.
-3. On first launch, right-click the app and choose **Open** if macOS asks for confirmation. The public build is ad-hoc signed, not Apple-notarized.
+3. On first launch, try to open the app, then choose **System Settings → Privacy & Security → Open Anyway**. The free public build is ad-hoc signed, not Apple-notarized.
 
 Stockfish is optional. To enable local analysis with Homebrew:
 
