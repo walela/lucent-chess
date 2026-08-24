@@ -50,7 +50,7 @@ final class LibraryStore: ObservableObject {
         return studies.filter {
             [
                 $0.title, $0.white, $0.black, $0.event, $0.site ?? "", $0.round ?? "",
-                $0.eco ?? "", $0.result, $0.fileURL?.lastPathComponent ?? ""
+                $0.eco ?? "", $0.result, $0.fileURL?.lastPathComponent ?? "", $0.sourceName ?? ""
             ].contains { $0.localizedCaseInsensitiveContains(query) }
         }
     }
@@ -86,6 +86,8 @@ final class LibraryStore: ObservableObject {
         copy.filePath = nil
         copy.lastSavedAt = nil
         copy.dirtyState = nil
+        copy.sourceName = nil
+        copy.sourceURL = nil
         studies.insert(copy, at: 0)
         selectedStudyID = copy.id
         saveSoon()
@@ -182,6 +184,68 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    @discardableResult
+    func importCanonicalGames(
+        _ incoming: [ChessStudy],
+        sourceName: String,
+        sourceURL: URL,
+        collectionName: String,
+        folderID requestedFolderID: UUID? = nil
+    ) -> CanonicalImportMergeSummary {
+        var known = Set(studies.map(Self.gameFingerprint))
+        var accepted: [ChessStudy] = []
+        accepted.reserveCapacity(incoming.count)
+        var duplicateCount = 0
+
+        for game in incoming {
+            let fingerprint = Self.gameFingerprint(game)
+            guard known.insert(fingerprint).inserted else {
+                duplicateCount += 1
+                continue
+            }
+            accepted.append(game)
+        }
+
+        guard !accepted.isEmpty else {
+            let existingName = validFolderID(requestedFolderID)
+                .flatMap { id in folders.first(where: { $0.id == id })?.name }
+                ?? folders.first(where: { $0.name.compare(collectionName, options: .caseInsensitive) == .orderedSame })?.name
+                ?? collectionName
+            return CanonicalImportMergeSummary(importedCount: 0, duplicateCount: duplicateCount, folderName: existingName)
+        }
+
+        let destination: GameFolder
+        if let requestedFolderID = validFolderID(requestedFolderID),
+           let existing = folders.first(where: { $0.id == requestedFolderID }) {
+            destination = existing
+        } else if let existing = folders.first(where: {
+            $0.name.compare(collectionName, options: .caseInsensitive) == .orderedSame
+        }) {
+            destination = existing
+        } else {
+            destination = createFolder(name: collectionName)!
+        }
+
+        let importedAt = Date()
+        for game in accepted {
+            game.folderID = destination.id
+            game.sourceName = sourceName
+            game.sourceURL = sourceURL.absoluteString
+            game.filePath = nil
+            game.createdAt = importedAt
+            game.modifiedAt = importedAt
+            game.lastSavedAt = importedAt
+            game.dirtyState = false
+        }
+        studies.insert(contentsOf: accepted, at: 0)
+        saveSoon()
+        return CanonicalImportMergeSummary(
+            importedCount: accepted.count,
+            duplicateCount: duplicateCount,
+            folderName: destination.name
+        )
+    }
+
     func saveSelected() {
         guard let selectedStudy else { return }
         if let url = selectedStudy.fileURL {
@@ -211,6 +275,8 @@ final class LibraryStore: ObservableObject {
         study.filePath = url.path
         study.lastSavedAt = Date()
         study.dirtyState = false
+        study.sourceName = nil
+        study.sourceURL = nil
         study.markChanged(notation: false)
         saveSoon()
     }
@@ -373,16 +439,32 @@ final class LibraryStore: ObservableObject {
         }
     }
 
-    private static func gameFingerprint(_ study: ChessStudy) -> String {
+    static func gameFingerprint(_ study: ChessStudy) -> String {
+        if let site = study.site,
+           let match = site.range(of: #"(?i)lichess\.org/([a-z0-9]{8})"#, options: .regularExpression) {
+            let matched = String(site[match])
+            if let id = matched.split(separator: "/").last {
+                return "lichess:\(id.lowercased())"
+            }
+        }
+
         var moves: [String] = []
         var node = study.root
         while let child = node.children.first {
             if let move = child.moveUCI { moves.append(move) }
             node = child
         }
+        let calendar = Calendar(identifier: .gregorian)
+        let parts = calendar.dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: study.date)
+        let day = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+        let normalize: (String) -> String = {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+                .lowercased()
+        }
         return [
-            study.white.lowercased(), study.black.lowercased(), study.event.lowercased(),
-            study.round ?? "", study.result, moves.joined(separator: " ")
+            normalize(study.white), normalize(study.black), day, study.result,
+            study.root.positionFEN, moves.joined(separator: " ")
         ].joined(separator: "|")
     }
 
@@ -413,6 +495,12 @@ final class LibraryStore: ObservableObject {
         study.goToStart()
         return study
     }
+}
+
+struct CanonicalImportMergeSummary: Equatable {
+    let importedCount: Int
+    let duplicateCount: Int
+    let folderName: String
 }
 
 private struct StarterGameCollection {

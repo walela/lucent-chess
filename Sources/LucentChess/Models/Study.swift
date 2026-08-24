@@ -87,6 +87,8 @@ final class ChessStudy: Codable, Identifiable, ObservableObject {
     var dirtyState: Bool?
     var folderID: UUID?
     var starterCollectionID: String?
+    var sourceName: String?
+    var sourceURL: String?
 
     private var nodeIndex: [UUID: MoveNode] = [:]
     private var cachedPositionNodeID: UUID?
@@ -131,6 +133,8 @@ final class ChessStudy: Codable, Identifiable, ObservableObject {
         self.dirtyState = nil
         self.folderID = nil
         self.starterCollectionID = nil
+        self.sourceName = nil
+        self.sourceURL = nil
         rebuildNodeIndex()
     }
 
@@ -156,6 +160,8 @@ final class ChessStudy: Codable, Identifiable, ObservableObject {
         dirtyState = try container.decodeIfPresent(Bool.self, forKey: .dirtyState)
         folderID = try container.decodeIfPresent(UUID.self, forKey: .folderID)
         starterCollectionID = try container.decodeIfPresent(String.self, forKey: .starterCollectionID)
+        sourceName = try container.decodeIfPresent(String.self, forKey: .sourceName)
+        sourceURL = try container.decodeIfPresent(String.self, forKey: .sourceURL)
 
         if let nodes = try container.decodeIfPresent([FlatMoveNode].self, forKey: .nodes) {
             root = try Self.rebuildTree(from: nodes, decoder: decoder)
@@ -188,12 +194,14 @@ final class ChessStudy: Codable, Identifiable, ObservableObject {
         try container.encodeIfPresent(dirtyState, forKey: .dirtyState)
         try container.encodeIfPresent(folderID, forKey: .folderID)
         try container.encodeIfPresent(starterCollectionID, forKey: .starterCollectionID)
+        try container.encodeIfPresent(sourceName, forKey: .sourceName)
+        try container.encodeIfPresent(sourceURL, forKey: .sourceURL)
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, title, white, black, event, site, round, whiteElo, blackElo, eco, date, result
         case root, nodes, lastNodeID, createdAt, modifiedAt, filePath, lastSavedAt, dirtyState
-        case folderID, starterCollectionID
+        case folderID, starterCollectionID, sourceName, sourceURL
     }
 
     private func flattenedNodes() -> [FlatMoveNode] {
@@ -274,7 +282,7 @@ final class ChessStudy: Codable, Identifiable, ObservableObject {
         return position
     }
     var fileURL: URL? { filePath.map { URL(fileURLWithPath: $0) } }
-    var isAutosaved: Bool { starterCollectionID == nil && filePath == nil }
+    var isAutosaved: Bool { starterCollectionID == nil && sourceName == nil && filePath == nil }
     var hasUnsavedChanges: Bool {
         if let dirtyState { return dirtyState }
         guard let lastSavedAt else { return true }

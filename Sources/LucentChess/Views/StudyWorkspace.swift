@@ -92,12 +92,14 @@ private struct GameWorkspaceHeader: View {
             Circle().fill(statusColor).frame(width: 6, height: 6)
             Text(statusText).font(.caption).foregroundStyle(.secondary).lineLimit(1)
         }
-        .help(study.filePath ?? "This game is recoverable in Lucent but has not been saved as a PGN file.")
+        .help(study.filePath ?? study.sourceURL ?? "This game is recoverable in Lucent but has not been saved as a PGN file.")
     }
 
     private var statusText: String {
         if study.starterCollectionID != nil, study.hasUnsavedChanges { return "Edited · Save as PGN" }
         if study.starterCollectionID != nil, !study.hasUnsavedChanges { return "Included game" }
+        if let source = study.sourceName, study.hasUnsavedChanges { return "Edited · \(source) import" }
+        if let source = study.sourceName { return "Imported · \(source)" }
         if study.filePath == nil { return "Not yet a PGN" }
         if study.hasUnsavedChanges { return "Edited" }
         return study.fileURL?.lastPathComponent ?? "Saved"
@@ -106,6 +108,7 @@ private struct GameWorkspaceHeader: View {
     private var statusColor: Color {
         if study.starterCollectionID != nil, study.hasUnsavedChanges { return .yellow }
         if study.starterCollectionID != nil, !study.hasUnsavedChanges { return .blue }
+        if study.sourceName != nil { return study.hasUnsavedChanges ? .yellow : .teal }
         if study.filePath == nil { return .orange }
         return study.hasUnsavedChanges ? .yellow : .green
     }

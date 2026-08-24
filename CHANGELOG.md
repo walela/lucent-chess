@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.12.0 — 2026-08-24
+
+- Imports the latest or a numbered TWIC issue directly into a local collection.
+- Imports public Lichess games, player histories, studies, and broadcast rounds without an account token.
+- Downloads and parses large sources away from the main UI, filters player imports to standard chess, and skips games already in the library.
+- Preserves source provenance while keeping clean source imports out of Autosave and Needs Saving.
+
 ## 1.11.1 — 2026-08-24
 
 - Detects Stockfish installed after Lucent Chess has already launched, including installations that replace a missing saved engine path.

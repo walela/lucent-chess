@@ -19,6 +19,24 @@ enum PGNService {
         return try chunks.map(parseGame)
     }
 
+    static func parseBestEffort(_ text: String) throws -> PGNBatchParseResult {
+        let chunks = splitGames(text)
+        guard !chunks.isEmpty else { throw PGNError.noGames }
+        var games: [ChessStudy] = []
+        games.reserveCapacity(chunks.count)
+        var rejectedCount = 0
+        var firstError: Error?
+        for chunk in chunks {
+            do { games.append(try parseGame(chunk)) }
+            catch {
+                rejectedCount += 1
+                if firstError == nil { firstError = error }
+            }
+        }
+        if games.isEmpty { throw firstError ?? PGNError.noGames }
+        return PGNBatchParseResult(games: games, rejectedCount: rejectedCount)
+    }
+
     static func export(_ study: ChessStudy) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy.MM.dd"
@@ -188,6 +206,11 @@ enum PGNService {
     }
 
     private static func escape(_ text: String) -> String { text.replacingOccurrences(of: "\"", with: "\\\"") }
+}
+
+struct PGNBatchParseResult {
+    let games: [ChessStudy]
+    let rejectedCount: Int
 }
 
 private extension String {

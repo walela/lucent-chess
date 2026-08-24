@@ -18,6 +18,13 @@ struct QueryChecks {
         whiteWin.dirtyState = true
         draw.dirtyState = false
         blackWin.dirtyState = false
+        let sourceImport = game(
+            title: "Game D", white: "Polgar", black: "Kramnik", event: "Lichess",
+            result: "1-0", date: Date(timeIntervalSince1970: 400), filePath: nil, starter: nil
+        )
+        sourceImport.sourceName = "Lichess"
+        sourceImport.lastSavedAt = sourceImport.modifiedAt
+        sourceImport.dirtyState = false
         whiteWin.round = "14"
         draw.round = "2"
         blackWin.round = "7"
@@ -34,6 +41,10 @@ struct QueryChecks {
                 && GameLibraryQuery(file: .needsSaving).apply(to: games).map(\.id) == [whiteWin.id]
                 && GameLibraryQuery(file: .included).apply(to: games).map(\.id) == [blackWin.id]
                 && GameLibraryQuery(file: .autosaved).apply(to: games).map(\.id) == [whiteWin.id]
+        }
+        try check("source imports have their own filter and do not enter Autosave") {
+            GameLibraryQuery(file: .imported).apply(to: [sourceImport]).map(\.id) == [sourceImport.id]
+                && !sourceImport.isAutosaved
         }
         try check("date sort defaults to newest first") {
             GameLibraryQuery(sort: .date, ascending: false).apply(to: games).map(\.id) == [draw.id, blackWin.id, whiteWin.id]

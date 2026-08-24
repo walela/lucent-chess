@@ -74,6 +74,7 @@ enum GameFileFilter: String, CaseIterable, Identifiable {
     case savedPGN
     case needsSaving
     case included
+    case imported
     case autosaved
 
     var id: Self { self }
@@ -84,6 +85,7 @@ enum GameFileFilter: String, CaseIterable, Identifiable {
         case .savedPGN: return "PGN saved"
         case .needsSaving: return "Needs saving"
         case .included: return "Included archive"
+        case .imported: return "Source import"
         case .autosaved: return "Autosave"
         }
     }
@@ -94,6 +96,7 @@ enum GameFileFilter: String, CaseIterable, Identifiable {
         case .savedPGN: return "checkmark.circle"
         case .needsSaving: return "pencil.circle"
         case .included: return "archivebox"
+        case .imported: return "arrow.down.doc"
         case .autosaved: return "archivebox"
         }
     }
@@ -104,6 +107,7 @@ enum GameFileFilter: String, CaseIterable, Identifiable {
         case .savedPGN: return study.filePath != nil && !study.hasUnsavedChanges
         case .needsSaving: return study.hasUnsavedChanges
         case .included: return study.starterCollectionID != nil
+        case .imported: return study.sourceName != nil
         case .autosaved: return study.isAutosaved
         }
     }

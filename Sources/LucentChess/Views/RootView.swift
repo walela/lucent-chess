@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 extension Notification.Name {
     static let importPGN = Notification.Name("LucentChess.importPGN")
+    static let importSource = Notification.Name("LucentChess.importSource")
     static let showDashboard = Notification.Name("LucentChess.showDashboard")
     static let openSelectedGame = Notification.Name("LucentChess.openSelectedGame")
     static let firstMove = Notification.Name("LucentChess.firstMove")
@@ -26,6 +27,8 @@ struct RootView: View {
     @EnvironmentObject private var engine: StockfishService
     @State private var importing = false
     @State private var importDestinationFolderID: UUID?
+    @State private var showingSourceImport = false
+    @State private var sourceImportDestinationFolderID: UUID?
     @State private var inspectorTab = InspectorTab.analysis
     @State private var screen = Screen.dashboard
 
@@ -39,6 +42,10 @@ struct RootView: View {
                     importPGN: { folderID in
                         importDestinationFolderID = folderID
                         importing = true
+                    },
+                    importSource: { folderID in
+                        sourceImportDestinationFolderID = folderID
+                        showingSourceImport = true
                     }
                 )
             case .workspace:
@@ -65,6 +72,10 @@ struct RootView: View {
                 library.lastError = error.localizedDescription
             }
         }
+        .sheet(isPresented: $showingSourceImport) {
+            CanonicalImportView(destinationFolderID: sourceImportDestinationFolderID)
+                .environmentObject(library)
+        }
         .alert("Lucent Chess", isPresented: Binding(
             get: { library.lastError != nil || engine.lastError != nil },
             set: { if !$0 { library.lastError = nil; engine.lastError = nil } }
@@ -76,6 +87,10 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .importPGN)) { _ in
             importDestinationFolderID = nil
             importing = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .importSource)) { _ in
+            sourceImportDestinationFolderID = nil
+            showingSourceImport = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .showDashboard)) { _ in showDashboard() }
         .onReceive(NotificationCenter.default.publisher(for: .openSelectedGame)) { _ in

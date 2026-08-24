@@ -26,6 +26,8 @@ struct LucentChessApp: App {
                     .keyboardShortcut("n")
                 Button("Open PGN…") { NotificationCenter.default.post(name: .importPGN, object: nil) }
                     .keyboardShortcut("o")
+                Button("Import from Source…") { NotificationCenter.default.post(name: .importSource, object: nil) }
+                    .keyboardShortcut("o", modifiers: [.command, .option])
             }
             CommandGroup(replacing: .saveItem) {
                 Button("Save Game") { library.saveSelected() }

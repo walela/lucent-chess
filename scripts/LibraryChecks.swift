@@ -69,6 +69,40 @@ struct LibraryChecks {
         try check("Moving a game into a folder does not dirty its PGN") {
             game.folderID == gameFolder.id && !game.hasUnsavedChanges
         }
+
+        let sourcePGN = """
+        [Event "Online game"]
+        [Site "https://lichess.org/8fuPHGyu"]
+        [Date "2026.08.24"]
+        [Round "-"]
+        [White "Alpha"]
+        [Black "Beta"]
+        [Result "1-0"]
+
+        1. e4 e5 2. Nf3 Nc6 1-0
+        """
+        let sourceGames = try PGNService.parse(sourcePGN)
+        let sourceSummary = library.importCanonicalGames(
+            sourceGames,
+            sourceName: "Lichess",
+            sourceURL: URL(string: "https://lichess.org/8fuPHGyu")!,
+            collectionName: "Lichess imports"
+        )
+        try check("Source imports create a collection and stay out of Autosave") {
+            sourceSummary.importedCount == 1
+                && sourceGames[0].sourceName == "Lichess"
+                && !sourceGames[0].isAutosaved
+                && !sourceGames[0].hasUnsavedChanges
+        }
+        let duplicateSummary = library.importCanonicalGames(
+            try PGNService.parse(sourcePGN),
+            sourceName: "Lichess",
+            sourceURL: URL(string: "https://lichess.org/8fuPHGyu")!,
+            collectionName: "Lichess imports"
+        )
+        try check("Repeated source imports skip existing games") {
+            duplicateSummary.importedCount == 0 && duplicateSummary.duplicateCount == 1
+        }
         let duplicateFolder = library.createFolder(name: "World Championships")
         try check("Duplicate folder names are disambiguated") {
             duplicateFolder?.name == "World Championships 2"

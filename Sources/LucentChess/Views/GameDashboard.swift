@@ -11,6 +11,7 @@ struct GameDashboard: View {
     let openGame: (ChessStudy) -> Void
     let newGame: (UUID?) -> Void
     let importPGN: (UUID?) -> Void
+    let importSource: (UUID?) -> Void
     @State private var selection = Selection.all
     @State private var folderEditor: FolderEditor?
     @State private var resultFilter = GameResultFilter.all
@@ -141,7 +142,16 @@ struct GameDashboard: View {
             .frame(width: 320, height: 34)
             .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 9))
             appearanceSwitcher
-            Button { importPGN(selectedFolderID) } label: { Label("Open PGN", systemImage: "square.and.arrow.down") }
+            Menu {
+                Button { importSource(selectedFolderID) } label: {
+                    Label("TWIC or Lichess…", systemImage: "network")
+                }
+                Button { importPGN(selectedFolderID) } label: {
+                    Label("PGN from Disk…", systemImage: "square.and.arrow.down")
+                }
+            } label: {
+                Label("Import", systemImage: "square.and.arrow.down.on.square")
+            }
             Button { newGame(selectedFolderID) } label: { Label("New Game", systemImage: "doc.badge.plus") }
                 .buttonStyle(.borderedProminent).tint(.orange)
         }
@@ -330,13 +340,13 @@ struct GameDashboard: View {
                 enabled: true
             ) { newGame(selectedFolderID) }
             DashboardActionCard(
-                title: "Open PGN",
-                detail: "Add games from disk to this library",
-                systemImage: "square.and.arrow.down",
+                title: "Import games",
+                detail: "TWIC or Lichess",
+                systemImage: "network",
                 accent: .green,
                 prominent: false,
                 enabled: true,
-            ) { importPGN(selectedFolderID) }
+            ) { importSource(selectedFolderID) }
         }
     }
 
@@ -771,6 +781,7 @@ private struct GameLibraryRow: View {
     private var rowAccent: Color {
         if game.hasUnsavedChanges { return .yellow }
         if game.starterCollectionID != nil { return .blue }
+        if game.sourceName != nil { return .teal }
         if game.filePath == nil { return .orange }
         return .green
     }

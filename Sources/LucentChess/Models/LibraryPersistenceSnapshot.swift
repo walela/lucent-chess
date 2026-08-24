@@ -40,6 +40,8 @@ struct StudyPersistenceSnapshot: Codable, Sendable {
     var dirtyState: Bool?
     var folderID: UUID?
     var starterCollectionID: String?
+    var sourceName: String?
+    var sourceURL: String?
 
     init(_ study: ChessStudy) {
         id = study.id
@@ -62,6 +64,8 @@ struct StudyPersistenceSnapshot: Codable, Sendable {
         dirtyState = study.dirtyState
         folderID = study.folderID
         starterCollectionID = study.starterCollectionID
+        sourceName = study.sourceName
+        sourceURL = study.sourceURL
 
         var flattened: [MovePersistenceSnapshot] = []
         var stack: [(MoveNode, UUID?)] = [(study.root, nil)]
@@ -118,6 +122,8 @@ struct StudyPersistenceSnapshot: Codable, Sendable {
         study.dirtyState = dirtyState
         study.folderID = folderID
         study.starterCollectionID = starterCollectionID
+        study.sourceName = sourceName
+        study.sourceURL = sourceURL
         study.rebuildNodeIndex()
         return study
     }
