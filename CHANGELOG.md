@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.13.1 — 2026-08-26
+
+- Restrains the amber accent to primary actions and the current selection; folder tags, metric chips, and section icons are now neutral.
+- Simplifies the dashboard header and action cards, removing redundant micro-labels and the colored icon tiles.
+- Formats library dates readably (24 Aug 2026) and shows engine configuration errors in red.
+- Centralizes all interface colors and typography in a single design token file.
+
 ## 1.13.0 — 2026-08-26
 
 - Opens games in a separate reusable window while leaving the library dashboard in place.
