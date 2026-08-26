@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.13.0 — 2026-08-26
+
+- Opens games in a separate reusable window while leaving the library dashboard in place.
+- Returning to the library preserves the active folder, filters, and scroll position.
+
 ## 1.12.4 — 2026-08-26
 
 - Makes the engine play and stop control a compact square button.

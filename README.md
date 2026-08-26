@@ -14,7 +14,7 @@ Everything—games, notes, variations, and engine analysis—stays on the Mac.
 - Organizes large libraries with persistent folders, Unfiled and Needs Saving views, drag-and-drop filing, and Move to Folder menus.
 - Keeps new and duplicated games in a persistent Autosave smart collection until each one is explicitly saved as a PGN; edited PGNs remain separately visible in Needs Saving.
 - Uses a draggable dashboard divider so the folder sidebar can be resized between a compact list and a wider library organizer.
-- Keeps Library/Game transitions responsive with lazy game rows, per-game view invalidation, indexed move trees, cached positions, and one-pass dashboard queries.
+- Opens games in a separate reusable window, leaving the library’s active folder, filters, and scroll position intact for quick return.
 - Coalesces and reduces UCI output off the main thread, publishing at most one engine snapshot every 80 ms so Stockfish cannot starve clicks or navigation.
 - Captures immutable, flat recovery snapshots in a few milliseconds, then performs JSON encoding and disk writes entirely on a background queue.
 - Searches across players, events, sites, ECO codes, results, and filenames; filters by result or file state; and sorts players, events, dates, results, move counts, or tournament rounds.
