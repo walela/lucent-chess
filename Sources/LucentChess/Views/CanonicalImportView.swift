@@ -9,13 +9,14 @@ struct CanonicalImportView: View {
     @State private var latestTWIC = true
     @State private var twicIssue = ""
     @State private var lichessInput = ""
-    @State private var maximumLichessGames = 100
+    @State private var playerFilters = LichessPlayerImportFilters()
     @State private var includeAnnotations = true
     @State private var isImporting = false
     @State private var errorMessage: String?
     @State private var summary: CanonicalImportMergeSummary?
     @State private var importedDetail = ""
     @State private var rejectedGameCount = 0
+    @State private var filteredOutGameCount = 0
     @State private var importTask: Task<Void, Never>?
 
     var body: some View {
@@ -145,19 +146,81 @@ struct CanonicalImportView: View {
                     .font(.headline)
                 TextField("Username or public game, study, or broadcast-round URL", text: $lichessInput)
                     .textFieldStyle(.roundedBorder)
-                HStack {
-                    Text("Player game limit")
-                    Spacer()
-                    Picker("Player game limit", selection: $maximumLichessGames) {
-                        ForEach([25, 50, 100, 250, 500], id: \.self) { count in
-                            Text("\(count)").tag(count)
+                if isPlayerImport {
+                    VStack(spacing: 10) {
+                        HStack {
+                            Text("Speeds")
+                            Spacer()
+                            Menu {
+                                Button("Select All") {
+                                    playerFilters.speeds = Set(LichessSpeedFilter.allCases)
+                                }
+                                Divider()
+                                ForEach(LichessSpeedFilter.allCases) { speed in
+                                    Button {
+                                        toggleSpeed(speed)
+                                    } label: {
+                                        Label(
+                                            speed.label,
+                                            systemImage: playerFilters.speeds.contains(speed) ? "checkmark" : "circle"
+                                        )
+                                    }
+                                }
+                            } label: {
+                                Label(speedSummary, systemImage: "speedometer")
+                            }
+                            .frame(width: 170, alignment: .trailing)
+                            .help("Bullet includes UltraBullet")
+                        }
+                        HStack {
+                            Text("Color")
+                            Spacer()
+                            Picker("Color", selection: $playerFilters.color) {
+                                ForEach(LichessColorFilter.allCases) { option in
+                                    Text(option.label).tag(option)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 170)
+                        }
+                        HStack {
+                            Text("Result")
+                            Spacer()
+                            Picker("Result", selection: $playerFilters.result) {
+                                ForEach(LichessResultFilter.allCases) { option in
+                                    Text(option.label).tag(option)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 170)
+                        }
+                        HStack {
+                            Text("Game type")
+                            Spacer()
+                            Picker("Game type", selection: $playerFilters.rated) {
+                                ForEach(LichessRatedFilter.allCases) { option in
+                                    Text(option.label).tag(option)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 170)
+                        }
+                        HStack {
+                            Text("Recent game limit")
+                            Spacer()
+                            Picker("Recent game limit", selection: $playerFilters.maximumGames) {
+                                ForEach([25, 50, 100, 250, 500], id: \.self) { count in
+                                    Text("\(count)").tag(count)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 90)
                         }
                     }
-                    .labelsHidden()
-                    .frame(width: 90)
+                    .font(.callout)
                 }
                 Toggle("Include available comments and evaluations", isOn: $includeAnnotations)
-                Text("No account or token is used. Player imports include standard chess games only.")
+                Text(playerImportFootnote)
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -202,7 +265,9 @@ struct CanonicalImportView: View {
     private var canImport: Bool {
         switch source {
         case .twic: return latestTWIC || Int(twicIssue).map { $0 > 0 } == true
-        case .lichess: return !lichessInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .lichess:
+            return !lichessInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && (!isPlayerImport || !playerFilters.speeds.isEmpty)
         }
     }
 
@@ -222,7 +287,7 @@ struct CanonicalImportView: View {
         case .lichess:
             return .lichess(
                 input: lichessInput,
-                maxGames: maximumLichessGames,
+                playerFilters: playerFilters,
                 includeAnnotations: includeAnnotations
             )
         }
@@ -248,6 +313,7 @@ struct CanonicalImportView: View {
             )
             importedDetail = payload.detail
             rejectedGameCount = payload.rejectedCount
+            filteredOutGameCount = payload.filteredOutCount
         } catch is CancellationError {
             // Closing the sheet cancels an in-flight import without surfacing an error.
         } catch {
@@ -261,10 +327,12 @@ struct CanonicalImportView: View {
         summary = nil
         importedDetail = ""
         rejectedGameCount = 0
+        filteredOutGameCount = 0
     }
 
     private func resultHeadline(_ result: CanonicalImportMergeSummary) -> String {
-        if result.importedCount == 0 { return "Library already up to date" }
+        if result.importedCount == 0, result.duplicateCount > 0 { return "Library already up to date" }
+        if result.importedCount == 0 { return "No games imported" }
         return "Imported \(result.importedCount) \(result.importedCount == 1 ? "game" : "games")"
     }
 
@@ -276,6 +344,40 @@ struct CanonicalImportView: View {
         if rejectedGameCount > 0 {
             details.append("Ignored \(rejectedGameCount) unreadable score\(rejectedGameCount == 1 ? "" : "s")")
         }
+        if filteredOutGameCount > 0 {
+            details.append("\(filteredOutGameCount) didn’t match the result filter")
+        }
         return details.joined(separator: " · ")
+    }
+
+    private var isPlayerImport: Bool {
+        let input = lichessInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !input.isEmpty else { return true }
+        guard let target = try? CanonicalGameImportService.resolveLichessTarget(input) else { return false }
+        if case .user = target { return true }
+        return false
+    }
+
+    private var speedSummary: String {
+        if playerFilters.speeds.count == LichessSpeedFilter.allCases.count { return "All speeds" }
+        if playerFilters.speeds.count == 1 { return playerFilters.speeds.first?.label ?? "Speeds" }
+        return "\(playerFilters.speeds.count) speeds"
+    }
+
+    private var playerImportFootnote: String {
+        guard isPlayerImport else { return "No account or token is used." }
+        if playerFilters.result != .any {
+            return "Result is applied within the recent-game limit; other filters run on Lichess."
+        }
+        return "No account or token is used. Player imports include standard chess games only."
+    }
+
+    private func toggleSpeed(_ speed: LichessSpeedFilter) {
+        if playerFilters.speeds.contains(speed) {
+            guard playerFilters.speeds.count > 1 else { return }
+            playerFilters.speeds.remove(speed)
+        } else {
+            playerFilters.speeds.insert(speed)
+        }
     }
 }

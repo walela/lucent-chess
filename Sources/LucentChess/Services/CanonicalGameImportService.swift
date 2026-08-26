@@ -17,7 +17,7 @@ enum CanonicalGameSource: String, CaseIterable, Identifiable {
 enum CanonicalImportRequest: Sendable {
     case twicLatest
     case twicIssue(Int)
-    case lichess(input: String, maxGames: Int, includeAnnotations: Bool)
+    case lichess(input: String, playerFilters: LichessPlayerImportFilters, includeAnnotations: Bool)
 }
 
 struct CanonicalImportPayload: @unchecked Sendable {
@@ -27,6 +27,63 @@ struct CanonicalImportPayload: @unchecked Sendable {
     let collectionName: String
     let detail: String
     let rejectedCount: Int
+    let filteredOutCount: Int
+}
+
+enum LichessSpeedFilter: String, CaseIterable, Identifiable, Sendable {
+    case bullet
+    case blitz
+    case rapid
+    case classical
+    case correspondence
+
+    var id: Self { self }
+    var label: String { rawValue.capitalized }
+    var apiValues: [String] { self == .bullet ? ["ultraBullet", "bullet"] : [rawValue] }
+}
+
+enum LichessColorFilter: String, CaseIterable, Identifiable, Sendable {
+    case any
+    case white
+    case black
+
+    var id: Self { self }
+    var label: String { self == .any ? "Any color" : rawValue.capitalized }
+    var apiValue: String? { self == .any ? nil : rawValue }
+}
+
+enum LichessResultFilter: String, CaseIterable, Identifiable, Sendable {
+    case any
+    case wins
+    case draws
+    case losses
+
+    var id: Self { self }
+    var label: String { self == .any ? "Any result" : rawValue.capitalized }
+}
+
+enum LichessRatedFilter: String, CaseIterable, Identifiable, Sendable {
+    case any
+    case rated
+    case casual
+
+    var id: Self { self }
+    var label: String { self == .any ? "Rated & casual" : rawValue.capitalized }
+    var apiValue: Bool? {
+        switch self {
+        case .any: return nil
+        case .rated: return true
+        case .casual: return false
+        }
+    }
+}
+
+struct LichessPlayerImportFilters: Sendable {
+    var maximumGames = 100
+    var speeds = Set(LichessSpeedFilter.allCases)
+    var color = LichessColorFilter.any
+    var result = LichessResultFilter.any
+    var rated = LichessRatedFilter.any
 }
 
 enum LichessImportTarget: Equatable, Sendable {
@@ -41,6 +98,7 @@ enum CanonicalImportError: LocalizedError {
     case latestTWICIssueNotFound
     case invalidLichessInput
     case unsupportedLichessURL
+    case noLichessSpeeds
     case noPGNInArchive
     case archiveExtraction(String)
     case responseTooLarge
@@ -60,6 +118,8 @@ enum CanonicalImportError: LocalizedError {
             return "Enter a Lichess username or paste a public game, study, or broadcast-round URL."
         case .unsupportedLichessURL:
             return "That is not a supported Lichess game, player, study, or broadcast-round URL."
+        case .noLichessSpeeds:
+            return "Select at least one Lichess speed."
         case .noPGNInArchive:
             return "The downloaded TWIC archive did not contain a PGN file."
         case let .archiveExtraction(message):
@@ -95,11 +155,14 @@ enum CanonicalGameImportService {
         case let .twicIssue(issue):
             guard issue > 0 else { throw CanonicalImportError.invalidTWICIssue }
             return try await fetchTWIC(issue: issue)
-        case let .lichess(input, maxGames, includeAnnotations):
+        case let .lichess(input, playerFilters, includeAnnotations):
             let target = try resolveLichessTarget(input)
+            if case .user = target, playerFilters.speeds.isEmpty {
+                throw CanonicalImportError.noLichessSpeeds
+            }
             return try await fetchLichess(
                 target: target,
-                maxGames: min(max(maxGames, 1), 500),
+                playerFilters: playerFilters,
                 includeAnnotations: includeAnnotations
             )
         }
@@ -168,7 +231,7 @@ enum CanonicalGameImportService {
 
     static func lichessURL(
         for target: LichessImportTarget,
-        maxGames: Int,
+        playerFilters: LichessPlayerImportFilters,
         includeAnnotations: Bool
     ) -> URL? {
         var components = URLComponents()
@@ -181,11 +244,14 @@ enum CanonicalGameImportService {
             components.queryItems = commonLichessQuery(includeAnnotations: includeAnnotations)
         case let .user(username):
             components.path = "/api/games/user/\(username)"
-            components.queryItems = [
-                URLQueryItem(name: "max", value: String(min(max(maxGames, 1), 500))),
+            var queryItems = [
+                URLQueryItem(name: "max", value: String(min(max(playerFilters.maximumGames, 1), 500))),
                 URLQueryItem(
                     name: "perfType",
-                    value: "ultraBullet,bullet,blitz,rapid,classical,correspondence"
+                    value: LichessSpeedFilter.allCases
+                        .filter { playerFilters.speeds.contains($0) }
+                        .flatMap(\.apiValues)
+                        .joined(separator: ",")
                 ),
                 URLQueryItem(name: "moves", value: "true"),
                 URLQueryItem(name: "tags", value: "true"),
@@ -194,6 +260,13 @@ enum CanonicalGameImportService {
                 URLQueryItem(name: "opening", value: "true"),
                 URLQueryItem(name: "literate", value: "false")
             ]
+            if let color = playerFilters.color.apiValue {
+                queryItems.append(URLQueryItem(name: "color", value: color))
+            }
+            if let rated = playerFilters.rated.apiValue {
+                queryItems.append(URLQueryItem(name: "rated", value: rated ? "true" : "false"))
+            }
+            components.queryItems = queryItems
         case let .study(id, chapterID):
             components.path = chapterID.map { "/api/study/\(id)/\($0).pgn" } ?? "/api/study/\(id).pgn"
             components.queryItems = [
@@ -223,23 +296,37 @@ enum CanonicalGameImportService {
             sourceURL: url,
             collectionName: "TWIC \(issue)",
             detail: "TWIC \(issue)",
-            rejectedCount: parsed.rejectedCount
+            rejectedCount: parsed.rejectedCount,
+            filteredOutCount: 0
         )
     }
 
     private static func fetchLichess(
         target: LichessImportTarget,
-        maxGames: Int,
+        playerFilters: LichessPlayerImportFilters,
         includeAnnotations: Bool
     ) async throws -> CanonicalImportPayload {
-        guard let url = lichessURL(for: target, maxGames: maxGames, includeAnnotations: includeAnnotations) else {
+        guard let url = lichessURL(for: target, playerFilters: playerFilters, includeAnnotations: includeAnnotations) else {
             throw CanonicalImportError.invalidLichessInput
         }
         let data = try await download(url, accept: "application/x-chess-pgn")
         let parsed = try await Task.detached(priority: .userInitiated) {
             guard let text = decodeText(data) else { throw CanonicalImportError.unreadableResponse }
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, case .user = target {
+                return ParsedGamesBox(games: [], rejectedCount: 0)
+            }
             return ParsedGamesBox(try PGNService.parseBestEffort(text))
         }.value
+
+        let games: [ChessStudy]
+        let filteredOutCount: Int
+        if case let .user(username) = target {
+            games = filterUserGames(parsed.games, username: username, result: playerFilters.result)
+            filteredOutCount = parsed.games.count - games.count
+        } else {
+            games = parsed.games
+            filteredOutCount = 0
+        }
 
         let collectionName: String
         let detail: String
@@ -260,13 +347,37 @@ enum CanonicalGameImportService {
             detail = "Lichess broadcast round"
         }
         return CanonicalImportPayload(
-            games: parsed.games,
+            games: games,
             sourceName: "Lichess",
             sourceURL: url,
             collectionName: collectionName,
             detail: detail,
-            rejectedCount: parsed.rejectedCount
+            rejectedCount: parsed.rejectedCount,
+            filteredOutCount: filteredOutCount
         )
+    }
+
+    static func filterUserGames(
+        _ games: [ChessStudy],
+        username: String,
+        result: LichessResultFilter
+    ) -> [ChessStudy] {
+        guard result != .any else { return games }
+        return games.filter { game in
+            let userIsWhite = game.white.compare(username, options: .caseInsensitive) == .orderedSame
+            let userIsBlack = game.black.compare(username, options: .caseInsensitive) == .orderedSame
+            guard userIsWhite || userIsBlack else { return false }
+            switch result {
+            case .any:
+                return true
+            case .draws:
+                return game.result == "1/2-1/2"
+            case .wins:
+                return (userIsWhite && game.result == "1-0") || (userIsBlack && game.result == "0-1")
+            case .losses:
+                return (userIsWhite && game.result == "0-1") || (userIsBlack && game.result == "1-0")
+            }
+        }
     }
 
     private static func download(_ url: URL, accept: String) async throws -> Data {
@@ -372,5 +483,10 @@ private struct ParsedGamesBox: @unchecked Sendable {
     init(_ result: PGNBatchParseResult) {
         games = result.games
         rejectedCount = result.rejectedCount
+    }
+
+    init(games: [ChessStudy], rejectedCount: Int) {
+        self.games = games
+        self.rejectedCount = rejectedCount
     }
 }

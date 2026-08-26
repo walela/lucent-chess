@@ -26,7 +26,7 @@ Everything—games, notes, variations, and engine analysis—stays on the Mac.
 - Gives the score a clear reading hierarchy: tabular move numbers recede, main-line SAN stays crisp, comments and results use restrained amber, the current move gets a rounded highlight, and clickable notation uses a link pointer.
 - Saves games as real `.pgn` files with Command-S and Save As, while keeping a local recovery library between launches.
 - Imports and exports PGN, including player and event metadata, nested variations, comments, NAGs, and FEN starts.
-- Imports weekly TWIC archives and public Lichess games, players, studies, or broadcast rounds directly into source-named collections, with duplicate skipping.
+- Imports weekly TWIC archives and public Lichess games, players, studies, or broadcast rounds directly into source-named collections, with duplicate skipping and player-history filters.
 - Adds variations simply by going back and making another legal move.
 - Runs Stockfish entirely on the Mac with hardware-aware defaults (6 threads, 1 GB hash, and 3 study lines on an 8-core/16 GB M1 Pro), resource presets, configurable CPU threads, hash, MultiPV, WDL estimates, and depth/time/node search limits.
 - Detects every UCI option exposed by the selected engine, including Stockfish strength/Elo controls, Syzygy tablebase paths, and Clear Hash.

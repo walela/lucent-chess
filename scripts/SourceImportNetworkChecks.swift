@@ -4,7 +4,11 @@ import Foundation
 struct SourceImportNetworkChecks {
     static func main() async throws {
         let lichess = try await CanonicalGameImportService.fetch(
-            .lichess(input: "https://lichess.org/8fuPHGyu", maxGames: 1, includeAnnotations: false)
+            .lichess(
+                input: "https://lichess.org/8fuPHGyu",
+                playerFilters: LichessPlayerImportFilters(),
+                includeAnnotations: false
+            )
         )
         guard lichess.games.count == 1, lichess.games[0].mainLinePlyCount > 0 else {
             throw Failure("The live Lichess game export was empty.")

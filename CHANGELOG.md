@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.1 — 2026-08-26
+
+- Filters Lichess player imports by speed, color, result, and rated or casual games.
+- Keeps player-only controls out of the way when importing a direct game, study, or broadcast round.
+
 ## 1.12.0 — 2026-08-24
 
 - Imports the latest or a numbered TWIC issue directly into a local collection.

@@ -55,7 +55,9 @@ struct SourceImportChecks {
         }
         try check("Lichess broadcast rounds use the finite round PGN endpoint") {
             CanonicalGameImportService.lichessURL(
-                for: .broadcastRound("AbCd1234"), maxGames: 1, includeAnnotations: true
+                for: .broadcastRound("AbCd1234"),
+                playerFilters: LichessPlayerImportFilters(),
+                includeAnnotations: true
             )?.path == "/api/broadcast/round/AbCd1234.pgn"
         }
         try check("Other hosts are rejected") {
@@ -65,23 +67,65 @@ struct SourceImportChecks {
             } catch { return true }
         }
 
+        var filters = LichessPlayerImportFilters()
+        filters.maximumGames = 100
+        filters.speeds = [.blitz, .rapid]
+        filters.color = .black
+        filters.rated = .rated
         let userURL = try require(
             CanonicalGameImportService.lichessURL(
                 for: .user("DrNykterstein"),
-                maxGames: 100,
+                playerFilters: filters,
                 includeAnnotations: true
             )
         )
         let components = try require(URLComponents(url: userURL, resolvingAgainstBaseURL: false))
         let query = Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value ?? "") })
-        try check("Player export caps the count and excludes non-standard variants") {
+        try check("Player export maps speed, color, and rated filters to Lichess") {
             components.path == "/api/games/user/DrNykterstein"
                 && query["max"] == "100"
-                && query["perfType"] == "ultraBullet,bullet,blitz,rapid,classical,correspondence"
+                && query["perfType"] == "blitz,rapid"
+                && query["color"] == "black"
+                && query["rated"] == "true"
         }
         try check("Player export requests PGN metadata and optional evaluations") {
             query["moves"] == "true" && query["tags"] == "true"
                 && query["evals"] == "true" && query["clocks"] == "false"
+        }
+        var defaultFilters = LichessPlayerImportFilters()
+        defaultFilters.maximumGames = 999
+        let defaultURL = try require(
+            CanonicalGameImportService.lichessURL(
+                for: .user("DrNykterstein"),
+                playerFilters: defaultFilters,
+                includeAnnotations: false
+            )
+        )
+        let defaultQuery = Dictionary(uniqueKeysWithValues:
+            (URLComponents(url: defaultURL, resolvingAgainstBaseURL: false)?.queryItems ?? []).map {
+                ($0.name, $0.value ?? "")
+            }
+        )
+        try check("Default player filters include every standard speed and retain the safety cap") {
+            defaultQuery["max"] == "500"
+                && defaultQuery["perfType"] == "ultraBullet,bullet,blitz,rapid,classical,correspondence"
+                && defaultQuery["color"] == nil
+                && defaultQuery["rated"] == nil
+        }
+
+        let win = study(white: "DrNykterstein", black: "Opponent", result: "1-0")
+        let loss = study(white: "Opponent", black: "DrNykterstein", result: "1-0")
+        let draw = study(white: "Opponent", black: "DrNykterstein", result: "1/2-1/2")
+        try check("Result filtering is calculated from the requested player’s color") {
+            CanonicalGameImportService.filterUserGames(
+                [win, loss, draw], username: "drnykterstein", result: .wins
+            ).map(\.id) == [win.id]
+                && CanonicalGameImportService.filterUserGames(
+                    [win, loss, draw], username: "DRNYKTERSTEIN", result: .losses
+                ).map(\.id) == [loss.id]
+                && CanonicalGameImportService.filterUserGames(
+                    [win, loss, draw], username: "DrNykterstein", result: .draws
+                ).map(\.id) == [draw.id]
         }
 
         print("All canonical source import checks passed.")
@@ -121,6 +165,10 @@ struct SourceImportChecks {
         process.waitUntilExit()
         guard process.terminationStatus == 0 else { throw Failure("Could not make the TWIC ZIP fixture") }
         return try Data(contentsOf: archive)
+    }
+
+    private static func study(white: String, black: String, result: String) -> ChessStudy {
+        ChessStudy(white: white, black: black, result: result)
     }
 
     private struct Failure: LocalizedError {
