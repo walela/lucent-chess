@@ -233,7 +233,7 @@ struct EngineLineRow: View {
                             .frame(width: 55, alignment: .leading)
                             .foregroundStyle(scoreColor)
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(line.moves.joined(separator: " "))
+                            Text(line.moves.map(MoveTreeView.figurineSAN).joined(separator: " "))
                                 .font(.system(size: 13, weight: .medium, design: .rounded))
                                 .lineLimit(3)
                                 .multilineTextAlignment(.leading)
@@ -336,7 +336,7 @@ private struct EngineLinePreview: View {
 
     private var previewCaption: String {
         guard ply > 0 else { return "Start" }
-        let move = ply <= previewSAN.count ? previewSAN[ply - 1] : "Move"
+        let move = ply <= previewSAN.count ? MoveTreeView.figurineSAN(previewSAN[ply - 1]) : "Move"
         return "\(ply)/\(previewMoves.count) · \(move)"
     }
 

@@ -276,15 +276,35 @@ private struct EngineArrow: View {
     var body: some View {
         Canvas { context, _ in
             let start = point(from), end = point(to)
-            var shaft = Path(); shaft.move(to: start); shaft.addLine(to: end)
-            context.stroke(shaft, with: .color(LucentTheme.Board.engineArrowShaft), style: StrokeStyle(lineWidth: cell * 0.12, lineCap: .round))
             let angle = atan2(end.y - start.y, end.x - start.x)
-            let length = cell * 0.30
-            var head = Path(); head.move(to: end)
-            head.addLine(to: CGPoint(x: end.x - length * cos(angle - .pi / 6), y: end.y - length * sin(angle - .pi / 6)))
-            head.addLine(to: CGPoint(x: end.x - length * cos(angle + .pi / 6), y: end.y - length * sin(angle + .pi / 6)))
-            head.closeSubpath()
-            context.fill(head, with: .color(LucentTheme.Board.engineArrowHead))
+            let dir = CGPoint(x: cos(angle), y: sin(angle))
+            let perp = CGPoint(x: -dir.y, y: dir.x)
+
+            // Leave a gap over the origin square so the piece stays readable,
+            // and end the shaft where the head begins so there is no seam.
+            let tail = CGPoint(x: start.x + dir.x * cell * 0.36, y: start.y + dir.y * cell * 0.36)
+            let headLength = cell * 0.34
+            let halfHead = cell * 0.17
+            let halfShaft = cell * 0.075
+            let base = CGPoint(x: end.x - dir.x * headLength, y: end.y - dir.y * headLength)
+
+            var arrow = Path()
+            arrow.move(to: CGPoint(x: tail.x + perp.x * halfShaft, y: tail.y + perp.y * halfShaft))
+            arrow.addLine(to: CGPoint(x: base.x + perp.x * halfShaft, y: base.y + perp.y * halfShaft))
+            arrow.addLine(to: CGPoint(x: base.x + perp.x * halfHead, y: base.y + perp.y * halfHead))
+            arrow.addLine(to: end)
+            arrow.addLine(to: CGPoint(x: base.x - perp.x * halfHead, y: base.y - perp.y * halfHead))
+            arrow.addLine(to: CGPoint(x: base.x - perp.x * halfShaft, y: base.y - perp.y * halfShaft))
+            arrow.addLine(to: CGPoint(x: tail.x - perp.x * halfShaft, y: tail.y - perp.y * halfShaft))
+            arrow.addArc(
+                center: tail,
+                radius: halfShaft,
+                startAngle: Angle(radians: Double(angle) + .pi / 2),
+                endAngle: Angle(radians: Double(angle) - .pi / 2),
+                clockwise: false
+            )
+            arrow.closeSubpath()
+            context.fill(arrow, with: .color(LucentTheme.Board.engineArrow))
         }
         .allowsHitTesting(false)
     }

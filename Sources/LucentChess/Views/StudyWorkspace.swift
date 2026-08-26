@@ -618,6 +618,7 @@ struct MoveTreeView: NSViewRepresentable {
         let output = NSMutableAttributedString()
         var moveStyles: [UUID: MoveStyle] = [:]
         for token in ChessNotationFormatter.document(for: study).tokens {
+            let displayText = token.kind == .move ? Self.figurineSAN(token.text) : token.text
             var attributes: [NSAttributedString.Key: Any] = [
                 .font: font(for: token),
                 .foregroundColor: color(for: token),
@@ -627,23 +628,52 @@ struct MoveTreeView: NSViewRepresentable {
                 attributes[.link] = URL(string: "lucent-move://move/\(nodeID.uuidString)")!
                 if token.kind == .move {
                     moveStyles[nodeID] = MoveStyle(
-                        range: NSRange(location: output.length, length: (token.text as NSString).length),
+                        range: NSRange(location: output.length, length: (displayText as NSString).length),
                         foregroundColor: attributes[.foregroundColor] as? NSColor ?? .labelColor,
                         font: attributes[.font] as? NSFont ?? .systemFont(ofSize: 14)
                     )
                 }
             }
-            output.append(NSAttributedString(string: token.text, attributes: attributes))
+            output.append(NSAttributedString(string: displayText, attributes: attributes))
         }
         return RenderedNotation(text: output, moveStyles: moveStyles)
+    }
+
+    /// ChessBase-style figurine notation: the SAN piece letter becomes a chess
+    /// glyph (Nf3 → ♞f3). Display-only; PGN files keep standard letters.
+    private static let figurines: [Character: String] = ["K": "♚", "Q": "♛", "R": "♜", "B": "♝", "N": "♞"]
+
+    static func figurineSAN(_ san: String) -> String {
+        var text = san
+        if let first = text.first, let glyph = figurines[first] {
+            text = glyph + text.dropFirst()
+        }
+        if let eq = text.firstIndex(of: "=") {
+            let pieceIndex = text.index(after: eq)
+            if pieceIndex < text.endIndex, let glyph = figurines[text[pieceIndex]] {
+                text.replaceSubrange(pieceIndex...pieceIndex, with: glyph)
+            }
+        }
+        return text
+    }
+
+    /// System font with Apple Symbols cascading in slightly larger, so figurine
+    /// glyphs render at a visual weight matching the surrounding SAN text.
+    static func moveFont(size: CGFloat, weight: NSFont.Weight) -> NSFont {
+        let base = NSFont.systemFont(ofSize: size, weight: weight)
+        let cascade = NSFontDescriptor(name: "Apple Symbols", size: 0).withSymbolicTraits([])
+        let descriptor = base.fontDescriptor.addingAttributes([
+            .cascadeList: [cascade]
+        ])
+        return NSFont(descriptor: descriptor, size: size) ?? base
     }
 
     private func font(for token: ChessNotationToken) -> NSFont {
         let depth = token.variationDepth
         switch token.kind {
         case .move:
-            if depth == 0 { return NSFont.systemFont(ofSize: 14.25, weight: .medium) }
-            return NSFont.systemFont(ofSize: max(11.75, 13.15 - CGFloat(depth - 1) * 0.45), weight: .regular)
+            if depth == 0 { return Self.moveFont(size: 14, weight: .semibold) }
+            return Self.moveFont(size: max(11.75, 13.15 - CGFloat(depth - 1) * 0.45), weight: .regular)
         case .moveNumber:
             return NSFont.monospacedDigitSystemFont(
                 ofSize: depth == 0 ? 11.75 : 11.25,
@@ -702,6 +732,16 @@ struct MoveTreeView: NSViewRepresentable {
             return true
         }
 
+        // Internal lucent-move:// links are navigation, not destinations; never
+        // show their raw URLs as hover tooltips.
+        func textView(
+            _ textView: NSTextView,
+            willDisplayToolTip tooltip: String,
+            forCharacterAt characterIndex: Int
+        ) -> String? {
+            nil
+        }
+
         func updateSelection(to nodeID: UUID) {
             guard lastSelectedNodeID != nodeID, let textView, let storage = textView.textStorage else { return }
             if let previousID = lastSelectedNodeID, let previous = moveStyles[previousID] {
@@ -713,7 +753,7 @@ struct MoveTreeView: NSViewRepresentable {
                 storage.addAttribute(.foregroundColor, value: LucentTheme.accentNS, range: selected.range)
                 storage.addAttribute(
                     .font,
-                    value: NSFont.systemFont(ofSize: selected.font.pointSize, weight: .semibold),
+                    value: MoveTreeView.moveFont(size: selected.font.pointSize, weight: .semibold),
                     range: selected.range
                 )
                 textView.currentMoveRange = selected.range

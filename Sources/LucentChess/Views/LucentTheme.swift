@@ -38,8 +38,8 @@ enum LucentTheme {
     enum Board {
         /// Conventional yellow wash on the last move's squares.
         static let lastMoveHighlight = Color.yellow.opacity(0.30)
-        static let engineArrowShaft = accent.opacity(0.72)
-        static let engineArrowHead = accent.opacity(0.78)
+        /// The engine's best-move arrow, drawn as one unified shape.
+        static let engineArrow = accent.opacity(0.78)
     }
 
     /// The subtle brand wash behind the dashboard.
