@@ -13,7 +13,7 @@ struct EngineConfigurationView: View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10).fill(.orange.gradient)
+                    RoundedRectangle(cornerRadius: 10).fill(LucentTheme.accent.gradient)
                     Image(systemName: "cpu.fill").font(.title2).foregroundStyle(.white)
                 }
                 .frame(width: 44, height: 44)
@@ -53,7 +53,7 @@ struct EngineConfigurationView: View {
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.orange)
+                .tint(LucentTheme.accent)
                 .keyboardShortcut(.defaultAction)
             }
             .padding(16)
@@ -78,7 +78,7 @@ struct EngineConfigurationView: View {
             }
             if let error = engine.lastError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption).foregroundStyle(.orange).padding(.top, 8)
+                    .font(.caption).foregroundStyle(.red).padding(.top, 8)
             }
         } label: {
             Label("Engine", systemImage: "memorychip")

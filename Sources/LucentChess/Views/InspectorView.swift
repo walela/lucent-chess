@@ -56,7 +56,7 @@ private struct AnalysisInspector: View {
                         .foregroundStyle(engine.isAnalysisActive ? Color.primary : Color.white)
                         .frame(width: 40, height: 40)
                         .background(
-                            engine.isAnalysisActive ? Color.secondary.opacity(0.18) : Color.orange,
+                            engine.isAnalysisActive ? Color.secondary.opacity(0.18) : LucentTheme.accent,
                             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                         )
                         .overlay {
@@ -477,13 +477,13 @@ private struct StyleInspector: View {
                                         if appearance.boardTheme.id == theme.id {
                                             Image(systemName: "checkmark.circle.fill")
                                                 .font(.caption2)
-                                                .foregroundStyle(.orange)
+                                                .foregroundStyle(LucentTheme.accent)
                                         }
                                     }
                                 }
                                 .padding(4)
                                 .background(.background.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(appearance.boardTheme.id == theme.id ? Color.orange : Color.clear, lineWidth: 2))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(appearance.boardTheme.id == theme.id ? LucentTheme.accent : Color.clear, lineWidth: 2))
                             }
                             .buttonStyle(.plain)
                         }
@@ -523,7 +523,7 @@ private struct StyleInspector: View {
                                 .padding(5)
                                 .frame(maxWidth: .infinity)
                                 .background(.background.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(appearance.pieceSet.id == set.id ? Color.orange : Color.clear, lineWidth: 2))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(appearance.pieceSet.id == set.id ? LucentTheme.accent : Color.clear, lineWidth: 2))
                             }
                             .buttonStyle(.plain)
                         }

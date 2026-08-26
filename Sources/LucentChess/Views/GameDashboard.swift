@@ -81,18 +81,7 @@ struct GameDashboard: View {
         .background(
             ZStack {
                 Color(nsColor: .windowBackgroundColor)
-                RadialGradient(
-                    colors: [.orange.opacity(0.075), .orange.opacity(0.018), .clear],
-                    center: .topLeading,
-                    startRadius: 12,
-                    endRadius: 760
-                )
-                RadialGradient(
-                    colors: [.blue.opacity(0.026), .clear],
-                    center: .bottomTrailing,
-                    startRadius: 30,
-                    endRadius: 620
-                )
+                LucentTheme.dashboardWash
             }
         )
         .sheet(item: $folderEditor) { editor in
@@ -114,11 +103,11 @@ struct GameDashboard: View {
                 .frame(width: 38, height: 38)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
-                Text("LUCENT").font(.system(size: 13, weight: .black, design: .rounded)).tracking(2.2)
+                Text("LUCENT").font(LucentTheme.Fonts.wordmark).tracking(2.2)
                 HStack(spacing: 5) {
-                    Circle().fill(.green).frame(width: 5, height: 5)
+                    Circle().fill(LucentTheme.Status.saved).frame(width: 5, height: 5)
                     Text("OFFLINE CHESS ARCHIVE")
-                        .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+                        .font(LucentTheme.Fonts.microLabel)
                         .tracking(0.65)
                         .foregroundStyle(.secondary)
                 }
@@ -153,7 +142,7 @@ struct GameDashboard: View {
                 Label("Import", systemImage: "square.and.arrow.down.on.square")
             }
             Button { newGame(selectedFolderID) } label: { Label("New Game", systemImage: "doc.badge.plus") }
-                .buttonStyle(.borderedProminent).tint(.orange)
+                .buttonStyle(.borderedProminent).tint(LucentTheme.accent)
         }
         .padding(.horizontal, 22)
         .frame(height: 66)
@@ -161,7 +150,7 @@ struct GameDashboard: View {
             ZStack {
                 Rectangle().fill(.ultraThinMaterial)
                 LinearGradient(
-                    colors: [.orange.opacity(0.055), .clear, .clear],
+                    colors: [LucentTheme.accent.opacity(0.055), .clear, .clear],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
@@ -181,7 +170,7 @@ struct GameDashboard: View {
         } label: {
             Image(systemName: appearance.interfaceAppearance.symbol)
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(appearance.interfaceAppearance == .light ? Color.orange : .secondary)
+                .foregroundStyle(.secondary)
                 .frame(width: 28, height: 28)
                 .background(.quaternary.opacity(0.65), in: Circle())
         }
@@ -302,12 +291,8 @@ struct GameDashboard: View {
     private var welcomeHeader: some View {
         HStack(alignment: .bottom, spacing: 24) {
             VStack(alignment: .leading, spacing: 7) {
-                Label("LUCENT · LOCAL STUDY DESK", systemImage: "checkerboard.rectangle")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .tracking(1.25)
-                    .foregroundStyle(.orange)
                 Text("Your chess archive")
-                    .font(.system(size: 33, weight: .semibold, design: .serif))
+                    .font(LucentTheme.Fonts.display)
                 Text("Games, ideas, and engine analysis—kept private on this Mac.")
                     .font(.title3).foregroundStyle(.secondary)
             }
@@ -325,7 +310,6 @@ struct GameDashboard: View {
                 title: "Continue",
                 detail: library.selectedStudy?.playerDescription ?? "Open your latest game",
                 systemImage: "play.fill",
-                accent: .orange,
                 prominent: true,
                 enabled: library.selectedStudy != nil
             ) {
@@ -335,7 +319,6 @@ struct GameDashboard: View {
                 title: selectedFolderID == nil ? "New game" : "New game here",
                 detail: selectedFolderID == nil ? "Start from the initial position" : "Add it to \(sectionTitle)",
                 systemImage: "doc.badge.plus",
-                accent: .blue,
                 prominent: false,
                 enabled: true
             ) { newGame(selectedFolderID) }
@@ -343,7 +326,6 @@ struct GameDashboard: View {
                 title: "Import games",
                 detail: "TWIC or Lichess",
                 systemImage: "network",
-                accent: .green,
                 prominent: false,
                 enabled: true,
             ) { importSource(selectedFolderID) }
@@ -355,14 +337,14 @@ struct GameDashboard: View {
             HStack {
                 ZStack {
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(.orange.opacity(0.14))
+                        .fill(.quaternary.opacity(0.55))
                     Image(systemName: sectionSymbol)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(.secondary)
                 }
                 .frame(width: 27, height: 27)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(sectionTitle).font(.system(.title2, design: .serif, weight: .semibold))
+                    Text(sectionTitle).font(LucentTheme.Fonts.sectionTitle)
                     if selection == .autosave {
                         Text("Recovered locally until you save each game as a PGN.")
                             .font(.caption)
@@ -601,13 +583,13 @@ struct GameDashboard: View {
         HStack(spacing: 9) {
             Image(systemName: systemImage)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.orange)
+                .foregroundStyle(.secondary)
                 .frame(width: 24, height: 24)
-                .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             VStack(alignment: .leading, spacing: 0) {
                 Text(value).font(.headline).monospacedDigit()
                 Text(label.uppercased())
-                    .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                    .font(LucentTheme.Fonts.microLabel)
                     .tracking(0.6)
                     .foregroundStyle(.secondary)
             }
@@ -640,7 +622,7 @@ private struct FolderEditorSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
                 Image(systemName: editor.folder == nil ? "folder.badge.plus" : "folder.fill")
-                    .font(.title).foregroundStyle(.orange)
+                    .font(.title).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(editor.folder == nil ? "New Folder" : "Rename Folder").font(.title2.bold())
                     Text("Folders organize the Lucent library; your PGN files stay where they are.")
@@ -654,7 +636,7 @@ private struct FolderEditorSheet: View {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 Button(editor.folder == nil ? "Create" : "Rename", action: commit)
-                    .buttonStyle(.borderedProminent).tint(.orange)
+                    .buttonStyle(.borderedProminent).tint(LucentTheme.accent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -675,29 +657,25 @@ private struct DashboardActionCard: View {
     let title: String
     let detail: String
     let systemImage: String
-    let accent: Color
     let prominent: Bool
     let enabled: Bool
     let action: () -> Void
+
+    // Only the prominent card carries the accent; secondary actions stay neutral.
+    private var iconColor: Color { prominent ? LucentTheme.accent : .secondary }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 13) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(accent.opacity(prominent ? 0.22 : 0.13))
+                        .fill(prominent ? AnyShapeStyle(LucentTheme.accent.opacity(0.22)) : AnyShapeStyle(.quaternary.opacity(0.55)))
                     Image(systemName: systemImage)
                         .font(prominent ? .title2.weight(.bold) : .title3.weight(.semibold))
-                        .foregroundStyle(accent)
+                        .foregroundStyle(iconColor)
                 }
                 .frame(width: 50, height: 50)
                 VStack(alignment: .leading, spacing: 4) {
-                    if prominent {
-                        Text("RESUME STUDY")
-                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
-                            .tracking(0.9)
-                            .foregroundStyle(accent)
-                    }
                     Text(title).font(prominent ? .title3.weight(.semibold) : .headline)
                     Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
@@ -712,7 +690,7 @@ private struct DashboardActionCard: View {
                     .overlay {
                         if prominent {
                             LinearGradient(
-                                colors: [accent.opacity(0.11), accent.opacity(0.025), .clear],
+                                colors: [LucentTheme.accent.opacity(0.11), LucentTheme.accent.opacity(0.025), .clear],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -724,7 +702,7 @@ private struct DashboardActionCard: View {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .stroke(
                         prominent
-                            ? accent.opacity(0.32)
+                            ? LucentTheme.accent.opacity(0.32)
                             : Color(nsColor: .separatorColor).opacity(0.34)
                     )
             )
@@ -756,7 +734,7 @@ private struct GameLibraryRow: View {
                         HStack(spacing: 7) {
                             Text(game.title).lineLimit(1)
                             if let folderName {
-                                Label(folderName, systemImage: "folder.fill").foregroundStyle(.orange.opacity(0.9)).lineLimit(1)
+                                Label(folderName, systemImage: "folder.fill").lineLimit(1)
                             }
                         }
                         .font(.caption).foregroundStyle(.secondary)
@@ -764,7 +742,7 @@ private struct GameLibraryRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Text(game.event.isEmpty ? "—" : game.event).lineLimit(1).frame(width: 160, alignment: .leading)
-                Text(game.date, format: .dateTime.year().month(.twoDigits).day(.twoDigits))
+                Text(game.date, format: .dateTime.day().month(.abbreviated).year())
                     .monospacedDigit().frame(width: 92, alignment: .leading)
                 Text(game.result).monospacedDigit().frame(width: 68, alignment: .leading)
                 Text("\((game.mainLinePlyCount + 1) / 2)").monospacedDigit().frame(width: 56, alignment: .trailing)
@@ -779,10 +757,10 @@ private struct GameLibraryRow: View {
     }
 
     private var rowAccent: Color {
-        if game.hasUnsavedChanges { return .yellow }
-        if game.starterCollectionID != nil { return .blue }
-        if game.sourceName != nil { return .teal }
-        if game.filePath == nil { return .orange }
-        return .green
+        if game.hasUnsavedChanges { return LucentTheme.Status.edited }
+        if game.starterCollectionID != nil { return LucentTheme.Status.starter }
+        if game.sourceName != nil { return LucentTheme.Status.imported }
+        if game.filePath == nil { return LucentTheme.Status.unsaved }
+        return LucentTheme.Status.saved
     }
 }

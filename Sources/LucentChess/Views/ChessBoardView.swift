@@ -97,7 +97,7 @@ struct ChessBoardView: View {
             let isLight = (square.file + square.rank).isMultiple(of: 2)
             ZStack {
                 Rectangle().fill(appearance.boardTheme.fileName == nil ? (isLight ? appearance.lightSquare : appearance.darkSquare) : Color.clear)
-                if lastMove?.from == square || lastMove?.to == square { Rectangle().fill(Color.yellow.opacity(0.30)) }
+                if lastMove?.from == square || lastMove?.to == square { Rectangle().fill(LucentTheme.Board.lastMoveHighlight) }
                 if selected == square { Rectangle().fill(Color.accentColor.opacity(0.42)) }
                 if legalTargets.contains(square) {
                     if position[square] == nil {
@@ -277,14 +277,14 @@ private struct EngineArrow: View {
         Canvas { context, _ in
             let start = point(from), end = point(to)
             var shaft = Path(); shaft.move(to: start); shaft.addLine(to: end)
-            context.stroke(shaft, with: .color(.orange.opacity(0.72)), style: StrokeStyle(lineWidth: cell * 0.12, lineCap: .round))
+            context.stroke(shaft, with: .color(LucentTheme.Board.engineArrowShaft), style: StrokeStyle(lineWidth: cell * 0.12, lineCap: .round))
             let angle = atan2(end.y - start.y, end.x - start.x)
             let length = cell * 0.30
             var head = Path(); head.move(to: end)
             head.addLine(to: CGPoint(x: end.x - length * cos(angle - .pi / 6), y: end.y - length * sin(angle - .pi / 6)))
             head.addLine(to: CGPoint(x: end.x - length * cos(angle + .pi / 6), y: end.y - length * sin(angle + .pi / 6)))
             head.closeSubpath()
-            context.fill(head, with: .color(.orange.opacity(0.78)))
+            context.fill(head, with: .color(LucentTheme.Board.engineArrowHead))
         }
         .allowsHitTesting(false)
     }

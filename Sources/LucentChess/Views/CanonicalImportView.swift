@@ -76,7 +76,7 @@ struct CanonicalImportView: View {
                 if summary == nil {
                     Button("Import", action: beginImport)
                         .buttonStyle(.borderedProminent)
-                        .tint(.orange)
+                        .tint(LucentTheme.accent)
                         .keyboardShortcut(.defaultAction)
                         .disabled(isImporting || !canImport)
                 }
@@ -93,7 +93,7 @@ struct CanonicalImportView: View {
         HStack(spacing: 13) {
             ZStack {
                 RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .fill(.orange.gradient)
+                    .fill(LucentTheme.accent.gradient)
                 Image(systemName: "square.and.arrow.down.on.square.fill")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
@@ -228,7 +228,7 @@ struct CanonicalImportView: View {
 
     private var destinationRow: some View {
         HStack(spacing: 10) {
-            Image(systemName: "folder.fill").foregroundStyle(.orange)
+            Image(systemName: "folder.fill").foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Destination").font(.caption).foregroundStyle(.secondary)
                 Text(destinationName).font(.callout.weight(.medium))

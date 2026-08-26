@@ -79,7 +79,7 @@ private struct GameWorkspaceHeader: View {
                 Label(engine.isAnalysisActive ? "Stop" : "Analyze", systemImage: engine.isAnalysisActive ? "stop.fill" : "bolt.fill")
             }
             .buttonStyle(.borderedProminent)
-            .tint(engine.isAnalysisActive ? .secondary : .orange)
+            .tint(engine.isAnalysisActive ? .secondary : LucentTheme.accent)
             .controlSize(.small)
         }
         .padding(.horizontal, 14)
@@ -106,11 +106,11 @@ private struct GameWorkspaceHeader: View {
     }
 
     private var statusColor: Color {
-        if study.starterCollectionID != nil, study.hasUnsavedChanges { return .yellow }
-        if study.starterCollectionID != nil, !study.hasUnsavedChanges { return .blue }
-        if study.sourceName != nil { return study.hasUnsavedChanges ? .yellow : .teal }
-        if study.filePath == nil { return .orange }
-        return study.hasUnsavedChanges ? .yellow : .green
+        if study.starterCollectionID != nil, study.hasUnsavedChanges { return LucentTheme.Status.edited }
+        if study.starterCollectionID != nil, !study.hasUnsavedChanges { return LucentTheme.Status.starter }
+        if study.sourceName != nil { return study.hasUnsavedChanges ? LucentTheme.Status.edited : LucentTheme.Status.imported }
+        if study.filePath == nil { return LucentTheme.Status.unsaved }
+        return study.hasUnsavedChanges ? LucentTheme.Status.edited : LucentTheme.Status.saved
     }
 }
 
@@ -180,7 +180,7 @@ private struct MaterialBalanceBar: View {
                 }
                 Text(advantageLabel)
                     .font(.caption2.monospacedDigit().weight(.bold))
-                    .foregroundStyle(balance.score == 0 ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
+                    .foregroundStyle(balance.score == 0 ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3)
                     .background(.primary.opacity(0.055), in: Capsule())
@@ -249,7 +249,7 @@ private struct NotationPane: View {
             VStack(alignment: .leading, spacing: 9) {
                 HStack {
                     Label("Notation", systemImage: "list.number")
-                        .font(.system(.headline, design: .serif, weight: .semibold))
+                        .font(LucentTheme.Fonts.panelTitle)
                     Spacer()
                     Text("Ply \(study.currentPly) / \(study.mainLinePlyCount)")
                         .font(.caption2.monospacedDigit().weight(.semibold))
@@ -284,7 +284,7 @@ private struct NotationPane: View {
                     HStack(spacing: 7) {
                         Image(systemName: "trophy.fill")
                             .font(.caption)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(.secondary)
                         TextField("Event", text: binding(\.event))
                             .textFieldStyle(.plain)
                             .font(.callout.weight(.medium))
@@ -366,7 +366,7 @@ private struct NotationPane: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(label.uppercased())
-                    .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                    .font(LucentTheme.Fonts.microLabel)
                     .tracking(0.65)
                     .foregroundStyle(.secondary)
                 TextField("Player", text: name)
@@ -389,9 +389,9 @@ private struct NotationPane: View {
                     .frame(width: 52)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3)
-                    .background(.orange.opacity(rating.wrappedValue.isEmpty ? 0.055 : 0.13), in: Capsule())
+                    .background(.primary.opacity(rating.wrappedValue.isEmpty ? 0.03 : 0.055), in: Capsule())
                     .overlay {
-                        Capsule().stroke(.orange.opacity(rating.wrappedValue.isEmpty ? 0.10 : 0.24), lineWidth: 0.75)
+                        Capsule().stroke(.primary.opacity(rating.wrappedValue.isEmpty ? 0.08 : 0.14), lineWidth: 0.75)
                     }
             }
         }
@@ -532,13 +532,13 @@ private struct NavigationButtonStyle: ButtonStyle {
 
     private var foregroundColor: Color {
         if !isEnabled { return .secondary.opacity(0.3) }
-        return emphasized ? .orange : .primary.opacity(0.82)
+        return emphasized ? LucentTheme.accent : .primary.opacity(0.82)
     }
 
     private func backgroundColor(pressed: Bool) -> Color {
         if !isEnabled { return .primary.opacity(0.025) }
-        if pressed { return .orange.opacity(0.20) }
-        return emphasized ? .orange.opacity(0.11) : .primary.opacity(0.065)
+        if pressed { return LucentTheme.accent.opacity(0.20) }
+        return emphasized ? LucentTheme.accent.opacity(0.11) : .primary.opacity(0.065)
     }
 }
 
@@ -671,16 +671,16 @@ struct MoveTreeView: NSViewRepresentable {
             return NSColor.secondaryLabelColor.withAlphaComponent(token.variationDepth == 0 ? 0.82 : 0.68)
         case .punctuation:
             return token.variationDepth > 0
-                ? NSColor.systemOrange.withAlphaComponent(0.82)
+                ? LucentTheme.accentNS.withAlphaComponent(0.82)
                 : NSColor.secondaryLabelColor.withAlphaComponent(0.72)
         case .comment:
             return token.variationDepth == 0
-                ? NSColor.systemOrange.withAlphaComponent(0.78)
+                ? LucentTheme.accentNS.withAlphaComponent(0.78)
                 : .tertiaryLabelColor
         case .annotation:
-            return .systemOrange
+            return LucentTheme.accentNS
         case .result:
-            return .systemOrange
+            return LucentTheme.accentNS
         }
     }
 
@@ -710,7 +710,7 @@ struct MoveTreeView: NSViewRepresentable {
             }
             textView.currentMoveRange = nil
             if let selected = moveStyles[nodeID] {
-                storage.addAttribute(.foregroundColor, value: NSColor.systemOrange, range: selected.range)
+                storage.addAttribute(.foregroundColor, value: LucentTheme.accentNS, range: selected.range)
                 storage.addAttribute(
                     .font,
                     value: NSFont.systemFont(ofSize: selected.font.pointSize, weight: .semibold),
@@ -763,7 +763,7 @@ private final class NotationTextView: NSTextView {
     }
 
     private func drawCurrentMoveHighlight(for range: NSRange, dirtyRect: NSRect) {
-        NSColor.systemOrange.withAlphaComponent(0.14).setFill()
+        LucentTheme.accentNS.withAlphaComponent(0.14).setFill()
         for rect in textRects(for: range) {
             let pill = rect.insetBy(dx: -3.5, dy: -1.5)
             guard pill.intersects(dirtyRect) else { continue }
