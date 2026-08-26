@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.2 — 2026-08-26
+
+- Renders moves in ChessBase-style figurine notation (♞f3) in the score, engine lines, and variation previews; PGN files keep standard letters.
+- No longer shows raw internal link URLs when hovering over moves in the notation.
+- Redraws the engine's best-move arrow as one clean shape with a gap over the origin square.
+
 ## 1.13.1 — 2026-08-26
 
 - Restrains the amber accent to primary actions and the current selection; folder tags, metric chips, and section icons are now neutral.
