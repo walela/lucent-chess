@@ -52,11 +52,22 @@ private struct AnalysisInspector: View {
                     engine.toggle(for: study.currentPosition)
                 } label: {
                     Image(systemName: engine.isAnalysisActive ? "stop.fill" : "play.fill")
-                        .frame(width: 24, height: 24)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(engine.isAnalysisActive ? Color.primary : Color.white)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            engine.isAnalysisActive ? Color.secondary.opacity(0.18) : Color.orange,
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(.primary.opacity(engine.isAnalysisActive ? 0.10 : 0), lineWidth: 0.75)
+                        }
+                        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(engine.isAnalysisActive ? .secondary : .orange)
+                .buttonStyle(.plain)
                 .help(engine.isAnalysisActive ? "Stop engine" : "Analyze this position")
+                .accessibilityLabel(engine.isAnalysisActive ? "Stop engine" : "Analyze this position")
             }
             .padding(14)
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.4 — 2026-08-26
+
+- Makes the engine play and stop control a compact square button.
+
 ## 1.12.3 — 2026-08-26
 
 - Adds a live material strip above the board with surplus pieces and the point advantage.
