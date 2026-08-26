@@ -169,14 +169,49 @@ private struct NotationPane: View {
                         .padding(.vertical, 4)
                         .background(.quaternary.opacity(0.7), in: Capsule())
                 }
-                playerField("White", text: binding(\.white))
-                playerField("Black", text: binding(\.black))
+
+                VStack(spacing: 0) {
+                    playerRow(
+                        "White",
+                        isWhite: true,
+                        name: binding(\.white),
+                        rating: optionalBinding(\.whiteElo)
+                    )
+                    Divider().padding(.leading, 42)
+                    playerRow(
+                        "Black",
+                        isWhite: false,
+                        name: binding(\.black),
+                        rating: optionalBinding(\.blackElo)
+                    )
+                }
+                .background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(.primary.opacity(0.09), lineWidth: 0.75)
+                }
+
                 HStack(spacing: 7) {
-                    TextField("Event", text: binding(\.event)).textFieldStyle(.roundedBorder)
+                    HStack(spacing: 7) {
+                        Image(systemName: "trophy.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        TextField("Event", text: binding(\.event))
+                            .textFieldStyle(.plain)
+                            .font(.callout.weight(.medium))
+                    }
+                    .padding(.horizontal, 9)
+                    .frame(height: 30)
+                    .background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .stroke(.primary.opacity(0.09), lineWidth: 0.75)
+                    }
                     Picker("Result", selection: binding(\.result, notation: true)) {
                         ForEach(["*", "1-0", "0-1", "1/2-1/2"], id: \.self, content: Text.init)
                     }
-                    .labelsHidden().frame(width: 94)
+                    .labelsHidden()
+                    .frame(width: 94)
                 }
             }
             .padding(12)
@@ -225,15 +260,54 @@ private struct NotationPane: View {
         .background(.background.opacity(0.48))
     }
 
-    private func playerField(_ label: String, text: Binding<String>) -> some View {
-        HStack(spacing: 8) {
-            Text(label.uppercased())
-                .font(.system(size: 9.5, weight: .bold, design: .rounded))
-                .tracking(0.55)
-                .foregroundStyle(.secondary)
-                .frame(width: 36, alignment: .leading)
-            TextField(label, text: text).textFieldStyle(.roundedBorder)
+    private func playerRow(
+        _ label: String,
+        isWhite: Bool,
+        name: Binding<String>,
+        rating: Binding<String>
+    ) -> some View {
+        HStack(spacing: 9) {
+            Circle()
+                .fill(isWhite ? Color.white : Color(nsColor: .labelColor).opacity(0.88))
+                .frame(width: 13, height: 13)
+                .overlay {
+                    Circle().stroke(.primary.opacity(isWhite ? 0.38 : 0.16), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(isWhite ? 0.08 : 0), radius: 1, y: 0.5)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label.uppercased())
+                    .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                    .tracking(0.65)
+                    .foregroundStyle(.secondary)
+                TextField("Player", text: name)
+                    .textFieldStyle(.plain)
+                    .font(.callout.weight(.semibold))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 5)
+
+            VStack(alignment: .trailing, spacing: 1) {
+                Text("ELO")
+                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                    .tracking(0.55)
+                    .foregroundStyle(.tertiary)
+                TextField("—", text: rating)
+                    .textFieldStyle(.plain)
+                    .font(.system(.callout, design: .rounded, weight: .semibold).monospacedDigit())
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 52)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(.orange.opacity(rating.wrappedValue.isEmpty ? 0.055 : 0.13), in: Capsule())
+                    .overlay {
+                        Capsule().stroke(.orange.opacity(rating.wrappedValue.isEmpty ? 0.10 : 0.24), lineWidth: 0.75)
+                    }
+            }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
     }
 
     private var commentEditorTitle: String {
@@ -259,6 +333,19 @@ private struct NotationPane: View {
         Binding(
             get: { study[keyPath: keyPath] },
             set: { study[keyPath: keyPath] = $0; library.changed(notation: notation) }
+        )
+    }
+
+    private func optionalBinding(
+        _ keyPath: ReferenceWritableKeyPath<ChessStudy, String?>
+    ) -> Binding<String> {
+        Binding(
+            get: { study[keyPath: keyPath] ?? "" },
+            set: {
+                let cleaned = $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                study[keyPath: keyPath] = cleaned.isEmpty ? nil : cleaned
+                library.changed()
+            }
         )
     }
 }

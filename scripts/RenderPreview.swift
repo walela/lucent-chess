@@ -38,13 +38,30 @@ struct RenderPreview {
     @MainActor
     static func main() throws {
         NSApplication.shared.setActivationPolicy(.prohibited)
-        NSApplication.shared.appearance = NSAppearance(named: .darkAqua)
+        NSApplication.shared.appearance = NSAppearance(
+            named: CommandLine.arguments.contains("--light") ? .aqua : .darkAqua
+        )
         let archive = URL(fileURLWithPath: CommandLine.arguments[1])
         let output = URL(fileURLWithPath: CommandLine.arguments[2])
         let selectedTab = CommandLine.arguments.count > 3
             ? (RootView.InspectorTab(rawValue: CommandLine.arguments[3]) ?? .analysis)
             : .analysis
         let library = LibraryStore(archiveURL: archive)
+        if CommandLine.arguments.contains("--demo-ratings") {
+            let demo = ChessStudy(
+                title: "Rated bullet game",
+                white: "Gyoegy",
+                black: "smeesloff",
+                event: "Rated bullet game",
+                site: "https://lichess.org/demo",
+                whiteElo: "1847",
+                blackElo: "1912",
+                result: "0-1"
+            )
+            demo.sourceName = "Lichess"
+            library.studies = [demo]
+            library.selectedStudyID = demo.id
+        }
         let engine = StockfishService()
         let appearance = AppearanceSettings()
         appearance.boardTheme = BoardThemeOption.find("wood")

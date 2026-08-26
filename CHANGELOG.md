@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.2 — 2026-08-26
+
+- Shows imported Lichess Elo ratings beside each player in the notation pane.
+- Reworks the game metadata header into compact player cards with cleaner event and result controls.
+
 ## 1.12.1 — 2026-08-26
 
 - Filters Lichess player imports by speed, color, result, and rated or casual games.
