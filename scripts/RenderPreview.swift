@@ -56,7 +56,8 @@ struct RenderPreview {
                 site: "https://lichess.org/demo",
                 whiteElo: "1847",
                 blackElo: "1912",
-                result: "0-1"
+                result: "0-1",
+                startFEN: "r5k1/5ppp/p3rq2/2pQ4/1P1B4/4P3/P4PPP/2RR2K1 w - - 0 22"
             )
             demo.sourceName = "Lichess"
             library.studies = [demo]

@@ -353,3 +353,47 @@ struct ChessPosition: Codable, Equatable {
 private extension ChessPiece {
     var fenLetter: Character { kind.fenLetter }
 }
+
+struct MaterialBalance: Equatable {
+    /// Positive values favor White; negative values favor Black.
+    let score: Int
+    let whiteExtraPieces: [PieceKind]
+    let blackExtraPieces: [PieceKind]
+}
+
+extension ChessPosition {
+    var materialBalance: MaterialBalance {
+        let orderedKinds: [PieceKind] = [.queen, .rook, .bishop, .knight, .pawn]
+        var whiteExtra: [PieceKind] = []
+        var blackExtra: [PieceKind] = []
+        var score = 0
+
+        for kind in orderedKinds {
+            let whiteCount = squares.count { $0?.color == .white && $0?.kind == kind }
+            let blackCount = squares.count { $0?.color == .black && $0?.kind == kind }
+            let difference = whiteCount - blackCount
+            score += difference * Self.materialValue(of: kind)
+            if difference > 0 {
+                whiteExtra.append(contentsOf: repeatElement(kind, count: difference))
+            } else if difference < 0 {
+                blackExtra.append(contentsOf: repeatElement(kind, count: -difference))
+            }
+        }
+
+        return MaterialBalance(
+            score: score,
+            whiteExtraPieces: whiteExtra,
+            blackExtraPieces: blackExtra
+        )
+    }
+
+    private static func materialValue(of kind: PieceKind) -> Int {
+        switch kind {
+        case .pawn: return 1
+        case .knight, .bishop: return 3
+        case .rook: return 5
+        case .queen: return 9
+        case .king: return 0
+        }
+    }
+}

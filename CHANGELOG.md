@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.3 — 2026-08-26
+
+- Adds a live material strip above the board with surplus pieces and the point advantage.
+
 ## 1.12.2 — 2026-08-26
 
 - Shows imported Lichess Elo ratings beside each player in the notation pane.

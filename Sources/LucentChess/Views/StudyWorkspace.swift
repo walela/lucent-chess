@@ -121,12 +121,14 @@ private struct BoardPane: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let boardSize = max(260, min(proxy.size.width - 30, proxy.size.height - 70))
+            let boardSize = max(260, min(proxy.size.width - 30, proxy.size.height - 108))
             VStack(spacing: 0) {
                 Spacer(minLength: 12)
                 HStack {
                     Spacer(minLength: 12)
                     VStack(spacing: 8) {
+                        MaterialBalanceBar(position: study.currentPosition)
+                            .frame(width: boardSize)
                         ChessBoardView(
                             position: study.currentPosition,
                             lastMoveUCI: study.currentNode.moveUCI,
@@ -148,6 +150,93 @@ private struct BoardPane: View {
         guard study.play(move) != nil else { return }
         library.changed(notation: true)
         engine.updatePosition(study.currentPosition)
+    }
+}
+
+private struct MaterialBalanceBar: View {
+    let position: ChessPosition
+
+    private var balance: MaterialBalance { position.materialBalance }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Label("Material", systemImage: "scalemass.fill")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 7) {
+                if !balance.whiteExtraPieces.isEmpty {
+                    materialPieces(balance.whiteExtraPieces, color: .white)
+                }
+                if !balance.whiteExtraPieces.isEmpty, !balance.blackExtraPieces.isEmpty {
+                    Text("vs")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                if !balance.blackExtraPieces.isEmpty {
+                    materialPieces(balance.blackExtraPieces, color: .black)
+                }
+                Text(advantageLabel)
+                    .font(.caption2.monospacedDigit().weight(.bold))
+                    .foregroundStyle(balance.score == 0 ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(.primary.opacity(0.055), in: Capsule())
+            }
+        }
+        .padding(.horizontal, 9)
+        .frame(height: 28)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(.primary.opacity(0.10), lineWidth: 0.75)
+        }
+        .help(accessibilitySummary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private func materialPieces(_ kinds: [PieceKind], color: PieceColor) -> some View {
+        HStack(spacing: -3) {
+            ForEach(Array(kinds.enumerated()), id: \.offset) { _, kind in
+                MaterialPieceIcon(piece: ChessPiece(color: color, kind: kind))
+            }
+        }
+    }
+
+    private var advantageLabel: String {
+        if balance.score > 0 { return "White +\(balance.score)" }
+        if balance.score < 0 { return "Black +\(-balance.score)" }
+        return "Even"
+    }
+
+    private var accessibilitySummary: String {
+        if balance.score > 0 { return "White is ahead by \(balance.score) material points" }
+        if balance.score < 0 { return "Black is ahead by \(-balance.score) material points" }
+        return "Material is even"
+    }
+}
+
+private struct MaterialPieceIcon: View {
+    @EnvironmentObject private var appearance: AppearanceSettings
+    let piece: ChessPiece
+
+    var body: some View {
+        Group {
+            if let image = ThemeAssetStore.pieceImage(set: appearance.pieceSet, piece: piece) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+            } else {
+                Text(piece.unicode)
+                    .font(.custom("Apple Symbols", size: 14))
+            }
+        }
+        .frame(width: 16, height: 18)
+        .accessibilityHidden(true)
     }
 }
 

@@ -30,6 +30,31 @@ struct CoreChecks {
             enPassant.legalMove(uci: "e5d6")?.isEnPassant == true
         }
 
+        try check("starting material is even") {
+            let balance = ChessPosition.starting.materialBalance
+            return balance.score == 0
+                && balance.whiteExtraPieces.isEmpty
+                && balance.blackExtraPieces.isEmpty
+        }
+
+        let whitePawnUp = ChessPosition(fen: "7k/8/8/8/8/8/P7/7K w - - 0 1")!
+        try check("material balance identifies a white extra pawn") {
+            whitePawnUp.materialBalance == MaterialBalance(
+                score: 1,
+                whiteExtraPieces: [.pawn],
+                blackExtraPieces: []
+            )
+        }
+
+        let blackExchangeUp = ChessPosition(fen: "7k/8/8/8/8/8/r7/2B4K w - - 0 1")!
+        try check("material balance compares unlike pieces") {
+            blackExchangeUp.materialBalance == MaterialBalance(
+                score: -2,
+                whiteExtraPieces: [.bishop],
+                blackExtraPieces: [.rook]
+            )
+        }
+
         let pgn = """
         [Event "Ruy Lopez notes"]
         [Site "Offline Mac"]
