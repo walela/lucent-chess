@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.14.2 — 2026-08-27
+
+- Rebuilds the workspace panes on NSSplitViewController so the board, notation, and engine dividers drag reliably.
+- Sharpens the notation hierarchy: main line, first variation, and deeper nesting now use clearly stepped sizes and shades, and variation parentheses no longer use amber.
+
 ## 1.14.1 — 2026-08-27
 
 - Fixes the board / notation / engine dividers not dragging; the workspace now uses a native split view, stretches the board first when the window resizes, and remembers divider positions between launches.

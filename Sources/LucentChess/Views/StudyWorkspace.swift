@@ -32,64 +32,45 @@ struct StudyWorkspace: View {
     }
 }
 
-/// A real NSSplitView instead of SwiftUI's HSplitView. HSplitView translates
-/// the panes' frame constraints into Auto Layout requirements that fight
-/// divider drags; NSSplitView gives working dividers, holding priorities so
-/// window resizing stretches the board first, and free divider autosaving.
-private struct WorkspaceSplitView: NSViewRepresentable {
+/// The workspace split, backed by NSSplitViewController — the supported AppKit
+/// path for resizable panes. Split view items own minimum thickness and
+/// holding priority, so dividers drag reliably, window resizing stretches the
+/// board first, and divider positions autosave.
+private struct WorkspaceSplitView: NSViewControllerRepresentable {
     let board: AnyView
     let notation: AnyView
     let inspector: AnyView
 
-    private static let autosaveName = "StudyWorkspaceSplit"
-
-    final class Coordinator {
-        var hosts: [NSHostingView<AnyView>] = []
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeNSView(context: Context) -> NSSplitView {
-        let split = NSSplitView()
-        split.isVertical = true
-        split.dividerStyle = .thin
+    func makeNSViewController(context: Context) -> NSSplitViewController {
+        let controller = NSSplitViewController()
+        controller.splitView.isVertical = true
+        controller.splitView.dividerStyle = .thin
 
         let panes: [(view: AnyView, minWidth: CGFloat, holding: NSLayoutConstraint.Priority)] = [
             (board, 420, .init(250)),
-            (notation, 280, .init(260)),
+            (notation, 270, .init(260)),
             (inspector, 300, .init(261))
         ]
-        for (index, pane) in panes.enumerated() {
-            let host = NSHostingView(rootView: pane.view)
-            // Let the split view own the width; SwiftUI content adapts.
-            host.sizingOptions = []
-            host.translatesAutoresizingMaskIntoConstraints = false
-            host.widthAnchor.constraint(greaterThanOrEqualToConstant: pane.minWidth).isActive = true
-            split.addArrangedSubview(host)
-            split.setHoldingPriority(pane.holding, forSubviewAt: index)
-            context.coordinator.hosts.append(host)
+        for pane in panes {
+            let hosting = NSHostingController(rootView: pane.view)
+            hosting.sizingOptions = []
+            let item = NSSplitViewItem(viewController: hosting)
+            item.minimumThickness = pane.minWidth
+            item.holdingPriority = pane.holding
+            item.canCollapse = false
+            controller.addSplitViewItem(item)
         }
-        split.autosaveName = Self.autosaveName
-        applyInitialPositionsIfNeeded(split)
-        return split
+        // Fresh key: the previous NSSplitView-based layout may have autosaved
+        // unusable divider frames under the old name.
+        controller.splitView.autosaveName = "StudyWorkspaceSplit.v2"
+        return controller
     }
 
-    func updateNSView(_ split: NSSplitView, context: Context) {
-        guard context.coordinator.hosts.count == 3 else { return }
-        context.coordinator.hosts[0].rootView = board
-        context.coordinator.hosts[1].rootView = notation
-        context.coordinator.hosts[2].rootView = inspector
-    }
-
-    private func applyInitialPositionsIfNeeded(_ split: NSSplitView) {
-        let key = "NSSplitView Subview Frames \(Self.autosaveName)"
-        guard UserDefaults.standard.object(forKey: key) == nil else { return }
-        DispatchQueue.main.async {
-            let width = split.bounds.width
-            guard width > 1_020 else { return }
-            split.setPosition(width - 700, ofDividerAt: 0)
-            split.setPosition(width - 360, ofDividerAt: 1)
-        }
+    func updateNSViewController(_ controller: NSSplitViewController, context: Context) {
+        guard controller.splitViewItems.count == 3 else { return }
+        (controller.splitViewItems[0].viewController as? NSHostingController<AnyView>)?.rootView = board
+        (controller.splitViewItems[1].viewController as? NSHostingController<AnyView>)?.rootView = notation
+        (controller.splitViewItems[2].viewController as? NSHostingController<AnyView>)?.rootView = inspector
     }
 }
 
@@ -791,32 +772,48 @@ struct MoveTreeView: NSViewRepresentable {
         return font
     }
 
+    /// Three clearly stepped tiers: main line, first variation, deeper nesting.
+    private func moveSize(for depth: Int) -> CGFloat {
+        switch depth {
+        case 0: return 14
+        case 1: return 12.5
+        default: return 11.5
+        }
+    }
+
     private func font(for token: ChessNotationToken) -> NSFont {
         let depth = token.variationDepth
         switch token.kind {
         case .move:
-            if depth == 0 { return notationFont(size: 14, weight: .semibold) }
-            return notationFont(size: max(11.75, 13.15 - CGFloat(depth - 1) * 0.45), weight: .regular)
+            return notationFont(
+                size: moveSize(for: depth),
+                weight: depth == 0 ? .semibold : .regular
+            )
         case .moveNumber:
             return notationFont(
-                size: depth == 0 ? 11.75 : 11.25,
+                size: moveSize(for: depth) - 2.25,
                 weight: depth == 0 ? .medium : .regular,
                 monospacedDigits: true
             )
         case .comment:
-            return notationFont(size: depth == 0 ? 12.35 : 11.7, weight: .regular, italic: true)
+            return notationFont(size: depth == 0 ? 12.35 : 11.25, weight: .regular, italic: true)
         case .annotation:
             return notationFont(size: 12.25, weight: .semibold)
         case .result:
             return notationFont(size: 13.5, weight: .semibold)
         case .punctuation:
-            return notationFont(size: depth == 0 ? 13.4 : 12.35, weight: .regular)
+            return notationFont(size: moveSize(for: max(depth, 1)), weight: .regular)
         }
     }
 
     // Only appearance-dynamic colors here: `withAlphaComponent` on a catalog
     // color resolves it statically against the appearance active at build
     // time, which broke light mode when the string was built in dark mode.
+    //
+    // Hierarchy: main line is full-strength label color, first variation is
+    // secondary, deeper nesting is tertiary. Amber marks meaning (comments,
+    // annotations, result, the current move) — structural punctuation like
+    // variation parentheses stays quiet.
     private func color(for token: ChessNotationToken) -> NSColor {
         switch token.kind {
         case .move:
@@ -826,7 +823,7 @@ struct MoveTreeView: NSViewRepresentable {
         case .moveNumber:
             return token.variationDepth == 0 ? .secondaryLabelColor : .tertiaryLabelColor
         case .punctuation:
-            return token.variationDepth > 0 ? LucentTheme.accentNS : .secondaryLabelColor
+            return .tertiaryLabelColor
         case .comment:
             return token.variationDepth == 0 ? LucentTheme.accentNS : .tertiaryLabelColor
         case .annotation:
