@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.1 — 2026-08-27
+
+- Fixes the board / notation / engine dividers not dragging; the workspace now uses a native split view, stretches the board first when the window resizes, and remembers divider positions between launches.
+
 ## 1.14.0 — 2026-08-27
 
 - Adds the Fresca Camelot piece set (sadsnake1's Fresca recolored by caderek, CC BY-NC-SA 4.0), bringing the catalog to 42 sets.

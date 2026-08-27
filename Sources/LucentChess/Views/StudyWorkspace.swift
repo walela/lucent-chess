@@ -2,6 +2,9 @@ import AppKit
 import SwiftUI
 
 struct StudyWorkspace: View {
+    @EnvironmentObject private var library: LibraryStore
+    @EnvironmentObject private var engine: StockfishService
+    @EnvironmentObject private var appearance: AppearanceSettings
     let study: ChessStudy
     @Binding var inspectorTab: RootView.InspectorTab
     let showDashboard: () -> Void
@@ -10,16 +13,83 @@ struct StudyWorkspace: View {
         VStack(spacing: 0) {
             GameWorkspaceHeader(study: study, showDashboard: showDashboard)
             Divider()
-            HSplitView {
-                BoardPane(study: study)
-                    .frame(minWidth: 520, idealWidth: 700, maxWidth: .infinity)
-                NotationPane(study: study)
-                    .frame(minWidth: 290, idealWidth: 340, maxWidth: 400)
-                InspectorView(study: study, tab: $inspectorTab)
-                    .frame(minWidth: 300, idealWidth: 360, maxWidth: 450)
-            }
+            WorkspaceSplitView(
+                board: AnyView(inject(BoardPane(study: study))),
+                notation: AnyView(inject(NotationPane(study: study))),
+                inspector: AnyView(inject(InspectorView(study: study, tab: $inspectorTab)))
+            )
         }
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    // Each pane becomes the root of its own NSHostingView, which starts a
+    // fresh SwiftUI hierarchy, so the environment objects must be re-injected.
+    private func inject(_ view: some View) -> some View {
+        view
+            .environmentObject(library)
+            .environmentObject(engine)
+            .environmentObject(appearance)
+    }
+}
+
+/// A real NSSplitView instead of SwiftUI's HSplitView. HSplitView translates
+/// the panes' frame constraints into Auto Layout requirements that fight
+/// divider drags; NSSplitView gives working dividers, holding priorities so
+/// window resizing stretches the board first, and free divider autosaving.
+private struct WorkspaceSplitView: NSViewRepresentable {
+    let board: AnyView
+    let notation: AnyView
+    let inspector: AnyView
+
+    private static let autosaveName = "StudyWorkspaceSplit"
+
+    final class Coordinator {
+        var hosts: [NSHostingView<AnyView>] = []
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> NSSplitView {
+        let split = NSSplitView()
+        split.isVertical = true
+        split.dividerStyle = .thin
+
+        let panes: [(view: AnyView, minWidth: CGFloat, holding: NSLayoutConstraint.Priority)] = [
+            (board, 420, .init(250)),
+            (notation, 280, .init(260)),
+            (inspector, 300, .init(261))
+        ]
+        for (index, pane) in panes.enumerated() {
+            let host = NSHostingView(rootView: pane.view)
+            // Let the split view own the width; SwiftUI content adapts.
+            host.sizingOptions = []
+            host.translatesAutoresizingMaskIntoConstraints = false
+            host.widthAnchor.constraint(greaterThanOrEqualToConstant: pane.minWidth).isActive = true
+            split.addArrangedSubview(host)
+            split.setHoldingPriority(pane.holding, forSubviewAt: index)
+            context.coordinator.hosts.append(host)
+        }
+        split.autosaveName = Self.autosaveName
+        applyInitialPositionsIfNeeded(split)
+        return split
+    }
+
+    func updateNSView(_ split: NSSplitView, context: Context) {
+        guard context.coordinator.hosts.count == 3 else { return }
+        context.coordinator.hosts[0].rootView = board
+        context.coordinator.hosts[1].rootView = notation
+        context.coordinator.hosts[2].rootView = inspector
+    }
+
+    private func applyInitialPositionsIfNeeded(_ split: NSSplitView) {
+        let key = "NSSplitView Subview Frames \(Self.autosaveName)"
+        guard UserDefaults.standard.object(forKey: key) == nil else { return }
+        DispatchQueue.main.async {
+            let width = split.bounds.width
+            guard width > 1_020 else { return }
+            split.setPosition(width - 700, ofDividerAt: 0)
+            split.setPosition(width - 360, ofDividerAt: 1)
+        }
     }
 }
 
