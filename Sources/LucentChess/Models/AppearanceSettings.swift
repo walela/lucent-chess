@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum InterfaceAppearance: String, CaseIterable, Identifiable {
@@ -50,6 +51,7 @@ struct PieceSetOption: Identifiable, Hashable {
         .init("cooke", "Cooke"), .init("disguised", "Disguised"),
         .init("dubrovny", "Dubrovny"), .init("fantasy", "Fantasy"),
         .init("firi", "Firi"), .init("fresca", "Fresca"),
+        .init("fresca-camelot", "Fresca Camelot"),
         .init("gioco", "Gioco"), .init("governor", "Governor"),
         .init("horsey", "Horsey"), .init("icpieces", "IC Pieces"),
         .init("kiwen-suwi", "Kiwen Suwi"), .init("kosal", "Kosal"),
@@ -65,6 +67,31 @@ struct PieceSetOption: Identifiable, Hashable {
     ]
 
     static func find(_ id: String) -> PieceSetOption { all.first { $0.id == id } ?? all[0] }
+}
+
+enum NotationFontDesign: String, CaseIterable, Identifiable {
+    case standard
+    case serif
+    case rounded
+    case monospaced
+
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .standard: return "System"
+        case .serif: return "Serif"
+        case .rounded: return "Rounded"
+        case .monospaced: return "Monospaced"
+        }
+    }
+    var nsDesign: NSFontDescriptor.SystemDesign {
+        switch self {
+        case .standard: return .default
+        case .serif: return .serif
+        case .rounded: return .rounded
+        case .monospaced: return .monospaced
+        }
+    }
 }
 
 struct BoardThemeOption: Identifiable, Hashable {
@@ -124,6 +151,10 @@ final class AppearanceSettings: ObservableObject {
     @Published var pieceScale: Double { didSet { defaults.set(pieceScale, forKey: "pieceScale") } }
     @Published var customLight: String { didSet { defaults.set(customLight, forKey: "customLight") } }
     @Published var customDark: String { didSet { defaults.set(customDark, forKey: "customDark") } }
+    @Published var figurineSetRaw: String { didSet { defaults.set(figurineSetRaw, forKey: "figurineSet") } }
+    @Published var figurineTinted: Bool { didSet { defaults.set(figurineTinted, forKey: "figurineTinted") } }
+    @Published var notationFontDesignRaw: String { didSet { defaults.set(notationFontDesignRaw, forKey: "notationFontDesign") } }
+    @Published var notationFontSize: Double { didSet { defaults.set(notationFontSize, forKey: "notationFontSize") } }
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -137,6 +168,10 @@ final class AppearanceSettings: ObservableObject {
         pieceScale = defaults.object(forKey: "pieceScale") as? Double ?? 0.84
         customLight = defaults.string(forKey: "customLight") ?? "E8D6B4"
         customDark = defaults.string(forKey: "customDark") ?? "6D432A"
+        figurineSetRaw = defaults.string(forKey: "figurineSet") ?? "mono"
+        figurineTinted = defaults.object(forKey: "figurineTinted") as? Bool ?? true
+        notationFontDesignRaw = defaults.string(forKey: "notationFontDesign") ?? NotationFontDesign.standard.rawValue
+        notationFontSize = defaults.object(forKey: "notationFontSize") as? Double ?? 14
     }
 
     var boardTheme: BoardThemeOption {
@@ -150,6 +185,14 @@ final class AppearanceSettings: ObservableObject {
     var pieceSet: PieceSetOption {
         get { PieceSetOption.find(pieceSetRaw) }
         set { pieceSetRaw = newValue.id }
+    }
+    var figurineSet: PieceSetOption {
+        get { PieceSetOption.find(figurineSetRaw) }
+        set { figurineSetRaw = newValue.id }
+    }
+    var notationFontDesign: NotationFontDesign {
+        get { NotationFontDesign(rawValue: notationFontDesignRaw) ?? .standard }
+        set { notationFontDesignRaw = newValue.rawValue }
     }
     var lightSquare: Color { boardTheme.id == "custom" ? Color(hex: customLight) : Color(hex: boardTheme.lightHex) }
     var darkSquare: Color { boardTheme.id == "custom" ? Color(hex: customDark) : Color(hex: boardTheme.darkHex) }

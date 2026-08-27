@@ -1,14 +1,19 @@
 import AppKit
 import SwiftUI
 
-/// Renders SAN piece letters as figurines using the bundled Lichess "mono"
-/// silhouette set (AGPL, already attributed in the app resources), the same
-/// way ChessBase draws its notation. Display-only; PGN keeps standard letters.
+/// Renders SAN piece letters as figurines using any bundled piece set, the
+/// same way ChessBase draws its notation. Display-only; PGN keeps standard
+/// letters.
+///
+/// Two modes: tinted (the piece's alpha silhouette filled with the text color,
+/// resolved per appearance so it adapts to light and dark mode) and natural
+/// (the black piece artwork drawn as-is, for colorful sets like Fresca
+/// Camelot).
 enum FigurineRenderer {
     static let pieceLetters: Set<Character> = ["K", "Q", "R", "B", "N"]
 
-    private static var silhouettes: [Character: NSImage] = [:]
-    private static var sizedTemplates: [String: NSImage] = [:]
+    private static var baseImages: [String: NSImage] = [:]
+    private static var sizedImages: [String: NSImage] = [:]
 
     private static func pieceKind(for letter: Character) -> PieceKind? {
         switch letter {
@@ -21,28 +26,35 @@ enum FigurineRenderer {
         }
     }
 
-    private static func silhouette(for letter: Character) -> NSImage? {
-        if let cached = silhouettes[letter] { return cached }
-        guard let set = PieceSetOption.all.first(where: { $0.id == "mono" }),
-              let kind = pieceKind(for: letter),
+    private static func baseImage(for letter: Character, set: PieceSetOption) -> NSImage? {
+        let key = "\(set.id)/\(letter)"
+        if let cached = baseImages[key] { return cached }
+        guard let kind = pieceKind(for: letter),
               let image = ThemeAssetStore.pieceImage(set: set, piece: ChessPiece(color: .black, kind: kind))
         else { return nil }
-        silhouettes[letter] = image
+        baseImages[key] = image
         return image
     }
 
     // MARK: AppKit (notation text view)
 
-    /// A text attachment for one figurine, tinted with the given color inside
-    /// the drawing handler so dynamic colors resolve per appearance at draw
-    /// time — the figurine adapts to light and dark mode like the text.
-    static func attachment(for letter: Character, font: NSFont, color: NSColor) -> NSTextAttachment? {
-        guard let base = silhouette(for: letter) else { return nil }
+    /// A text attachment for one figurine. Tinting happens inside the drawing
+    /// handler so dynamic colors resolve per appearance at draw time.
+    static func attachment(
+        for letter: Character,
+        font: NSFont,
+        color: NSColor,
+        set: PieceSetOption,
+        tinted: Bool
+    ) -> NSTextAttachment? {
+        guard let base = baseImage(for: letter, set: set) else { return nil }
         let side = font.pointSize * 1.14
         let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
             base.draw(in: rect)
-            color.set()
-            rect.fill(using: .sourceAtop)
+            if tinted {
+                color.set()
+                rect.fill(using: .sourceAtop)
+            }
             return true
         }
         let attachment = NSTextAttachment()
@@ -53,29 +65,30 @@ enum FigurineRenderer {
 
     // MARK: SwiftUI (engine lines, previews)
 
-    private static func sizedTemplate(for letter: Character, side: CGFloat) -> NSImage? {
-        let key = "\(letter)/\(side)"
-        if let cached = sizedTemplates[key] { return cached }
-        guard let base = silhouette(for: letter) else { return nil }
+    private static func sizedImage(for letter: Character, side: CGFloat, set: PieceSetOption, tinted: Bool) -> NSImage? {
+        let key = "\(set.id)/\(letter)/\(side)/\(tinted)"
+        if let cached = sizedImages[key] { return cached }
+        guard let base = baseImage(for: letter, set: set) else { return nil }
         let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
             base.draw(in: rect)
             return true
         }
-        image.isTemplate = true
-        sizedTemplates[key] = image
+        // Template rendering inherits the surrounding foreground style, which
+        // is how tinted figurines follow text color in SwiftUI.
+        image.isTemplate = tinted
+        sizedImages[key] = image
         return image
     }
 
-    /// One SAN move as Text with inline figurine images. Template rendering
-    /// picks up the surrounding foreground style in both appearances.
-    static func text(for san: String, size: CGFloat) -> Text {
+    /// One SAN move as Text with inline figurine images.
+    static func text(for san: String, size: CGFloat, set: PieceSetOption, tinted: Bool) -> Text {
         var result = Text(verbatim: "")
         var previous: Character?
         for character in san {
             let isFigurinePosition = previous == nil || previous == "="
             if isFigurinePosition,
                pieceLetters.contains(character),
-               let image = sizedTemplate(for: character, side: size) {
+               let image = sizedImage(for: character, side: size, set: set, tinted: tinted) {
                 result = result + Text(Image(nsImage: image)).baselineOffset(-size * 0.16)
             } else {
                 result = result + Text(String(character))
@@ -85,11 +98,11 @@ enum FigurineRenderer {
         return result
     }
 
-    static func line(_ moves: [String], size: CGFloat) -> Text {
+    static func line(_ moves: [String], size: CGFloat, set: PieceSetOption, tinted: Bool) -> Text {
         var result = Text(verbatim: "")
         for (index, move) in moves.enumerated() {
             if index > 0 { result = result + Text(" ") }
-            result = result + text(for: move, size: size)
+            result = result + text(for: move, size: size, set: set, tinted: tinted)
         }
         return result
     }

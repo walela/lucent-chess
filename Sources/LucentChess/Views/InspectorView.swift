@@ -210,6 +210,7 @@ private struct WDLBar: View {
 }
 
 struct EngineLineRow: View {
+    @EnvironmentObject private var appearance: AppearanceSettings
     let line: EngineLine
     let startPosition: ChessPosition
     let isExpanded: Bool
@@ -233,8 +234,13 @@ struct EngineLineRow: View {
                             .frame(width: 55, alignment: .leading)
                             .foregroundStyle(scoreColor)
                         VStack(alignment: .leading, spacing: 5) {
-                            FigurineRenderer.line(line.moves, size: 13)
-                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                            FigurineRenderer.line(
+                                line.moves,
+                                size: 13,
+                                set: appearance.figurineSet,
+                                tinted: appearance.figurineTinted
+                            )
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
                                 .lineLimit(3)
                                 .multilineTextAlignment(.leading)
                             Text("depth \(line.depth) · \(line.uciMoves.count) ply")
@@ -273,6 +279,7 @@ struct EngineLineRow: View {
 }
 
 private struct EngineLinePreview: View {
+    @EnvironmentObject private var appearance: AppearanceSettings
     let line: EngineLine
     let startPosition: ChessPosition
     @State private var previewMoves: [String]
@@ -337,7 +344,12 @@ private struct EngineLinePreview: View {
     private var previewCaption: Text {
         guard ply > 0 else { return Text("Start") }
         let move = ply <= previewSAN.count
-            ? FigurineRenderer.text(for: previewSAN[ply - 1], size: 10)
+            ? FigurineRenderer.text(
+                for: previewSAN[ply - 1],
+                size: 10,
+                set: appearance.figurineSet,
+                tinted: appearance.figurineTinted
+            )
             : Text("Move")
         return Text("\(ply)/\(previewMoves.count) · ") + move
     }
@@ -545,6 +557,38 @@ private struct StyleInspector: View {
                     Toggle("Show coordinates", isOn: $appearance.showCoordinates)
                     Toggle("Show legal moves", isOn: $appearance.showLegalMoves)
                     Toggle("Black at the bottom", isOn: $appearance.boardFlipped)
+                }
+
+                Divider()
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Notation").font(.headline)
+                    LabeledContent("Figurines") {
+                        Picker("Figurines", selection: $appearance.figurineSetRaw) {
+                            ForEach(PieceSetOption.all) { set in
+                                Text(set.name).tag(set.id)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 170)
+                    }
+                    Toggle("Match text color", isOn: $appearance.figurineTinted)
+                        .help("Tint figurines to the notation text. Turn off to show the set's own colors.")
+                    LabeledContent("Font") {
+                        Picker("Font", selection: $appearance.notationFontDesignRaw) {
+                            ForEach(NotationFontDesign.allCases) { design in
+                                Text(design.label).tag(design.rawValue)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 170)
+                    }
+                    HStack {
+                        Text("Size")
+                        Slider(value: $appearance.notationFontSize, in: 12...17, step: 0.5)
+                        Text("\(appearance.notationFontSize, specifier: "%.1f") pt")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .padding(14)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.14.0 — 2026-08-27
+
+- Adds the Fresca Camelot piece set (sadsnake1's Fresca recolored by caderek, CC BY-NC-SA 4.0), bringing the catalog to 42 sets.
+- Makes notation figurines customizable: any bundled piece set can supply them, either tinted to match the text or in the set's own colors.
+- Makes the notation font customizable with System, Serif, Rounded, and Monospaced designs and an adjustable size.
+
 ## 1.13.3 — 2026-08-27
 
 - Draws notation figurines with the bundled Lichess mono piece silhouettes instead of unicode glyphs, tinted to match the text in both appearances.

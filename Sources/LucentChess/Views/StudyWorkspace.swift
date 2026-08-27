@@ -545,7 +545,12 @@ private struct NavigationButtonStyle: ButtonStyle {
 struct MoveTreeView: NSViewRepresentable {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var engine: StockfishService
+    @EnvironmentObject private var appearance: AppearanceSettings
     @ObservedObject var study: ChessStudy
+
+    private var styleSignature: String {
+        "\(appearance.figurineSetRaw)|\(appearance.figurineTinted)|\(appearance.notationFontDesignRaw)|\(appearance.notationFontSize)"
+    }
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
@@ -579,11 +584,13 @@ struct MoveTreeView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.parent = self
         guard let textView = context.coordinator.textView else { return }
-        if context.coordinator.notationRevision != study.notationRevision {
+        if context.coordinator.notationRevision != study.notationRevision
+            || context.coordinator.styleSignature != styleSignature {
             let rendered = attributedNotation()
             textView.textStorage?.setAttributedString(rendered.text)
             context.coordinator.moveStyles = rendered.moveStyles
             context.coordinator.notationRevision = study.notationRevision
+            context.coordinator.styleSignature = styleSignature
             context.coordinator.lastSelectedNodeID = nil
             textView.window?.invalidateCursorRects(for: textView)
         }
@@ -628,7 +635,7 @@ struct MoveTreeView: NSViewRepresentable {
             }
             let rendered: NSAttributedString
             if token.kind == .move {
-                rendered = Self.figurineMove(token.text, attributes: attributes)
+                rendered = figurineMove(token.text, attributes: attributes)
                 if let nodeID = token.nodeID {
                     moveStyles[nodeID] = MoveStyle(
                         range: NSRange(location: output.length, length: rendered.length),
@@ -647,7 +654,7 @@ struct MoveTreeView: NSViewRepresentable {
     /// One SAN move with its piece letters (leading, and after '=' for
     /// promotions) replaced by figurine image attachments. The attachment run
     /// keeps the link and paragraph attributes so figurines stay clickable.
-    private static func figurineMove(
+    private func figurineMove(
         _ san: String,
         attributes: [NSAttributedString.Key: Any]
     ) -> NSAttributedString {
@@ -660,7 +667,13 @@ struct MoveTreeView: NSViewRepresentable {
             let isFigurinePosition = previous == nil || previous == "="
             if isFigurinePosition,
                FigurineRenderer.pieceLetters.contains(character),
-               let attachment = FigurineRenderer.attachment(for: character, font: font, color: color) {
+               let attachment = FigurineRenderer.attachment(
+                   for: character,
+                   font: font,
+                   color: color,
+                   set: appearance.figurineSet,
+                   tinted: appearance.figurineTinted
+               ) {
                 if !pending.isEmpty {
                     output.append(NSAttributedString(string: pending, attributes: attributes))
                     pending = ""
@@ -679,26 +692,55 @@ struct MoveTreeView: NSViewRepresentable {
         return output
     }
 
+    /// All notation sizes are expressed relative to a 14 pt main line, then
+    /// scaled by the user's chosen size and rendered in their chosen design.
+    private func notationFont(
+        size: CGFloat,
+        weight: NSFont.Weight,
+        monospacedDigits: Bool = false,
+        italic: Bool = false
+    ) -> NSFont {
+        let scaled = size * CGFloat(appearance.notationFontSize) / 14
+        var font = NSFont.systemFont(ofSize: scaled, weight: weight)
+        if let descriptor = font.fontDescriptor.withDesign(appearance.notationFontDesign.nsDesign),
+           let designed = NSFont(descriptor: descriptor, size: scaled) {
+            font = designed
+        }
+        if monospacedDigits {
+            let descriptor = font.fontDescriptor.addingAttributes([
+                .featureSettings: [[
+                    NSFontDescriptor.FeatureKey.typeIdentifier: kNumberSpacingType,
+                    NSFontDescriptor.FeatureKey.selectorIdentifier: kMonospacedNumbersSelector
+                ]]
+            ])
+            font = NSFont(descriptor: descriptor, size: scaled) ?? font
+        }
+        if italic {
+            font = NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask)
+        }
+        return font
+    }
+
     private func font(for token: ChessNotationToken) -> NSFont {
         let depth = token.variationDepth
         switch token.kind {
         case .move:
-            if depth == 0 { return NSFont.systemFont(ofSize: 14, weight: .semibold) }
-            return NSFont.systemFont(ofSize: max(11.75, 13.15 - CGFloat(depth - 1) * 0.45), weight: .regular)
+            if depth == 0 { return notationFont(size: 14, weight: .semibold) }
+            return notationFont(size: max(11.75, 13.15 - CGFloat(depth - 1) * 0.45), weight: .regular)
         case .moveNumber:
-            return NSFont.monospacedDigitSystemFont(
-                ofSize: depth == 0 ? 11.75 : 11.25,
-                weight: depth == 0 ? .medium : .regular
+            return notationFont(
+                size: depth == 0 ? 11.75 : 11.25,
+                weight: depth == 0 ? .medium : .regular,
+                monospacedDigits: true
             )
         case .comment:
-            let base = NSFont.systemFont(ofSize: depth == 0 ? 12.35 : 11.7)
-            return NSFontManager.shared.convert(base, toHaveTrait: .italicFontMask)
+            return notationFont(size: depth == 0 ? 12.35 : 11.7, weight: .regular, italic: true)
         case .annotation:
-            return NSFont.systemFont(ofSize: 12.25, weight: .semibold)
+            return notationFont(size: 12.25, weight: .semibold)
         case .result:
-            return NSFont.systemFont(ofSize: 13.5, weight: .semibold)
+            return notationFont(size: 13.5, weight: .semibold)
         case .punctuation:
-            return NSFont.systemFont(ofSize: depth == 0 ? 13.4 : 12.35, weight: .regular)
+            return notationFont(size: depth == 0 ? 13.4 : 12.35, weight: .regular)
         }
     }
 
@@ -729,6 +771,7 @@ struct MoveTreeView: NSViewRepresentable {
         fileprivate weak var textView: NotationTextView?
         var lastSelectedNodeID: UUID?
         var notationRevision: Int?
+        var styleSignature: String?
         var moveStyles: [UUID: MoveStyle] = [:]
 
         init(parent: MoveTreeView) { self.parent = parent }
@@ -761,9 +804,12 @@ struct MoveTreeView: NSViewRepresentable {
             textView.currentMoveRange = nil
             if let selected = moveStyles[nodeID] {
                 storage.addAttribute(.foregroundColor, value: LucentTheme.accentNS, range: selected.range)
+                // Embolden by trait so the user's chosen font design survives.
+                let boldDescriptor = selected.font.fontDescriptor
+                    .withSymbolicTraits(selected.font.fontDescriptor.symbolicTraits.union(.bold))
                 storage.addAttribute(
                     .font,
-                    value: NSFont.systemFont(ofSize: selected.font.pointSize, weight: .semibold),
+                    value: NSFont(descriptor: boldDescriptor, size: selected.font.pointSize) ?? selected.font,
                     range: selected.range
                 )
                 textView.currentMoveRange = selected.range
