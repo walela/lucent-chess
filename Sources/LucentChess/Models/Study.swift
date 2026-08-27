@@ -368,12 +368,23 @@ final class ChessStudy: Codable, Identifiable, ObservableObject {
     }
 
     func promoteCurrentVariation() {
-        guard let parent = parent(of: lastNodeID),
-              let index = parent.children.firstIndex(where: { $0.id == lastNodeID }), index > 0 else { return }
-        let selected = parent.children.remove(at: index)
-        parent.children.insert(selected, at: 0)
-        cachedMainLinePlyCount = nil
-        modifiedAt = Date()
+        // The selected move is usually somewhere inside the variation, not on
+        // its first move. Walk up to the nearest branch point — the first
+        // ancestor (or self) that is not its parent's main continuation — and
+        // promote the whole variation there.
+        var candidate = nodeIndex[lastNodeID]
+        while let node = candidate, node.id != root.id {
+            guard let parent = parent(of: node.id),
+                  let index = parent.children.firstIndex(where: { $0.id == node.id }) else { return }
+            if index > 0 {
+                parent.children.remove(at: index)
+                parent.children.insert(node, at: 0)
+                cachedMainLinePlyCount = nil
+                modifiedAt = Date()
+                return
+            }
+            candidate = parent
+        }
     }
 
     func path(to node: MoveNode? = nil) -> [MoveNode] {

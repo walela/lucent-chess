@@ -618,7 +618,6 @@ struct MoveTreeView: NSViewRepresentable {
         let output = NSMutableAttributedString()
         var moveStyles: [UUID: MoveStyle] = [:]
         for token in ChessNotationFormatter.document(for: study).tokens {
-            let displayText = token.kind == .move ? Self.figurineSAN(token.text) : token.text
             var attributes: [NSAttributedString.Key: Any] = [
                 .font: font(for: token),
                 .foregroundColor: color(for: token),
@@ -626,54 +625,66 @@ struct MoveTreeView: NSViewRepresentable {
             ]
             if let nodeID = token.nodeID, token.kind == .move || token.kind == .comment {
                 attributes[.link] = URL(string: "lucent-move://move/\(nodeID.uuidString)")!
-                if token.kind == .move {
+            }
+            let rendered: NSAttributedString
+            if token.kind == .move {
+                rendered = Self.figurineMove(token.text, attributes: attributes)
+                if let nodeID = token.nodeID {
                     moveStyles[nodeID] = MoveStyle(
-                        range: NSRange(location: output.length, length: (displayText as NSString).length),
+                        range: NSRange(location: output.length, length: rendered.length),
                         foregroundColor: attributes[.foregroundColor] as? NSColor ?? .labelColor,
                         font: attributes[.font] as? NSFont ?? .systemFont(ofSize: 14)
                     )
                 }
+            } else {
+                rendered = NSAttributedString(string: token.text, attributes: attributes)
             }
-            output.append(NSAttributedString(string: displayText, attributes: attributes))
+            output.append(rendered)
         }
         return RenderedNotation(text: output, moveStyles: moveStyles)
     }
 
-    /// ChessBase-style figurine notation: the SAN piece letter becomes a chess
-    /// glyph (Nf3 → ♞f3). Display-only; PGN files keep standard letters.
-    private static let figurines: [Character: String] = ["K": "♚", "Q": "♛", "R": "♜", "B": "♝", "N": "♞"]
-
-    static func figurineSAN(_ san: String) -> String {
-        var text = san
-        if let first = text.first, let glyph = figurines[first] {
-            text = glyph + text.dropFirst()
-        }
-        if let eq = text.firstIndex(of: "=") {
-            let pieceIndex = text.index(after: eq)
-            if pieceIndex < text.endIndex, let glyph = figurines[text[pieceIndex]] {
-                text.replaceSubrange(pieceIndex...pieceIndex, with: glyph)
+    /// One SAN move with its piece letters (leading, and after '=' for
+    /// promotions) replaced by figurine image attachments. The attachment run
+    /// keeps the link and paragraph attributes so figurines stay clickable.
+    private static func figurineMove(
+        _ san: String,
+        attributes: [NSAttributedString.Key: Any]
+    ) -> NSAttributedString {
+        let font = attributes[.font] as? NSFont ?? .systemFont(ofSize: 14)
+        let color = attributes[.foregroundColor] as? NSColor ?? .labelColor
+        let output = NSMutableAttributedString()
+        var pending = ""
+        var previous: Character?
+        for character in san {
+            let isFigurinePosition = previous == nil || previous == "="
+            if isFigurinePosition,
+               FigurineRenderer.pieceLetters.contains(character),
+               let attachment = FigurineRenderer.attachment(for: character, font: font, color: color) {
+                if !pending.isEmpty {
+                    output.append(NSAttributedString(string: pending, attributes: attributes))
+                    pending = ""
+                }
+                let run = NSMutableAttributedString(attachment: attachment)
+                run.addAttributes(attributes, range: NSRange(location: 0, length: run.length))
+                output.append(run)
+            } else {
+                pending.append(character)
             }
+            previous = character
         }
-        return text
-    }
-
-    /// System font with Apple Symbols cascading in slightly larger, so figurine
-    /// glyphs render at a visual weight matching the surrounding SAN text.
-    static func moveFont(size: CGFloat, weight: NSFont.Weight) -> NSFont {
-        let base = NSFont.systemFont(ofSize: size, weight: weight)
-        let cascade = NSFontDescriptor(name: "Apple Symbols", size: 0).withSymbolicTraits([])
-        let descriptor = base.fontDescriptor.addingAttributes([
-            .cascadeList: [cascade]
-        ])
-        return NSFont(descriptor: descriptor, size: size) ?? base
+        if !pending.isEmpty {
+            output.append(NSAttributedString(string: pending, attributes: attributes))
+        }
+        return output
     }
 
     private func font(for token: ChessNotationToken) -> NSFont {
         let depth = token.variationDepth
         switch token.kind {
         case .move:
-            if depth == 0 { return Self.moveFont(size: 14, weight: .semibold) }
-            return Self.moveFont(size: max(11.75, 13.15 - CGFloat(depth - 1) * 0.45), weight: .regular)
+            if depth == 0 { return NSFont.systemFont(ofSize: 14, weight: .semibold) }
+            return NSFont.systemFont(ofSize: max(11.75, 13.15 - CGFloat(depth - 1) * 0.45), weight: .regular)
         case .moveNumber:
             return NSFont.monospacedDigitSystemFont(
                 ofSize: depth == 0 ? 11.75 : 11.25,
@@ -691,22 +702,21 @@ struct MoveTreeView: NSViewRepresentable {
         }
     }
 
+    // Only appearance-dynamic colors here: `withAlphaComponent` on a catalog
+    // color resolves it statically against the appearance active at build
+    // time, which broke light mode when the string was built in dark mode.
     private func color(for token: ChessNotationToken) -> NSColor {
         switch token.kind {
         case .move:
             if token.variationDepth >= 2 { return .tertiaryLabelColor }
             if token.variationDepth == 1 { return .secondaryLabelColor }
-            return NSColor.labelColor.withAlphaComponent(0.94)
+            return .labelColor
         case .moveNumber:
-            return NSColor.secondaryLabelColor.withAlphaComponent(token.variationDepth == 0 ? 0.82 : 0.68)
+            return token.variationDepth == 0 ? .secondaryLabelColor : .tertiaryLabelColor
         case .punctuation:
-            return token.variationDepth > 0
-                ? LucentTheme.accentNS.withAlphaComponent(0.82)
-                : NSColor.secondaryLabelColor.withAlphaComponent(0.72)
+            return token.variationDepth > 0 ? LucentTheme.accentNS : .secondaryLabelColor
         case .comment:
-            return token.variationDepth == 0
-                ? LucentTheme.accentNS.withAlphaComponent(0.78)
-                : .tertiaryLabelColor
+            return token.variationDepth == 0 ? LucentTheme.accentNS : .tertiaryLabelColor
         case .annotation:
             return LucentTheme.accentNS
         case .result:
@@ -753,7 +763,7 @@ struct MoveTreeView: NSViewRepresentable {
                 storage.addAttribute(.foregroundColor, value: LucentTheme.accentNS, range: selected.range)
                 storage.addAttribute(
                     .font,
-                    value: MoveTreeView.moveFont(size: selected.font.pointSize, weight: .semibold),
+                    value: NSFont.systemFont(ofSize: selected.font.pointSize, weight: .semibold),
                     range: selected.range
                 )
                 textView.currentMoveRange = selected.range

@@ -233,7 +233,7 @@ struct EngineLineRow: View {
                             .frame(width: 55, alignment: .leading)
                             .foregroundStyle(scoreColor)
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(line.moves.map(MoveTreeView.figurineSAN).joined(separator: " "))
+                            FigurineRenderer.line(line.moves, size: 13)
                                 .font(.system(size: 13, weight: .medium, design: .rounded))
                                 .lineLimit(3)
                                 .multilineTextAlignment(.leading)
@@ -304,7 +304,7 @@ private struct EngineLinePreview: View {
             HStack(spacing: 5) {
                 previewButton("backward.end.fill", help: "Start", disabled: ply == 0) { ply = 0 }
                 previewButton("chevron.left", help: "Previous move", disabled: ply == 0) { ply -= 1 }
-                Text(previewCaption)
+                previewCaption
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 92)
@@ -334,10 +334,12 @@ private struct EngineLinePreview: View {
         ply > 0 && ply <= previewMoves.count ? previewMoves[ply - 1] : nil
     }
 
-    private var previewCaption: String {
-        guard ply > 0 else { return "Start" }
-        let move = ply <= previewSAN.count ? MoveTreeView.figurineSAN(previewSAN[ply - 1]) : "Move"
-        return "\(ply)/\(previewMoves.count) · \(move)"
+    private var previewCaption: Text {
+        guard ply > 0 else { return Text("Start") }
+        let move = ply <= previewSAN.count
+            ? FigurineRenderer.text(for: previewSAN[ply - 1], size: 10)
+            : Text("Move")
+        return Text("\(ply)/\(previewMoves.count) · ") + move
     }
 
     private func previewButton(

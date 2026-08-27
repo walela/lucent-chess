@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.3 — 2026-08-27
+
+- Draws notation figurines with the bundled Lichess mono piece silhouettes instead of unicode glyphs, tinted to match the text in both appearances.
+- Fixes notation colors going illegible after switching between light and dark mode.
+- Fixes Promote Variation doing nothing unless the first move of the variation was selected; it now promotes from anywhere inside the variation.
+
 ## 1.13.2 — 2026-08-26
 
 - Renders moves in ChessBase-style figurine notation (♞f3) in the score, engine lines, and variation previews; PGN files keep standard letters.
