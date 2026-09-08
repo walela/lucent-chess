@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.15.0 — 2026-09-08
+
+- Adds a separate Stockfish training window from any study position, with color, strength and thinking-time controls and automatic library saving.
+- Groups workspace commands into Game, Analysis and View menus with a visible Play from here action.
+- Softens light-mode board and panel backgrounds to a warm off-white.
+
+- Separates variations into indented lines with readable colors and repeats move numbers when a line resumes.
+- Replaces generic notation text menus with promotion, deletion, and FEN/PGN copy actions for the right-clicked move.
+- Aligns game metadata and notation settings into consistent columns, with Game details above notes.
+- Keeps divider resizing confined to neighboring panes and preserves workspace widths across updates and reopening.
+
 ## 1.14.2 — 2026-08-27
 
 - Rebuilds the workspace panes on NSSplitViewController so the board, notation, and engine dividers drag reliably.
