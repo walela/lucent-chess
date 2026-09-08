@@ -27,6 +27,7 @@ private struct WorkspacePreviewShell: View {
         }
         .environmentObject(library)
         .environmentObject(engine)
+        .environmentObject(TrainingSession())
         .environmentObject(appearance)
         .frame(width: 1_520, height: 930)
         .background(Color(nsColor: .windowBackgroundColor))

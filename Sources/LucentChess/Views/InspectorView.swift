@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct InspectorView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var study: ChessStudy
     @Binding var tab: RootView.InspectorTab
 
@@ -21,7 +22,7 @@ struct InspectorView: View {
                 }
             }
         }
-        .background(.ultraThinMaterial)
+        .background(colorScheme == .light ? AnyShapeStyle(LucentTheme.Surface.panel) : AnyShapeStyle(.ultraThinMaterial))
     }
 }
 

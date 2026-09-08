@@ -2,6 +2,9 @@ import AppKit
 import SwiftUI
 
 struct StudyWorkspace: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var training: TrainingSession
+    @State private var showsTrainingSetup = false
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var engine: StockfishService
     @EnvironmentObject private var appearance: AppearanceSettings
@@ -11,7 +14,7 @@ struct StudyWorkspace: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            GameWorkspaceHeader(study: study, showDashboard: showDashboard)
+            GameWorkspaceHeader(study: study, inspectorTab: $inspectorTab, showDashboard: showDashboard, playFromHere: { showsTrainingSetup = true })
             Divider()
             WorkspaceSplitView(
                 board: AnyView(inject(BoardPane(study: study))),
@@ -19,7 +22,11 @@ struct StudyWorkspace: View {
                 inspector: AnyView(inject(InspectorView(study: study, tab: $inspectorTab)))
             )
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(colorScheme == .light ? LucentTheme.Surface.workspace : Color(nsColor: .windowBackgroundColor))
+        .sheet(isPresented: $showsTrainingSetup) {
+            TrainingSetupView(position: study.currentPosition)
+                .environmentObject(training).environmentObject(library).environmentObject(engine)
+        }
     }
 
     // Each pane becomes the root of its own NSHostingView, which starts a
@@ -35,65 +42,67 @@ struct StudyWorkspace: View {
 private struct GameWorkspaceHeader: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var engine: StockfishService
+    @EnvironmentObject private var appearance: AppearanceSettings
     @ObservedObject var study: ChessStudy
+    @Binding var inspectorTab: RootView.InspectorTab
     let showDashboard: () -> Void
+    let playFromHere: () -> Void
+    @State private var showsEngineSettings = false
 
     var body: some View {
-        HStack(spacing: 11) {
-            Button(action: showDashboard) {
-                Label("Library", systemImage: "square.grid.2x2")
-            }
-            .buttonStyle(.borderless)
-            .help("Back to game library")
-            Divider().frame(height: 22)
-
-            VStack(alignment: .leading, spacing: 2) {
-                TextField("Game title", text: Binding(
-                    get: { study.title },
-                    set: { study.title = $0; library.changed() }
-                ))
-                .textFieldStyle(.plain)
-                .font(.system(size: 16, weight: .semibold))
-                .frame(maxWidth: 330)
-                Text(study.playerDescription)
-                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            }
-
-            Spacer()
-            saveStatus
-            Button { library.saveSelected() } label: {
-                Label("Save", systemImage: "square.and.arrow.down")
-            }
-            Menu {
+        HStack(spacing: 16) {
+            Button(action: showDashboard) { Image(systemName: "square.grid.2x2") }
+                .buttonStyle(.borderless).help("Game library").accessibilityLabel("Game library")
+            VStack(alignment: .leading, spacing: 3) {
+                TextField("Game title", text: Binding(get: { study.title }, set: { study.title = $0; library.changed() }))
+                    .textFieldStyle(.plain).font(.headline)
+                Text(study.playerDescription).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }.frame(width: 210, alignment: .leading)
+            Divider().frame(height: 26)
+            Menu("Game") {
+                Button("New game") { library.newStudy() }
+                Divider()
                 Button("Save") { library.saveSelected() }
-                Button("Save As…") { library.saveSelectedAs() }
+                Button("Save as…") { library.saveSelectedAs() }
                 if let path = study.filePath {
-                    Divider()
-                    Text(path)
+                    Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)]) }
                 }
-            } label: {
-                Image(systemName: "chevron.down")
+                Divider()
+                Button("Game library", action: showDashboard)
             }
-            .menuStyle(.borderlessButton)
-            .frame(width: 24)
-
-            Divider().frame(height: 22)
-            HStack(spacing: 6) {
-                Circle().fill(engine.isAnalysisActive ? Color.green : Color.secondary.opacity(0.45)).frame(width: 7, height: 7)
-                Text(engine.state.label).font(.caption).foregroundStyle(.secondary)
+            Menu("Analysis") {
+                Button(engine.isAnalysisActive ? "Stop analysis" : "Analyze position") { engine.toggle(for: study.currentPosition) }
+                Button("Engine settings…") { showsEngineSettings = true }
+                Divider()
+                Button("Play from this position…", action: playFromHere)
             }
-            Button {
-                engine.toggle(for: study.currentPosition)
-            } label: {
-                Label(engine.isAnalysisActive ? "Stop" : "Analyze", systemImage: engine.isAnalysisActive ? "stop.fill" : "bolt.fill")
+            Menu("View") {
+                Picker("Inspector", selection: $inspectorTab) {
+                    Text("Engine analysis").tag(RootView.InspectorTab.analysis)
+                    Text("Game details").tag(RootView.InspectorTab.notes)
+                    Text("Board and notation style").tag(RootView.InspectorTab.style)
+                }
+                Divider()
+                Button("Flip board") { appearance.boardFlipped.toggle() }
+                Picker("Appearance", selection: $appearance.interfaceAppearanceRaw) {
+                    ForEach(InterfaceAppearance.allCases) { Text($0.label).tag($0.rawValue) }
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(engine.isAnalysisActive ? .secondary : LucentTheme.accent)
-            .controlSize(.small)
+            Spacer(minLength: 12)
+            saveStatus
+            Button { engine.toggle(for: study.currentPosition) } label: {
+                Label(engine.isAnalysisActive ? "Stop analysis" : "Analyze", systemImage: engine.isAnalysisActive ? "stop.fill" : "bolt")
+            }.buttonStyle(.bordered)
+            Button("Play from here", action: playFromHere)
+                .buttonStyle(.borderedProminent).tint(LucentTheme.accent)
+                .disabled(study.currentPosition.legalMoves().isEmpty)
         }
-        .padding(.horizontal, 14)
-        .frame(height: 58)
+        .menuStyle(.borderlessButton)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.horizontal, 16)
+        .frame(height: 64)
         .background(.ultraThinMaterial)
+        .sheet(isPresented: $showsEngineSettings) { EngineConfigurationView().environmentObject(engine) }
     }
 
     private var saveStatus: some View {
@@ -124,6 +133,7 @@ private struct GameWorkspaceHeader: View {
 }
 
 private struct BoardPane: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var engine: StockfishService
     @ObservedObject var study: ChessStudy
@@ -152,7 +162,7 @@ private struct BoardPane: View {
                 Spacer(minLength: 10)
             }
         }
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.28))
+        .background(colorScheme == .light ? LucentTheme.Surface.workspace : Color(nsColor: .controlBackgroundColor).opacity(0.28))
     }
 
     private func play(_ move: ChessMove) {
@@ -250,6 +260,7 @@ private struct MaterialPieceIcon: View {
 }
 
 private struct NotationPane: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var library: LibraryStore
     @ObservedObject var study: ChessStudy
 
@@ -355,7 +366,7 @@ private struct NotationPane: View {
             .frame(height: 126)
             .background(.background.opacity(0.28))
         }
-        .background(.background.opacity(0.48))
+        .background(colorScheme == .light ? AnyShapeStyle(LucentTheme.Surface.panel) : AnyShapeStyle(.background.opacity(0.48)))
     }
 
     private func playerRow(

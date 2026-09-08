@@ -7,6 +7,7 @@ struct ChessBoardView: View {
     let allowsInteraction: Bool
     let showsEngineArrow: Bool
     let showsCoordinates: Bool
+    let flipped: Bool?
     let moveHandler: (ChessMove) -> Void
 
     @State private var selected: Square?
@@ -20,6 +21,7 @@ struct ChessBoardView: View {
         allowsInteraction: Bool = true,
         showsEngineArrow: Bool = true,
         showsCoordinates: Bool = true,
+        flipped: Bool? = nil,
         moveHandler: @escaping (ChessMove) -> Void
     ) {
         self.position = position
@@ -27,6 +29,7 @@ struct ChessBoardView: View {
         self.allowsInteraction = allowsInteraction
         self.showsEngineArrow = showsEngineArrow
         self.showsCoordinates = showsCoordinates
+        self.flipped = flipped
         self.moveHandler = moveHandler
     }
 
@@ -75,7 +78,7 @@ struct ChessBoardView: View {
             }
             boardSquares(cell: cell)
             if showsEngineArrow {
-                LiveEngineArrow(flipped: appearance.boardFlipped, cell: cell)
+                LiveEngineArrow(flipped: (flipped ?? appearance.boardFlipped), cell: cell)
             }
             pieces(cell: cell)
             if let dragging, let location = dragLocation, let piece = position[dragging] {
@@ -188,12 +191,12 @@ struct ChessBoardView: View {
     }
 
     private func boardSquare(column: Int, row: Int) -> Square {
-        Square(file: appearance.boardFlipped ? 7 - column : column, rank: appearance.boardFlipped ? row : 7 - row)
+        Square(file: (flipped ?? appearance.boardFlipped) ? 7 - column : column, rank: (flipped ?? appearance.boardFlipped) ? row : 7 - row)
     }
 
     private func displayPoint(for square: Square, cell: CGFloat) -> CGPoint {
-        let column = appearance.boardFlipped ? 7 - square.file : square.file
-        let row = appearance.boardFlipped ? square.rank : 7 - square.rank
+        let column = (flipped ?? appearance.boardFlipped) ? 7 - square.file : square.file
+        let row = (flipped ?? appearance.boardFlipped) ? square.rank : 7 - square.rank
         return CGPoint(x: CGFloat(column) * cell + cell / 2, y: CGFloat(row) * cell + cell / 2)
     }
 

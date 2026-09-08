@@ -4,6 +4,7 @@ import SwiftUI
 struct LucentChessApp: App {
     @StateObject private var library = LibraryStore()
     @StateObject private var engine = StockfishService()
+    @StateObject private var training = TrainingSession()
     @StateObject private var appearance = AppearanceSettings()
 
     var body: some Scene {
@@ -22,6 +23,7 @@ struct LucentChessApp: App {
             GameWindowRoot()
                 .environmentObject(library)
                 .environmentObject(engine)
+                .environmentObject(training)
                 .environmentObject(appearance)
                 .preferredColorScheme(appearance.interfaceAppearance.colorScheme)
                 .frame(minWidth: 1_180, minHeight: 720)
@@ -29,9 +31,20 @@ struct LucentChessApp: App {
         .windowStyle(.hiddenTitleBar)
         .commands { LucentCommands(library: library, appearance: appearance) }
 
+        Window("Play Stockfish", id: AppWindowID.training) {
+            TrainingGameView()
+                .environmentObject(library)
+                .environmentObject(engine)
+                .environmentObject(training)
+                .environmentObject(appearance)
+                .preferredColorScheme(appearance.interfaceAppearance.colorScheme)
+        }
+        .windowStyle(.hiddenTitleBar)
+
         Settings {
             SettingsView()
                 .environmentObject(engine)
+                .environmentObject(training)
                 .environmentObject(appearance)
                 .preferredColorScheme(appearance.interfaceAppearance.colorScheme)
                 .frame(width: 520, height: 430)
@@ -40,6 +53,7 @@ struct LucentChessApp: App {
 }
 
 private struct LucentCommands: Commands {
+    @FocusedValue(\.isTrainingWindow) private var isTrainingWindow
     @ObservedObject var library: LibraryStore
     @ObservedObject var appearance: AppearanceSettings
 
@@ -50,18 +64,21 @@ private struct LucentCommands: Commands {
                 NotificationCenter.default.post(name: .openSelectedGame, object: nil)
             }
             .keyboardShortcut("n")
+                .disabled(isTrainingWindow == true)
             Button("Open PGN…") { NotificationCenter.default.post(name: .importPGN, object: nil) }
                 .keyboardShortcut("o")
+                .disabled(isTrainingWindow == true)
             Button("Import from Source…") { NotificationCenter.default.post(name: .importSource, object: nil) }
                 .keyboardShortcut("o", modifiers: [.command, .option])
+                .disabled(isTrainingWindow == true)
         }
         CommandGroup(replacing: .saveItem) {
             Button("Save Game") { library.saveSelected() }
                 .keyboardShortcut("s")
-                .disabled(library.selectedStudy == nil)
+                .disabled(library.selectedStudy == nil || isTrainingWindow == true)
             Button("Save Game As…") { library.saveSelectedAs() }
                 .keyboardShortcut("s", modifiers: [.command, .shift])
-                .disabled(library.selectedStudy == nil)
+                .disabled(library.selectedStudy == nil || isTrainingWindow == true)
         }
         CommandMenu("Game") {
             Button("Game Library") { NotificationCenter.default.post(name: .showDashboard, object: nil) }
@@ -69,17 +86,23 @@ private struct LucentCommands: Commands {
             Divider()
             Button("First Move") { NotificationCenter.default.post(name: .firstMove, object: nil) }
                 .keyboardShortcut(.leftArrow, modifiers: [.command])
+                .disabled(isTrainingWindow == true)
             Button("Previous Move") { NotificationCenter.default.post(name: .previousMove, object: nil) }
                 .keyboardShortcut(.leftArrow, modifiers: [])
+                .disabled(isTrainingWindow == true)
             Button("Next Move") { NotificationCenter.default.post(name: .nextMove, object: nil) }
                 .keyboardShortcut(.rightArrow, modifiers: [])
+                .disabled(isTrainingWindow == true)
             Button("Last Move") { NotificationCenter.default.post(name: .lastMove, object: nil) }
                 .keyboardShortcut(.rightArrow, modifiers: [.command])
+                .disabled(isTrainingWindow == true)
             Divider()
             Button("Flip Board") { appearance.boardFlipped.toggle() }
                 .keyboardShortcut("f")
+                .disabled(isTrainingWindow == true)
             Button("Toggle Engine") { NotificationCenter.default.post(name: .toggleEngine, object: nil) }
                 .keyboardShortcut("e")
+                .disabled(isTrainingWindow == true)
         }
     }
 }

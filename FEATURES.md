@@ -15,8 +15,8 @@ The complete feature list. For the short version, see the [README](README.md).
 
 ## Notation and variations
 
-- Displays games in compact horizontal ChessBase-style notation, with clickable moves, inline PGN comments, and correctly nested, parenthesized variations at each branch point.
-- Gives the score a clear reading hierarchy: tabular move numbers recede, main-line SAN stays crisp, comments and results use restrained amber, the current move gets a rounded highlight, and clickable notation uses a link pointer.
+- Displays clickable main-line moves and separate indented variations, with inline PGN comments and repeated move numbers when a line resumes.
+- Gives the score a clear reading hierarchy: bold main-line moves, readable variation colors, and an amber highlight for the current move. Right-click a move to promote or delete a variation or copy FEN/PGN.
 - Adds variations simply by going back and making another legal move.
 - Lets you save an engine line into the move tree with one click.
 
@@ -33,13 +33,22 @@ The complete feature list. For the short version, see the [README](README.md).
 - Ranks engine lines in a numbered gutter and expands any line into an independent inline variation board with local move controls; only the plus button writes it into the study.
 - Can switch to another local macOS UCI engine without changing the app.
 
+## Training
+
+- Starts an untimed game against Stockfish from the current study position, including its castling rights and en-passant square.
+- Opens training in a separate window and saves its moves in the library while leaving the source study selected.
+- Lets you choose White or Black, an approximate engine strength from 1400 to 2600 or full strength, and 0.5 to 5 seconds of thinking time per engine move.
+- Uses a separate engine process, preserving analysis settings and hiding analysis arrows during play.
+- Handles legal moves, resignation, checkmate and draws; stopping or closing the window cancels pending engine moves.
+- Opens the saved training game in the study workspace for review and PGN export.
+
 ## Board
 
 - Supports click-to-move, drag-to-move, promotion, castling, en passant, board flipping, coordinates, move hints, and keyboard navigation.
 - Applies moves and navigation jumps immediately, without an automatic piece transition getting between the board and the score.
-- Includes 41 bundled piece sets—including an original Fritz-inspired ivory/charcoal set—and all 25 current Lichess board themes, plus custom square colors and piece scaling.
+- Includes 42 bundled piece sets—including an original Fritz-inspired ivory/charcoal set—and all 25 current Lichess board themes, plus custom square colors and piece scaling.
 - Sizes pieces explicitly within each square, caps oversized shadows, and supplies high-resolution fallbacks for filtered sets so both inline and maximized boards stay crisp.
-- Uses a resizable board / notation / engine workspace so the position, full move tree, and analysis stay visible together.
+- Uses a resizable board / notation / engine workspace with persistent pane widths and grouped Game, Analysis and View controls. Light mode has warm off-white surfaces.
 - Centers a compact five-button game transport directly below the board for start, previous, flip, next, and end navigation.
 
 ## Performance

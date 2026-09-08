@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 enum AppWindowID {
     static let library = "library"
     static let game = "game"
+    static let training = "training"
 }
 
 extension Notification.Name {

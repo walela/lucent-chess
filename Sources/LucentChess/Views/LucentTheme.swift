@@ -22,6 +22,11 @@ enum LucentTheme {
         static let unsaved = Color.orange
     }
 
+    enum Surface {
+        static let workspace = Color(red: 238.0 / 255, green: 236.0 / 255, blue: 230.0 / 255)
+        static let panel = Color(red: 246.0 / 255, green: 244.0 / 255, blue: 238.0 / 255)
+    }
+
     enum Notation {
         // Dynamic providers also update existing attributed strings on theme changes.
         static let variation = NSColor(name: "NotationVariation") { appearance in

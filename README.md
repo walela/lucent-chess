@@ -9,10 +9,11 @@ A native, offline macOS app for studying chess games — a PGN library and analy
 - **A real game library.** ChessBase-style dashboard with search across players, events, ECO codes, and results; persistent folders with drag-and-drop filing; and smart views for unfiled, autosaved, and unsaved games.
 - **Full PGN fidelity.** Import and export nested variations, comments, NAGs, FEN starts, and metadata. Games save as ordinary `.pgn` files — no lock-in, no proprietary database.
 - **Local engine analysis.** Runs Stockfish (or any UCI engine) entirely on-device with hardware-aware defaults, MultiPV study lines, WDL estimates, and every UCI option the engine exposes — including strength limits and Syzygy tablebases. Engine output is throttled off the main thread, so analysis never makes the UI stutter.
-- **ChessBase-style notation.** Compact horizontal score with clickable moves, inline comments, and correctly nested variations. Add a variation by going back and playing another legal move; save an engine line into the tree with one click.
+- **Play from any position.** Start a separate Stockfish training game, choose your color and strength, and keep its moves in your library without changing the original study.
+- **ChessBase-style notation.** Readable indented variations with clickable moves, inline comments, and move-specific context menus. Add a variation by going back and playing another legal move; save an engine line into the tree with one click.
 - **Direct imports.** Pull weekly TWIC archives and public Lichess games, studies, and broadcasts straight into source-named collections, with duplicate skipping.
 - **Comes with games.** A starter archive of 256 games: both 2026 Candidates tournaments and all five Kasparov–Karpov World Championship matches.
-- **Yours to theme.** 41 piece sets and all 25 Lichess board themes, plus custom square colors, light/dark/system modes, and a resizable board–notation–engine layout.
+- **Yours to theme.** 42 piece sets and all 25 Lichess board themes, plus custom square colors, light/dark/system modes, and a resizable board–notation–engine layout.
 - **No dependencies, no telemetry.** Pure Swift with zero third-party packages. Nothing leaves the machine.
 
 The full feature list lives in [FEATURES.md](FEATURES.md).
