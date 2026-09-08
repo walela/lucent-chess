@@ -16,6 +16,14 @@ struct NotationChecks {
             document.plainText == expected
         }
 
+        let indented = ChessNotationFormatter.document(for: study, layout: .indented)
+        try check("variations have their own lines and resumed black moves repeat their number") {
+            indented.plainText == "1. e4 {The main choice.}\n(1. d4 d5 2. c4)\n1... e5\n(1... c5 2. Nf3 d6\n(2... Nc6))\n2. Nf3 Nc6 *"
+        }
+        try check("indented notation preserves all move identities and depths") {
+            indented.tokens.filter { $0.kind == .move } == document.tokens.filter { $0.kind == .move }
+        }
+
         let moveTokens = document.tokens.filter { $0.kind == .move }
         try check("every move is represented once by a selectable token") {
             moveTokens.count == nodeCount(study.root) - 1

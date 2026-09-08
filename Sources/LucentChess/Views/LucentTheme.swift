@@ -22,6 +22,19 @@ enum LucentTheme {
         static let unsaved = Color.orange
     }
 
+    enum Notation {
+        // Dynamic providers also update existing attributed strings on theme changes.
+        static let variation = NSColor(name: "NotationVariation") { appearance in
+            let dark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            return NSColor(srgbRed: dark ? 0.76 : 0.28, green: dark ? 0.78 : 0.30,
+                           blue: dark ? 0.81 : 0.34, alpha: 1)
+        }
+        static let secondary = NSColor(name: "NotationSecondary") { appearance in
+            let dark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            return NSColor(white: dark ? 0.65 : 0.40, alpha: 1)
+        }
+    }
+
     enum Fonts {
         /// The large serif page heading ("Your chess archive").
         static let display = Font.system(size: 33, weight: .semibold, design: .serif)

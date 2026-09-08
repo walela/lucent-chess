@@ -22,13 +22,16 @@ struct ChessNotationDocument {
 }
 
 enum ChessNotationFormatter {
-    static func document(for study: ChessStudy) -> ChessNotationDocument {
-        var renderer = Renderer(study: study)
+    enum Layout { case inline, indented }
+
+    static func document(for study: ChessStudy, layout: Layout = .inline) -> ChessNotationDocument {
+        var renderer = Renderer(study: study, layout: layout)
         return renderer.render()
     }
 
     private struct Renderer {
         let study: ChessStudy
+        let layout: Layout
         var tokens: [ChessNotationToken] = []
 
         mutating func render() -> ChessNotationDocument {
@@ -37,7 +40,10 @@ enum ChessNotationFormatter {
             }
             let position = ChessPosition(fen: study.root.positionFEN) ?? .starting
             renderChildren(of: study.root, position: position, forceNumber: true, depth: 0)
-            if !study.root.children.isEmpty { append(" ", kind: .punctuation, depth: 0) }
+            if !study.root.children.isEmpty {
+                let separator = layout == .indented && (tokens.last?.variationDepth ?? 0) > 0 ? "\n" : " "
+                append(separator, kind: .punctuation, depth: 0)
+            }
             append(study.result, kind: .result, depth: 0)
             return ChessNotationDocument(tokens: tokens)
         }
@@ -52,7 +58,7 @@ enum ChessNotationFormatter {
             renderMove(main, position: position, forceNumber: forceNumber, depth: depth)
 
             for variation in parent.children.dropFirst() {
-                append(" (", kind: .punctuation, depth: depth + 1)
+                append(layout == .indented ? "\n(" : " (", kind: .punctuation, depth: depth + 1)
                 renderVariation(variation, position: position, depth: depth + 1)
                 append(")", kind: .punctuation, depth: depth + 1)
             }
@@ -60,8 +66,9 @@ enum ChessNotationFormatter {
             guard let moveUCI = main.moveUCI, let move = position.legalMove(uci: moveUCI) else { return }
             let continuationPosition = position.applyingUnchecked(move)
             if !main.children.isEmpty {
-                append(" ", kind: .punctuation, depth: depth)
-                renderChildren(of: main, position: continuationPosition, forceNumber: false, depth: depth)
+                let resumesAfterVariation = layout == .indented && parent.children.count > 1
+                append(resumesAfterVariation ? "\n" : " ", kind: .punctuation, depth: depth)
+                renderChildren(of: main, position: continuationPosition, forceNumber: resumesAfterVariation, depth: depth)
             }
         }
 

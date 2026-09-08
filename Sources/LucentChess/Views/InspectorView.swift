@@ -376,6 +376,42 @@ private struct NotesInspector: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Game details").font(.headline)
+                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
+                            metadataRow("White") { metadataField(study, keyPath: \.white) }
+                            metadataRow("White Elo") { optionalMetadataField(study, keyPath: \.whiteElo) }
+                            metadataRow("Black") { metadataField(study, keyPath: \.black) }
+                            metadataRow("Black Elo") { optionalMetadataField(study, keyPath: \.blackElo) }
+                            metadataRow("Event") { metadataField(study, keyPath: \.event) }
+                            metadataRow("Site") { optionalMetadataField(study, keyPath: \.site) }
+                            metadataRow("Round") { optionalMetadataField(study, keyPath: \.round) }
+                            metadataRow("ECO") { optionalMetadataField(study, keyPath: \.eco) }
+                            metadataRow("Date") {
+                                DatePicker("Date", selection: Binding(
+                                    get: { study.date }, set: { study.date = $0; library.changed() }
+                                ), displayedComponents: .date)
+                                .labelsHidden()
+                            }
+                            metadataRow("Result") {
+                                Picker("Result", selection: Binding(
+                                    get: { study.result }, set: { study.result = $0; library.changed(notation: true) }
+                                )) {
+                                    ForEach(["*", "1-0", "0-1", "1/2-1/2"], id: \.self, content: Text.init)
+                                }
+                                .labelsHidden().frame(width: 110, alignment: .leading)
+                            }
+                            metadataRow("PGN file") {
+                                Text(study.fileURL?.lastPathComponent ?? "Not saved")
+                                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                                    .gridCellUnsizedAxes(.horizontal)
+                                    .accessibilityValue(study.fileURL?.lastPathComponent ?? "Not saved")
+                            }
+                        }
+                    }
+
+                    Divider()
                     VStack(alignment: .leading, spacing: 7) {
                         Label(study.currentNode.id == study.root.id ? "Starting position" : (study.currentNode.moveSAN ?? "Move"), systemImage: "text.bubble")
                             .font(.headline)
@@ -390,38 +426,6 @@ private struct NotesInspector: View {
                         .background(.background.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator.opacity(0.55)))
                     }
-
-                    Divider()
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Game details").font(.headline)
-                        LabeledContent("White") { metadataField(study, keyPath: \.white) }
-                        LabeledContent("White Elo") { optionalMetadataField(study, keyPath: \.whiteElo) }
-                        LabeledContent("Black") { metadataField(study, keyPath: \.black) }
-                        LabeledContent("Black Elo") { optionalMetadataField(study, keyPath: \.blackElo) }
-                        LabeledContent("Event") { metadataField(study, keyPath: \.event) }
-                        LabeledContent("Site") { optionalMetadataField(study, keyPath: \.site) }
-                        LabeledContent("Round") { optionalMetadataField(study, keyPath: \.round) }
-                        LabeledContent("ECO") { optionalMetadataField(study, keyPath: \.eco) }
-                        LabeledContent("Date") {
-                            DatePicker("Date", selection: Binding(
-                                get: { study.date }, set: { study.date = $0; library.changed() }
-                            ), displayedComponents: .date)
-                            .labelsHidden().frame(width: 170)
-                        }
-                        LabeledContent("Result") {
-                            Picker("Result", selection: Binding(
-                                get: { study.result }, set: { study.result = $0; library.changed(notation: true) }
-                            )) {
-                                ForEach(["*", "1-0", "0-1", "1/2-1/2"], id: \.self, content: Text.init)
-                            }
-                            .labelsHidden().frame(width: 110)
-                        }
-                        LabeledContent("PGN file") {
-                            Text(study.fileURL?.lastPathComponent ?? "Not saved")
-                                .font(.caption).foregroundStyle(.secondary).lineLimit(1).frame(width: 170, alignment: .trailing)
-                        }
-                    }
-
                     Divider()
                     Text("FEN").font(.headline)
                     Text(study.currentPosition.fen)
@@ -441,13 +445,25 @@ private struct NotesInspector: View {
             }
             .padding(14)
         }
+    private func metadataRow<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        GridRow {
+            Text(title).fixedSize()
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel(title)
+        }
+    }
+
     private func metadataField(_ study: ChessStudy, keyPath: ReferenceWritableKeyPath<ChessStudy, String>) -> some View {
         TextField("", text: Binding(
             get: { study[keyPath: keyPath] },
             set: { study[keyPath: keyPath] = $0; library.changed() }
         ))
         .textFieldStyle(.roundedBorder)
-        .frame(width: 170)
+        .frame(maxWidth: .infinity)
     }
 
     private func optionalMetadataField(_ study: ChessStudy, keyPath: ReferenceWritableKeyPath<ChessStudy, String?>) -> some View {
@@ -456,7 +472,7 @@ private struct NotesInspector: View {
             set: { study[keyPath: keyPath] = $0.isEmpty ? nil : $0; library.changed() }
         ))
         .textFieldStyle(.roundedBorder)
-        .frame(width: 170)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -562,32 +578,45 @@ private struct StyleInspector: View {
                 Divider()
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Notation").font(.headline)
-                    LabeledContent("Figurines") {
-                        Picker("Figurines", selection: $appearance.figurineSetRaw) {
-                            ForEach(PieceSetOption.all) { set in
-                                Text(set.name).tag(set.id)
+                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
+                        GridRow {
+                            Text("Figurines").fixedSize()
+                            Picker("Figurines", selection: $appearance.figurineSetRaw) {
+                                ForEach(PieceSetOption.all) { set in
+                                    Text(set.name).tag(set.id)
+                                }
                             }
+                            .labelsHidden()
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .labelsHidden()
-                        .frame(width: 170)
-                    }
-                    Toggle("Match text color", isOn: $appearance.figurineTinted)
-                        .help("Tint figurines to the notation text. Turn off to show the set's own colors.")
-                    LabeledContent("Font") {
-                        Picker("Font", selection: $appearance.notationFontDesignRaw) {
-                            ForEach(NotationFontDesign.allCases) { design in
-                                Text(design.label).tag(design.rawValue)
+                        GridRow {
+                            Color.clear.frame(width: 0, height: 0)
+                                .gridCellUnsizedAxes([.horizontal, .vertical])
+                            Toggle("Match text color", isOn: $appearance.figurineTinted)
+                                .help("Tint figurines to the notation text. Turn off to show the set's own colors.")
+                        }
+                        GridRow {
+                            Text("Font").fixedSize()
+                            Picker("Font", selection: $appearance.notationFontDesignRaw) {
+                                ForEach(NotationFontDesign.allCases) { design in
+                                    Text(design.label).tag(design.rawValue)
+                                }
                             }
+                            .labelsHidden()
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .labelsHidden()
-                        .frame(width: 170)
-                    }
-                    HStack {
-                        Text("Size")
-                        Slider(value: $appearance.notationFontSize, in: 12...17, step: 0.5)
-                        Text("\(appearance.notationFontSize, specifier: "%.1f") pt")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
+                        GridRow {
+                            Text("Size").fixedSize()
+                            HStack(spacing: 8) {
+                                Slider(value: $appearance.notationFontSize, in: 12...17, step: 0.5)
+                                    .accessibilityLabel("Notation size")
+                                Text("\(appearance.notationFontSize, specifier: "%.1f") pt")
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize()
+                            }
+                            .gridCellUnsizedAxes(.horizontal)
+                        }
                     }
                 }
             }

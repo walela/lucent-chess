@@ -32,48 +32,6 @@ struct StudyWorkspace: View {
     }
 }
 
-/// The workspace split, backed by NSSplitViewController — the supported AppKit
-/// path for resizable panes. Split view items own minimum thickness and
-/// holding priority, so dividers drag reliably, window resizing stretches the
-/// board first, and divider positions autosave.
-private struct WorkspaceSplitView: NSViewControllerRepresentable {
-    let board: AnyView
-    let notation: AnyView
-    let inspector: AnyView
-
-    func makeNSViewController(context: Context) -> NSSplitViewController {
-        let controller = NSSplitViewController()
-        controller.splitView.isVertical = true
-        controller.splitView.dividerStyle = .thin
-
-        let panes: [(view: AnyView, minWidth: CGFloat, holding: NSLayoutConstraint.Priority)] = [
-            (board, 420, .init(250)),
-            (notation, 270, .init(260)),
-            (inspector, 300, .init(261))
-        ]
-        for pane in panes {
-            let hosting = NSHostingController(rootView: pane.view)
-            hosting.sizingOptions = []
-            let item = NSSplitViewItem(viewController: hosting)
-            item.minimumThickness = pane.minWidth
-            item.holdingPriority = pane.holding
-            item.canCollapse = false
-            controller.addSplitViewItem(item)
-        }
-        // Fresh key: the previous NSSplitView-based layout may have autosaved
-        // unusable divider frames under the old name.
-        controller.splitView.autosaveName = "StudyWorkspaceSplit.v2"
-        return controller
-    }
-
-    func updateNSViewController(_ controller: NSSplitViewController, context: Context) {
-        guard controller.splitViewItems.count == 3 else { return }
-        (controller.splitViewItems[0].viewController as? NSHostingController<AnyView>)?.rootView = board
-        (controller.splitViewItems[1].viewController as? NSHostingController<AnyView>)?.rootView = notation
-        (controller.splitViewItems[2].viewController as? NSHostingController<AnyView>)?.rootView = inspector
-    }
-}
-
 private struct GameWorkspaceHeader: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var engine: StockfishService
@@ -626,6 +584,9 @@ struct MoveTreeView: NSViewRepresentable {
         textView.textContainer?.containerSize = NSSize(width: scrollView.contentSize.width, height: .greatestFiniteMagnitude)
         textView.linkTextAttributes = [:]
         textView.delegate = context.coordinator
+        textView.contextMenuProvider = { [weak coordinator = context.coordinator] nodeID in
+            coordinator?.contextMenu(for: nodeID)
+        }
         textView.setAccessibilityLabel("Game notation")
         scrollView.documentView = textView
         context.coordinator.textView = textView
@@ -668,18 +629,13 @@ struct MoveTreeView: NSViewRepresentable {
             )
         }
 
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineSpacing = 7
-        paragraph.paragraphSpacing = 4
-        paragraph.lineBreakMode = .byWordWrapping
-        paragraph.hyphenationFactor = 0
         let output = NSMutableAttributedString()
         var moveStyles: [UUID: MoveStyle] = [:]
-        for token in ChessNotationFormatter.document(for: study).tokens {
+        for token in ChessNotationFormatter.document(for: study, layout: .indented).tokens {
             var attributes: [NSAttributedString.Key: Any] = [
                 .font: font(for: token),
                 .foregroundColor: color(for: token),
-                .paragraphStyle: paragraph
+                .paragraphStyle: paragraphStyle(for: token.variationDepth)
             ]
             if let nodeID = token.nodeID, token.kind == .move || token.kind == .comment {
                 attributes[.link] = URL(string: "lucent-move://move/\(nodeID.uuidString)")!
@@ -695,11 +651,27 @@ struct MoveTreeView: NSViewRepresentable {
                     )
                 }
             } else {
-                rendered = NSAttributedString(string: token.text, attributes: attributes)
+                // Keep move numbers with their move, including after a branch.
+                let text = token.kind == .moveNumber ? token.text.replacingOccurrences(of: " ", with: "\u{00a0}") : token.text
+                rendered = NSAttributedString(string: text, attributes: attributes)
             }
             output.append(rendered)
         }
         return RenderedNotation(text: output, moveStyles: moveStyles)
+    }
+
+    private func paragraphStyle(for depth: Int) -> NSParagraphStyle {
+        let paragraph = NSMutableParagraphStyle()
+        let scale = CGFloat(appearance.notationFontSize) / 14
+        // Cap indentation so deeply nested analysis remains usable in narrow panes.
+        let indent = CGFloat(min(depth, 4)) * 18 * scale
+        paragraph.firstLineHeadIndent = indent
+        paragraph.headIndent = indent
+        paragraph.lineSpacing = (depth == 0 ? 6 : 4) * scale
+        paragraph.paragraphSpacing = 8 * scale
+        paragraph.lineBreakMode = .byWordWrapping
+        paragraph.hyphenationFactor = 0
+        return paragraph
     }
 
     /// One SAN move with its piece letters (leading, and after '=' for
@@ -776,8 +748,8 @@ struct MoveTreeView: NSViewRepresentable {
     private func moveSize(for depth: Int) -> CGFloat {
         switch depth {
         case 0: return 14
-        case 1: return 12.5
-        default: return 11.5
+        case 1: return 13
+        default: return 12.5
         }
     }
 
@@ -791,7 +763,7 @@ struct MoveTreeView: NSViewRepresentable {
             )
         case .moveNumber:
             return notationFont(
-                size: moveSize(for: depth) - 2.25,
+                size: moveSize(for: depth) - 1,
                 weight: depth == 0 ? .medium : .regular,
                 monospacedDigits: true
             )
@@ -806,33 +778,20 @@ struct MoveTreeView: NSViewRepresentable {
         }
     }
 
-    // Only appearance-dynamic colors here: `withAlphaComponent` on a catalog
-    // color resolves it statically against the appearance active at build
-    // time, which broke light mode when the string was built in dark mode.
-    //
-    // Hierarchy: main line is full-strength label color, first variation is
-    // secondary, deeper nesting is tertiary. Amber marks meaning (comments,
-    // annotations, result, the current move) — structural punctuation like
-    // variation parentheses stays quiet.
+    // Indentation and weight carry the hierarchy. Variation moves must remain
+    // readable at every depth, in both appearances; tertiary labels are too faint.
     private func color(for token: ChessNotationToken) -> NSColor {
         switch token.kind {
         case .move:
-            if token.variationDepth >= 2 { return .tertiaryLabelColor }
-            if token.variationDepth == 1 { return .secondaryLabelColor }
+            return token.variationDepth == 0 ? .labelColor : LucentTheme.Notation.variation
+        case .moveNumber, .punctuation, .comment:
+            return LucentTheme.Notation.secondary
+        case .annotation, .result:
             return .labelColor
-        case .moveNumber:
-            return token.variationDepth == 0 ? .secondaryLabelColor : .tertiaryLabelColor
-        case .punctuation:
-            return .tertiaryLabelColor
-        case .comment:
-            return token.variationDepth == 0 ? LucentTheme.accentNS : .tertiaryLabelColor
-        case .annotation:
-            return LucentTheme.accentNS
-        case .result:
-            return LucentTheme.accentNS
         }
     }
 
+    @MainActor
     final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: MoveTreeView
         fileprivate weak var textView: NotationTextView?
@@ -850,6 +809,82 @@ struct MoveTreeView: NSViewRepresentable {
                   let node = parent.study.node(withID: id) else { return false }
             parent.select(node)
             return true
+        }
+
+        func contextMenu(for nodeID: UUID?) -> NSMenu {
+            let menu = NSMenu(title: "Game notation")
+            menu.autoenablesItems = false
+            func add(_ title: String, action: Selector, node: MoveNode? = nil, enabled: Bool = true) {
+                let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+                item.target = self
+                item.representedObject = MenuTarget(studyID: parent.study.id, nodeID: node?.id)
+                item.isEnabled = enabled
+                menu.addItem(item)
+            }
+            if let nodeID, let node = parent.study.node(withID: nodeID) {
+                add("Promote variation", action: #selector(promoteVariation(_:)), node: node,
+                    enabled: parent.study.path(to: node).contains { candidate in
+                        parent.study.parent(of: candidate.id)?.children.first?.id != candidate.id
+                    })
+                add("Delete variation", action: #selector(deleteFromMove(_:)), node: node)
+                menu.addItem(.separator())
+                add("Copy position (FEN)", action: #selector(copyPosition(_:)), node: node)
+            }
+            add("Copy game (PGN)", action: #selector(copyGame(_:)))
+            return menu
+        }
+
+        private struct MenuTarget {
+            let studyID: UUID
+            let nodeID: UUID?
+        }
+
+        private func menuNode(_ item: NSMenuItem) -> MoveNode? {
+            guard let target = item.representedObject as? MenuTarget,
+                  target.studyID == parent.study.id, let id = target.nodeID else { return nil }
+            return parent.study.node(withID: id)
+        }
+
+        @objc private func promoteVariation(_ item: NSMenuItem) {
+            guard let node = menuNode(item) else { return }
+            parent.study.select(node)
+            parent.study.promoteCurrentVariation()
+            parent.library.changed(notation: true)
+            parent.engine.updatePosition(parent.study.currentPosition)
+        }
+
+        @objc private func deleteFromMove(_ item: NSMenuItem) {
+            guard let node = menuNode(item), let window = textView?.window else { return }
+            let studyID = parent.study.id
+            let nodeID = node.id
+            let alert = NSAlert()
+            alert.messageText = "Delete variation?"
+            alert.informativeText = "This removes the move and all of its continuations, including nested variations."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Cancel")
+            alert.addButton(withTitle: "Delete")
+            alert.beginSheetModal(for: window) { [weak self] response in
+                guard response == .alertSecondButtonReturn, let self,
+                      self.parent.study.id == studyID,
+                      let node = self.parent.study.node(withID: nodeID) else { return }
+                self.parent.study.select(node)
+                self.parent.study.deleteCurrentVariation()
+                self.parent.library.changed(notation: true)
+                self.parent.engine.updatePosition(self.parent.study.currentPosition)
+            }
+        }
+
+        @objc private func copyPosition(_ item: NSMenuItem) {
+            guard let node = menuNode(item) else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(node.positionFEN, forType: .string)
+        }
+
+        @objc private func copyGame(_ item: NSMenuItem) {
+            guard let target = item.representedObject as? MenuTarget,
+                  target.studyID == parent.study.id else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(PGNService.export(parent.study), forType: .string)
         }
 
         // Internal lucent-move:// links are navigation, not destinations; never
@@ -902,6 +937,28 @@ struct MoveTreeView: NSViewRepresentable {
 }
 
 private final class NotationTextView: NSTextView {
+    var contextMenuProvider: ((UUID?) -> NSMenu?)?
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        contextMenuProvider?(moveID(at: convert(event.locationInWindow, from: nil)))
+    }
+
+    private func moveID(at point: NSPoint) -> UUID? {
+        guard let layoutManager, let textContainer, let storage = textStorage,
+              storage.length > 0 else { return nil }
+        layoutManager.ensureLayout(for: textContainer)
+        let local = NSPoint(x: point.x - textContainerOrigin.x, y: point.y - textContainerOrigin.y)
+        let glyph = layoutManager.glyphIndex(for: local, in: textContainer)
+        guard glyph < layoutManager.numberOfGlyphs,
+              layoutManager.boundingRect(forGlyphRange: NSRange(location: glyph, length: 1),
+                                         in: textContainer).contains(local) else { return nil }
+        let character = layoutManager.characterIndexForGlyph(at: glyph)
+        guard character < storage.length,
+              let link = storage.attribute(.link, at: character, effectiveRange: nil) as? URL,
+              link.scheme == "lucent-move" else { return nil }
+        return UUID(uuidString: link.lastPathComponent)
+    }
+
     var currentMoveRange: NSRange? {
         didSet { needsDisplay = true }
     }

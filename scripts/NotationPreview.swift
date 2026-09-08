@@ -5,11 +5,13 @@ private struct NotationPreviewShell: View {
     let study: ChessStudy
     @ObservedObject var library: LibraryStore
     @ObservedObject var engine: StockfishService
+    let appearance: AppearanceSettings
 
     var body: some View {
         MoveTreeView(study: study)
             .environmentObject(library)
             .environmentObject(engine)
+            .environmentObject(appearance)
             .frame(width: 500, height: 440)
             .background(Color(nsColor: .windowBackgroundColor))
     }
@@ -37,9 +39,13 @@ struct NotationPreview {
         library.studies = [study]
         library.selectedStudyID = study.id
         let engine = StockfishService()
+        let suite = "LucentNotationPreview.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let appearance = AppearanceSettings(defaults: defaults)
         let output = URL(fileURLWithPath: CommandLine.arguments[1])
         let size = NSSize(width: 500, height: 440)
-        let hosting = NSHostingView(rootView: NotationPreviewShell(study: study, library: library, engine: engine))
+        let hosting = NSHostingView(rootView: NotationPreviewShell(study: study, library: library, engine: engine, appearance: appearance))
         hosting.frame = NSRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -3_000, y: -3_000), size: size), styleMask: .borderless, backing: .buffered, defer: false)
         window.contentView = hosting
