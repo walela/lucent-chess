@@ -230,7 +230,7 @@ private struct EngineTelemetryArrow: View {
     }
 }
 
-private struct PieceGlyph: View {
+struct PieceGlyph: View {
     let piece: ChessPiece
     let cell: CGFloat
     @ObservedObject var settings: AppearanceSettings

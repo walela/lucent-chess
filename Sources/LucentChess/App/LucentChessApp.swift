@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @main
@@ -29,7 +30,6 @@ struct LucentChessApp: App {
                 .frame(minWidth: 1_180, minHeight: 720)
         }
         .windowStyle(.hiddenTitleBar)
-        .commands { LucentCommands(library: library, appearance: appearance) }
 
         Window("Play Stockfish", id: AppWindowID.training) {
             TrainingGameView()
@@ -40,6 +40,14 @@ struct LucentChessApp: App {
                 .preferredColorScheme(appearance.interfaceAppearance.colorScheme)
         }
         .windowStyle(.hiddenTitleBar)
+
+        Window("Set Up Position", id: AppWindowID.positionSetup) {
+            PositionSetupView()
+                .environmentObject(library)
+                .environmentObject(appearance)
+                .preferredColorScheme(appearance.interfaceAppearance.colorScheme)
+        }
+        .windowResizability(.contentSize)
 
         Settings {
             SettingsView()
@@ -53,6 +61,7 @@ struct LucentChessApp: App {
 }
 
 private struct LucentCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
     @FocusedValue(\.isTrainingWindow) private var isTrainingWindow
     @ObservedObject var library: LibraryStore
     @ObservedObject var appearance: AppearanceSettings
@@ -79,8 +88,18 @@ private struct LucentCommands: Commands {
             Button("Save Game As…") { library.saveSelectedAs() }
                 .keyboardShortcut("s", modifiers: [.command, .shift])
                 .disabled(library.selectedStudy == nil || isTrainingWindow == true)
+            Button("Show in Finder") {
+                if let url = library.selectedStudy?.fileURL {
+                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                }
+            }
+            .disabled(library.selectedStudy?.fileURL == nil || isTrainingWindow == true)
         }
         CommandMenu("Game") {
+            Button("Set Up Position…") { openWindow(id: AppWindowID.positionSetup) }
+                .keyboardShortcut("s", modifiers: [.command, .shift, .option])
+                .disabled(isTrainingWindow == true)
+            Divider()
             Button("Game Library") { NotificationCenter.default.post(name: .showDashboard, object: nil) }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
             Divider()

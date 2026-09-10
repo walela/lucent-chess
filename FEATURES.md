@@ -5,8 +5,8 @@ The complete feature list. For the short version, see the [README](README.md).
 ## Game library
 
 - Opens to a ChessBase-style game dashboard with search, file status, recent games, and one-click access to analysis.
-- Organizes large libraries with persistent folders, Unfiled and Needs Saving views, drag-and-drop filing, and Move to Folder menus.
-- Keeps new and duplicated games in a persistent Autosave smart collection until each one is explicitly saved as a PGN; edited PGNs remain separately visible in Needs Saving.
+- Organizes large libraries with persistent collections, an Unfiled view, drag-and-drop filing, and Move to Collection menus.
+- Automatically persists games and edits in the local library. Recently Edited shows games changed in the last 14 days; PGN file state remains available as a table filter.
 - Searches across players, events, sites, ECO codes, results, and filenames; filters by result or file state; and sorts players, events, dates, results, move counts, or tournament rounds.
 - Uses a draggable dashboard divider so the folder sidebar can be resized between a compact list and a wider library organizer.
 - Opens games in a separate reusable window, leaving the library's active folder, filters, and scroll position intact for quick return.
@@ -44,11 +44,12 @@ The complete feature list. For the short version, see the [README](README.md).
 
 ## Board
 
+- Provides a separate position editor with piece placement and erasing, FEN import/copy, board reset/flip, side to move, castling rights, en passant, and move counters. Invalid setups are explained before a new game can be created.
 - Supports click-to-move, drag-to-move, promotion, castling, en passant, board flipping, coordinates, move hints, and keyboard navigation.
 - Applies moves and navigation jumps immediately, without an automatic piece transition getting between the board and the score.
 - Includes 42 bundled piece sets—including an original Fritz-inspired ivory/charcoal set—and all 25 current Lichess board themes, plus custom square colors and piece scaling.
 - Sizes pieces explicitly within each square, caps oversized shadows, and supplies high-resolution fallbacks for filtered sets so both inline and maximized boards stay crisp.
-- Uses a resizable board / notation / engine workspace with persistent pane widths and grouped Game, Analysis and View controls. Light mode has warm off-white surfaces.
+- Uses a resizable board / notation / engine workspace with persistent pane widths and labeled game actions on the left and Analyze/Practice controls on the right, plus Engine, Details, and Appearance inspector tabs. Light mode has warm off-white surfaces.
 - Centers a compact five-button game transport directly below the board for start, previous, flip, next, and end navigation.
 
 ## Performance

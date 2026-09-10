@@ -3,7 +3,7 @@ import SwiftUI
 
 struct GameDashboard: View {
     private enum Selection: Hashable {
-        case all, autosave, recent, unsaved, unfiled, folder(UUID)
+        case all, recent, unfiled, folder(UUID)
     }
 
     @EnvironmentObject private var library: LibraryStore
@@ -24,12 +24,8 @@ struct GameDashboard: View {
         switch selection {
         case .all:
             return source
-        case .autosave:
-            return source.filter(\.isAutosaved)
         case .recent:
             return source.filter { $0.modifiedAt > Date().addingTimeInterval(-14 * 86_400) }
-        case .unsaved:
-            return source.filter(\.hasUnsavedChanges)
         case .unfiled:
             return source.filter { $0.folderID == nil }
         case let .folder(id):
@@ -49,9 +45,7 @@ struct GameDashboard: View {
     private var sectionTitle: String {
         switch selection {
         case .all: return "All games"
-        case .autosave: return "Autosave"
-        case .recent: return "Recent games"
-        case .unsaved: return "Needs PGN save"
+        case .recent: return "Recently edited"
         case .unfiled: return "Unfiled"
         case let .folder(id): return library.folders.first(where: { $0.id == id })?.name ?? "Folder"
         }
@@ -187,9 +181,7 @@ struct GameDashboard: View {
                 .font(.caption2.bold()).tracking(0.7).foregroundStyle(.secondary)
                 .padding(.horizontal, 14).padding(.top, 18).padding(.bottom, 5)
             sidebarRow("All Games", systemImage: "books.vertical", count: library.studies.count, value: .all)
-            sidebarRow("Autosave", systemImage: "archivebox", count: library.autosavedGameCount, value: .autosave)
-            sidebarRow("Recent", systemImage: "clock.arrow.circlepath", count: recentCount, value: .recent)
-            sidebarRow("Needs Saving", systemImage: "square.and.arrow.down", count: library.unsavedGameCount, value: .unsaved)
+            sidebarRow("Recently Edited", systemImage: "clock.arrow.circlepath", count: recentCount, value: .recent)
 
             Divider().padding(.vertical, 10).padding(.horizontal, 12)
             HStack {
@@ -201,8 +193,8 @@ struct GameDashboard: View {
                     Image(systemName: "folder.badge.plus").font(.caption.bold())
                 }
                 .buttonStyle(.plain)
-                .help("New Folder")
-                .accessibilityLabel("New Folder")
+                .help("New Collection")
+                .accessibilityLabel("New Collection")
             }
             .padding(.horizontal, 14).padding(.bottom, 5)
 
@@ -227,24 +219,24 @@ struct GameDashboard: View {
                             dropFolderID: folder.id
                         )
                         .contextMenu {
-                            Button("Rename Folder…") { folderEditor = FolderEditor(folder: folder) }
-                            Button("Remove Folder", role: .destructive) {
+                            Button("Rename Collection…") { folderEditor = FolderEditor(folder: folder) }
+                            Button("Remove Collection", role: .destructive) {
                                 library.deleteFolder(folder)
                                 if selection == .folder(folder.id) { selection = .unfiled }
                             }
                             Divider()
-                            Text("Removing a folder keeps its games in Unfiled.")
+                            Text("Removing a collection keeps its games in Unfiled.")
                         }
                     }
                 }
             }
 
             Spacer(minLength: 12)
-            Label("Drag games onto folders", systemImage: "hand.draw")
+            Label("Drag games into collections", systemImage: "hand.draw")
                 .font(.caption).foregroundStyle(.tertiary)
                 .padding(.horizontal, 14).padding(.bottom, 14)
         }
-        .frame(minWidth: 190, idealWidth: 218, maxWidth: 380)
+        .frame(minWidth: 220, idealWidth: 240, maxWidth: 380)
         .background(.ultraThinMaterial.opacity(0.42))
     }
 
@@ -345,8 +337,8 @@ struct GameDashboard: View {
                 .frame(width: 27, height: 27)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(sectionTitle).font(LucentTheme.Fonts.sectionTitle)
-                    if selection == .autosave {
-                        Text("Recovered locally until you save each game as a PGN.")
+                    if selection == .recent {
+                        Text("Games changed in the last 14 days.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -490,14 +482,14 @@ struct GameDashboard: View {
 
     private var emptyLibraryDescription: String {
         if hasActiveFilters { return "Try clearing the search or one of the filters." }
-        if selection == .autosave { return "New and duplicated games appear here until you save them as PGN files." }
-        if case .folder = selection { return "Drag a game here or create a new game in this folder." }
+        if selection == .recent { return "Games you edit will appear here for 14 days." }
+        if case .folder = selection { return "Drag a game here or create a new game in this collection." }
         return "Create a game or open a PGN to begin."
     }
 
     @ViewBuilder
     private func moveToFolderMenu(for game: ChessStudy) -> some View {
-        Menu("Move to Folder") {
+        Menu("Move to Collection") {
             Button {
                 library.move(game, to: nil)
             } label: {
@@ -571,9 +563,7 @@ struct GameDashboard: View {
     private var sectionSymbol: String {
         switch selection {
         case .all: return "books.vertical.fill"
-        case .autosave: return "archivebox.fill"
         case .recent: return "clock.arrow.circlepath"
-        case .unsaved: return "square.and.arrow.down.fill"
         case .unfiled: return "tray.full.fill"
         case .folder: return "folder.fill"
         }
@@ -624,12 +614,12 @@ private struct FolderEditorSheet: View {
                 Image(systemName: editor.folder == nil ? "folder.badge.plus" : "folder.fill")
                     .font(.title).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(editor.folder == nil ? "New Folder" : "Rename Folder").font(.title2.bold())
-                    Text("Folders organize the Lucent library; your PGN files stay where they are.")
+                    Text(editor.folder == nil ? "New Collection" : "Rename Collection").font(.title2.bold())
+                    Text("Collections group games in your library.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
-            TextField("Folder name", text: $name)
+            TextField("Collection name", text: $name)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(commit)
             HStack {

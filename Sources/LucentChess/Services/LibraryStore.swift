@@ -60,7 +60,7 @@ final class LibraryStore: ObservableObject {
 
     @discardableResult
     func newStudy(
-        title: String = "New Game",
+        title: String = "Untitled game",
         startFEN: String = ChessPosition.startFEN,
         folderID: UUID? = nil
     ) -> ChessStudy {

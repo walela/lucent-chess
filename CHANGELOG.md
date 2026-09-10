@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.16.0 — 2026-09-10
+
+- Adds a position editor with piece placement, FEN loading, side to move, castling, en passant, and move counters. Validated positions open as new games without changing the source game.
+- Replaces workspace dropdowns with larger, labeled action icons. Game actions stay left; Analyze and Practice sit beside the engine area on the right.
+- Removes the redundant game-title block and gives the inspector clear Engine, Details, and Appearance tabs.
+- Simplifies the library sidebar to All Games, Recently Edited, and Collections, including Unfiled. Automatic library saving remains active.
+- Makes collection terminology consistent and removes duplicate native Game menu registration.
+
 ## 1.15.0 — 2026-09-08
 
 - Adds a separate Stockfish training window from any study position, with color, strength and thinking-time controls and automatic library saving.

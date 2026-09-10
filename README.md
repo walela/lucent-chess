@@ -6,9 +6,10 @@ A native, offline macOS app for studying chess games — a PGN library and analy
 
 ## Highlights
 
-- **A real game library.** ChessBase-style dashboard with search across players, events, ECO codes, and results; persistent folders with drag-and-drop filing; and smart views for unfiled, autosaved, and unsaved games.
+- **A real game library.** ChessBase-style dashboard with search across players, events, ECO codes, and results; persistent collections with drag-and-drop filing; and clear All Games, Recently Edited, and Unfiled views.
 - **Full PGN fidelity.** Import and export nested variations, comments, NAGs, FEN starts, and metadata. Games save as ordinary `.pgn` files — no lock-in, no proprietary database.
 - **Local engine analysis.** Runs Stockfish (or any UCI engine) entirely on-device with hardware-aware defaults, MultiPV study lines, WDL estimates, and every UCI option the engine exposes — including strength limits and Syzygy tablebases. Engine output is throttled off the main thread, so analysis never makes the UI stutter.
+- **Set up any position.** Place pieces or load a FEN, choose the side to move and special rights, and open a new game for analysis or practice.
 - **Play from any position.** Start a separate Stockfish training game, choose your color and strength, and keep its moves in your library without changing the original study.
 - **ChessBase-style notation.** Readable indented variations with clickable moves, inline comments, and move-specific context menus. Add a variation by going back and playing another legal move; save an engine line into the tree with one click.
 - **Direct imports.** Pull weekly TWIC archives and public Lichess games, studies, and broadcasts straight into source-named collections, with duplicate skipping.
@@ -60,6 +61,7 @@ No third-party package dependencies — just Swift and the macOS SDK.
 | Command-S | Save the current game |
 | Command-Shift-S | Save as a new PGN |
 | Command-Shift-L | Game library |
+| Command-Option-Shift-S | Set up position |
 
 ## Your data
 

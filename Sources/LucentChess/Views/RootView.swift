@@ -5,6 +5,7 @@ enum AppWindowID {
     static let library = "library"
     static let game = "game"
     static let training = "training"
+    static let positionSetup = "position-setup"
 }
 
 extension Notification.Name {

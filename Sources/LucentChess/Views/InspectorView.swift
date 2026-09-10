@@ -7,11 +7,14 @@ struct InspectorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Inspector", selection: $tab) {
-                ForEach(RootView.InspectorTab.allCases) { Text($0.rawValue).tag($0) }
+            HStack(spacing: 0) {
+                inspectorTab("Engine", value: .analysis)
+                inspectorTab("Details", value: .notes)
+                inspectorTab("Appearance", value: .style)
             }
-            .pickerStyle(.segmented)
-            .padding(12)
+            .padding(.horizontal, 12)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Inspector sections")
 
             Divider()
             Group {
@@ -24,6 +27,26 @@ struct InspectorView: View {
         }
         .background(colorScheme == .light ? AnyShapeStyle(LucentTheme.Surface.panel) : AnyShapeStyle(.ultraThinMaterial))
     }
+
+    private func inspectorTab(_ title: String, value: RootView.InspectorTab) -> some View {
+        Button { tab = value } label: {
+            Text(title)
+                .font(.system(size: 12, weight: tab == value ? .semibold : .regular))
+                .foregroundStyle(tab == value ? Color.primary : Color.secondary)
+                .frame(maxWidth: .infinity).frame(height: 44)
+                .contentShape(Rectangle())
+                .overlay(alignment: .bottom) {
+                    if tab == value {
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(LucentTheme.accent).frame(height: 2).padding(.horizontal, 14)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(tab == value ? .isSelected : [])
+    }
+
 }
 
 private struct AnalysisInspector: View {
@@ -47,28 +70,9 @@ private struct AnalysisInspector: View {
                     Image(systemName: "slider.horizontal.3")
                         .frame(width: 22, height: 22)
                 }
-                .buttonStyle(.borderless)
-                .help("Configure engine")
-                Button {
-                    engine.toggle(for: study.currentPosition)
-                } label: {
-                    Image(systemName: engine.isAnalysisActive ? "stop.fill" : "play.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(engine.isAnalysisActive ? Color.primary : Color.white)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            engine.isAnalysisActive ? Color.secondary.opacity(0.18) : LucentTheme.accent,
-                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(.primary.opacity(engine.isAnalysisActive ? 0.10 : 0), lineWidth: 0.75)
-                        }
-                        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .help(engine.isAnalysisActive ? "Stop engine" : "Analyze this position")
-                .accessibilityLabel(engine.isAnalysisActive ? "Stop engine" : "Analyze this position")
+                .buttonStyle(WorkspaceButtonStyle(quiet: true))
+                .help("Engine settings").accessibilityLabel("Engine settings")
+
             }
             .padding(14)
 
@@ -483,6 +487,11 @@ private struct StyleInspector: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                Picker("Interface", selection: $appearance.interfaceAppearanceRaw) {
+                    ForEach(InterfaceAppearance.allCases) { Text($0.label).tag($0.rawValue) }
+                }
+                Divider()
+
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text("Board themes").font(.headline)
