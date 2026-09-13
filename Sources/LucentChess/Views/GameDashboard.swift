@@ -58,16 +58,12 @@ struct GameDashboard: View {
             Divider()
             HSplitView {
                 librarySidebar
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 26) {
-                        welcomeHeader
-                        quickActions
-                        librarySection(displayedGames)
-                    }
-                    .frame(maxWidth: 1_260, alignment: .leading)
-                    .padding(.horizontal, 34)
-                    .padding(.vertical, 30)
-                    .frame(maxWidth: .infinity)
+                VSplitView {
+                    collectionBrowser
+                        .frame(minHeight: 210, idealHeight: 340, maxHeight: .infinity)
+                    librarySection(displayedGames)
+                        .padding(20)
+                        .frame(minHeight: 300, maxHeight: .infinity)
                 }
                 .frame(minWidth: 680)
             }
@@ -126,16 +122,16 @@ struct GameDashboard: View {
             .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 9))
             appearanceSwitcher
             Menu {
-                Button { importSource(selectedFolderID) } label: {
+                Button { importSource(nil) } label: {
                     Label("TWIC or Lichess…", systemImage: "network")
                 }
-                Button { importPGN(selectedFolderID) } label: {
+                Button { importPGN(nil) } label: {
                     Label("PGN from Disk…", systemImage: "square.and.arrow.down")
                 }
             } label: {
                 Label("Import", systemImage: "square.and.arrow.down.on.square")
             }
-            Button { newGame(selectedFolderID) } label: { Label("New Game", systemImage: "doc.badge.plus") }
+            Button { newGame(nil) } label: { Label("New Game", systemImage: "doc.badge.plus") }
                 .buttonStyle(.borderedProminent).tint(LucentTheme.accent)
         }
         .padding(.horizontal, 22)
@@ -218,15 +214,7 @@ struct GameDashboard: View {
                             acceptsDrop: true,
                             dropFolderID: folder.id
                         )
-                        .contextMenu {
-                            Button("Rename Collection…") { folderEditor = FolderEditor(folder: folder) }
-                            Button("Remove Collection", role: .destructive) {
-                                library.deleteFolder(folder)
-                                if selection == .folder(folder.id) { selection = .unfiled }
-                            }
-                            Divider()
-                            Text("Removing a collection keeps its games in Unfiled.")
-                        }
+                        .contextMenu { collectionActions(folder) }
                     }
                 }
             }
@@ -267,12 +255,7 @@ struct GameDashboard: View {
         .padding(.horizontal, 6)
         .dropDestination(for: String.self) { ids, _ in
             guard acceptsDrop else { return false }
-            var moved = false
-            for id in ids.compactMap(UUID.init(uuidString:)) {
-                library.move(studyID: id, to: dropFolderID)
-                moved = true
-            }
-            return moved
+            return moveGames(ids, to: dropFolderID)
         }
     }
 
@@ -280,48 +263,66 @@ struct GameDashboard: View {
         library.studies.count { $0.modifiedAt > Date().addingTimeInterval(-14 * 86_400) }
     }
 
-    private var welcomeHeader: some View {
-        HStack(alignment: .bottom, spacing: 24) {
-            VStack(alignment: .leading, spacing: 7) {
-                Text("Your chess archive")
-                    .font(LucentTheme.Fonts.display)
-                Text("Games, ideas, and engine analysis—kept private on this Mac.")
-                    .font(.title3).foregroundStyle(.secondary)
+    private var collectionBrowser: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Collections").font(LucentTheme.Fonts.sectionTitle)
+                Text("\(library.folders.count)").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button { folderEditor = FolderEditor(folder: nil) } label: {
+                    Label("New collection", systemImage: "folder.badge.plus")
+                }
+                .buttonStyle(.borderless)
             }
-            Spacer()
-            HStack(spacing: 8) {
-                metric("\(library.studies.count)", "games", systemImage: "checkerboard.rectangle")
-                metric("\(library.folders.count)", "collections", systemImage: "folder")
+            .padding(.horizontal, 20).padding(.vertical, 14)
+
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 148, maximum: 180), spacing: 12)], alignment: .leading, spacing: 12) {
+                    collectionTile("Unfiled", symbol: "tray.full.fill",
+                                   count: library.studies.filter { $0.folderID == nil }.count,
+                                   value: .unfiled, folderID: nil)
+                    ForEach(library.folders) { folder in
+                        collectionTile(folder.name, symbol: "folder.fill", count: library.gameCount(in: folder),
+                                       value: .folder(folder.id), folderID: folder.id)
+                            .contextMenu { collectionActions(folder) }
+                    }
+                }
+                .padding(.horizontal, 20).padding(.bottom, 16)
             }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Collection browser")
+    }
+
+    private func collectionTile(_ title: String, symbol: String, count: Int,
+                                value: Selection, folderID: UUID?) -> some View {
+        CollectionTile(title: title, symbol: symbol, count: count, selected: selection == value) {
+            selection = value
+        }
+        .dropDestination(for: String.self) { ids, _ in
+            moveGames(ids, to: folderID)
         }
     }
 
-    private var quickActions: some View {
-        HStack(spacing: 14) {
-            DashboardActionCard(
-                title: "Continue",
-                detail: library.selectedStudy?.playerDescription ?? "Open your latest game",
-                systemImage: "play.fill",
-                prominent: true,
-                enabled: library.selectedStudy != nil
-            ) {
-                if let study = library.selectedStudy { openGame(study) }
-            }
-            DashboardActionCard(
-                title: selectedFolderID == nil ? "New game" : "New game here",
-                detail: selectedFolderID == nil ? "Start from the initial position" : "Add it to \(sectionTitle)",
-                systemImage: "doc.badge.plus",
-                prominent: false,
-                enabled: true
-            ) { newGame(selectedFolderID) }
-            DashboardActionCard(
-                title: "Import games",
-                detail: "TWIC or Lichess",
-                systemImage: "network",
-                prominent: false,
-                enabled: true,
-            ) { importSource(selectedFolderID) }
+    @ViewBuilder
+    private func collectionActions(_ folder: GameFolder) -> some View {
+        Button("Rename Collection…") { folderEditor = FolderEditor(folder: folder) }
+        Button("Remove Collection", role: .destructive) {
+            library.deleteFolder(folder)
+            if selection == .folder(folder.id) { selection = .unfiled }
         }
+        Divider()
+        Text("Removing a collection keeps its games in Unfiled.")
+    }
+
+    private func moveGames(_ ids: [String], to folderID: UUID?) -> Bool {
+        var moved = false
+        for id in ids.compactMap(UUID.init(uuidString:)) {
+            library.move(studyID: id, to: folderID)
+            moved = true
+        }
+        return moved
     }
 
     private func librarySection(_ games: [ChessStudy]) -> some View {
@@ -358,36 +359,42 @@ struct GameDashboard: View {
             libraryControls(shownCount: games.count)
 
             let tableShape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-            LazyVStack(spacing: 0) {
+            VStack(spacing: 0) {
                 libraryHeader
                 Divider()
-                if games.isEmpty {
-                    ContentUnavailableView(
-                        hasActiveFilters ? "No matching games" : "No games here",
-                        systemImage: "doc.text.magnifyingglass",
-                        description: Text(emptyLibraryDescription)
-                    )
-                    .frame(maxWidth: .infinity, minHeight: 220)
-                } else {
-                    ForEach(games) { game in
-                        GameLibraryRow(
-                            game: game,
-                            folderName: selectedFolderID == game.folderID ? nil : folderName(for: game)
-                        ) { openGame(game) }
-                            .draggable(game.id.uuidString)
-                            .contextMenu {
-                                Button("Open") { openGame(game) }
-                                Button("Save") { library.select(game); library.saveSelected() }
-                                Button("Save As…") { library.select(game); library.saveSelectedAs() }
-                                moveToFolderMenu(for: game)
-                                Divider()
-                                Button("Duplicate") { library.select(game); library.duplicateSelected() }
-                                Button("Delete from Library", role: .destructive) { library.delete(game) }
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        if games.isEmpty {
+                            ContentUnavailableView(
+                                hasActiveFilters ? "No matching games" : "No games here",
+                                systemImage: "doc.text.magnifyingglass",
+                                description: Text(emptyLibraryDescription)
+                            )
+                            .frame(maxWidth: .infinity, minHeight: 220)
+                        } else {
+                            ForEach(games) { game in
+                                GameLibraryRow(
+                                    game: game,
+                                    folderName: selectedFolderID == game.folderID ? nil : folderName(for: game)
+                                ) { openGame(game) }
+                                    .draggable(game.id.uuidString)
+                                    .contextMenu {
+                                        Button("Open") { openGame(game) }
+                                        Button("Save PGN") { library.select(game); library.saveSelected() }
+                                        Button("Export PGN…") { library.select(game); library.saveSelectedAs() }
+                                        moveToFolderMenu(for: game)
+                                        Divider()
+                                        Button("Duplicate") { library.select(game); library.duplicateSelected() }
+                                        Button("Delete from Library", role: .destructive) { library.delete(game) }
+                                    }
+                                if game.id != games.last?.id { Divider().padding(.leading, 20) }
                             }
-                        if game.id != games.last?.id { Divider().padding(.leading, 20) }
+                        }
                     }
                 }
+                .id(selection)
             }
+            .frame(maxHeight: .infinity, alignment: .top)
             .background(.background.opacity(0.68))
             .clipShape(tableShape)
             .overlay(tableShape.stroke(.separator.opacity(0.42), lineWidth: 1))
@@ -569,26 +576,6 @@ struct GameDashboard: View {
         }
     }
 
-    private func metric(_ value: String, _ label: String, systemImage: String) -> some View {
-        HStack(spacing: 9) {
-            Image(systemName: systemImage)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 24, height: 24)
-                .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-            VStack(alignment: .leading, spacing: 0) {
-                Text(value).font(.headline).monospacedDigit()
-                Text(label.uppercased())
-                    .font(LucentTheme.Fonts.microLabel)
-                    .tracking(0.6)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.horizontal, 10)
-        .frame(height: 42)
-        .background(.background.opacity(0.48), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.separator.opacity(0.34)))
-    }
 }
 
 private struct FolderEditor: Identifiable {
@@ -643,63 +630,43 @@ private struct FolderEditorSheet: View {
     }
 }
 
-private struct DashboardActionCard: View {
+private struct CollectionTile: View {
     let title: String
-    let detail: String
-    let systemImage: String
-    let prominent: Bool
-    let enabled: Bool
+    let symbol: String
+    let count: Int
+    let selected: Bool
     let action: () -> Void
-
-    // Only the prominent card carries the accent; secondary actions stay neutral.
-    private var iconColor: Color { prominent ? LucentTheme.accent : .secondary }
+    @State private var hovering = false
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 13) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(prominent ? AnyShapeStyle(LucentTheme.accent.opacity(0.22)) : AnyShapeStyle(.quaternary.opacity(0.55)))
-                    Image(systemName: systemImage)
-                        .font(prominent ? .title2.weight(.bold) : .title3.weight(.semibold))
-                        .foregroundStyle(iconColor)
-                }
-                .frame(width: 50, height: 50)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(prominent ? .title3.weight(.semibold) : .headline)
-                    Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
-                Spacer(minLength: 5)
-                Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.tertiary)
+            VStack(spacing: 7) {
+                Image(systemName: symbol)
+                    .font(.system(size: 46, weight: .regular))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                    .frame(height: 50)
+                Text(title)
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .frame(height: 30, alignment: .top)
+                Text("\(count) games")
+                    .font(.caption).monospacedDigit().foregroundStyle(.secondary)
             }
-            .padding(15)
-            .frame(maxWidth: .infinity, minHeight: 82)
-            .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(.background.opacity(0.7))
-                    .overlay {
-                        if prominent {
-                            LinearGradient(
-                                colors: [LucentTheme.accent.opacity(0.11), LucentTheme.accent.opacity(0.025), .clear],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        }
-                    }
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(
-                        prominent
-                            ? LucentTheme.accent.opacity(0.32)
-                            : Color(nsColor: .separatorColor).opacity(0.34)
-                    )
-            )
+            .padding(12)
+            .frame(maxWidth: .infinity)
+            .background(selected ? Color.accentColor.opacity(0.10) : Color.primary.opacity(hovering ? 0.04 : 0),
+                        in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10)
+                .stroke(selected ? Color.accentColor.opacity(0.5) : .clear, lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
-        .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.48)
+        .onHover { hovering = $0 }
+        .help("Show \(title) · \(count) games")
+        .accessibilityLabel("\(title), \(count) games")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

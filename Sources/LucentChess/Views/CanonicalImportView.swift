@@ -3,7 +3,7 @@ import SwiftUI
 struct CanonicalImportView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var library: LibraryStore
-    let destinationFolderID: UUID?
+    @State var destinationFolderID: UUID? = nil
 
     @State private var source = CanonicalGameSource.twic
     @State private var latestTWIC = true
@@ -227,16 +227,13 @@ struct CanonicalImportView: View {
     }
 
     private var destinationRow: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "folder.fill").foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Destination").font(.caption).foregroundStyle(.secondary)
-                Text(destinationName).font(.callout.weight(.medium))
+        Picker("Save to", selection: $destinationFolderID) {
+            Text("Unfiled").tag(UUID?.none)
+            ForEach(library.folders) { folder in
+                Text(folder.name).tag(Optional(folder.id))
             }
-            Spacer()
-            Text(destinationFolderID == nil ? "Automatic" : "Selected collection")
-                .font(.caption2).foregroundStyle(.tertiary)
         }
+        .disabled(isImporting)
         .padding(.horizontal, 12)
     }
 
@@ -252,14 +249,6 @@ struct CanonicalImportView: View {
         }
         .padding(12)
         .background(.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-    }
-
-    private var destinationName: String {
-        guard let id = destinationFolderID,
-              let folder = library.folders.first(where: { $0.id == id }) else {
-            return "A source-named collection"
-        }
-        return folder.name
     }
 
     private var canImport: Bool {

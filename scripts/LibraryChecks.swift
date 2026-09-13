@@ -88,8 +88,9 @@ struct LibraryChecks {
             sourceURL: URL(string: "https://lichess.org/8fuPHGyu")!,
             collectionName: "Lichess imports"
         )
-        try check("Source imports create a collection and stay out of Autosave") {
+        try check("Source imports default to Unfiled and retain their provenance") {
             sourceSummary.importedCount == 1
+                && sourceSummary.folderName == "Unfiled" && sourceGames[0].folderID == nil
                 && sourceGames[0].sourceName == "Lichess"
                 && !sourceGames[0].isAutosaved
                 && !sourceGames[0].hasUnsavedChanges

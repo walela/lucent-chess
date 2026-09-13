@@ -7,12 +7,12 @@ A native, offline macOS app for studying chess games — a PGN library and analy
 ## Highlights
 
 - **A real game library.** ChessBase-style dashboard with search across players, events, ECO codes, and results; persistent collections with drag-and-drop filing; and clear All Games, Recently Edited, and Unfiled views.
-- **Full PGN fidelity.** Import and export nested variations, comments, NAGs, FEN starts, and metadata. Games save as ordinary `.pgn` files — no lock-in, no proprietary database.
+- **Full PGN fidelity.** Import and export nested variations, comments, NAGs, FEN starts, and metadata. Export games as ordinary `.pgn` files — no lock-in, no proprietary database.
 - **Local engine analysis.** Runs Stockfish (or any UCI engine) entirely on-device with hardware-aware defaults, MultiPV study lines, WDL estimates, and every UCI option the engine exposes — including strength limits and Syzygy tablebases. Engine output is throttled off the main thread, so analysis never makes the UI stutter.
 - **Set up any position.** Place pieces or load a FEN, choose the side to move and special rights, and open a new game for analysis or practice.
 - **Play from any position.** Start a separate Stockfish training game, choose your color and strength, and keep its moves in your library without changing the original study.
 - **ChessBase-style notation.** Readable indented variations with clickable moves, inline comments, and move-specific context menus. Add a variation by going back and playing another legal move; save an engine line into the tree with one click.
-- **Direct imports.** Pull weekly TWIC archives and public Lichess games, studies, and broadcasts straight into source-named collections, with duplicate skipping.
+- **Direct imports.** Pull weekly TWIC archives and public Lichess games, studies, and broadcasts into Unfiled or an explicitly chosen collection, with duplicate skipping.
 - **Comes with games.** A starter archive of 256 games: both 2026 Candidates tournaments and all five Kasparov–Karpov World Championship matches.
 - **Yours to theme.** 42 piece sets and all 25 Lichess board themes, plus custom square colors, light/dark/system modes, and a resizable board–notation–engine layout.
 - **No dependencies, no telemetry.** Pure Swift with zero third-party packages. Nothing leaves the machine.
@@ -58,14 +58,14 @@ No third-party package dependencies — just Swift and the macOS SDK.
 | Command-N | New game |
 | Command-O | Open PGN |
 | Command-Option-O | Import from TWIC or Lichess |
-| Command-S | Save the current game |
-| Command-Shift-S | Save as a new PGN |
+| Command-S | Save to a collection |
+| Command-Shift-S | Export PGN |
 | Command-Shift-L | Game library |
 | Command-Option-Shift-S | Set up position |
 
 ## Your data
 
-The recovery library is stored at `~/Library/Application Support/Lucent Chess/Library.json`. Games explicitly saved with Save or Save As remain ordinary PGN files wherever you put them.
+The recovery library is stored at `~/Library/Application Support/Lucent Chess/Library.json`. New games and analysis drafts stay in Unfiled until you explicitly choose a collection. Editing a collection game preserves its original and creates an Unfiled analysis copy. Export PGN writes an ordinary PGN file wherever you choose.
 
 ## License
 

@@ -6,6 +6,7 @@ enum AppWindowID {
     static let game = "game"
     static let training = "training"
     static let positionSetup = "position-setup"
+    static let saveToCollection = "save-to-collection"
 }
 
 extension Notification.Name {
@@ -96,8 +97,8 @@ struct RootView: View {
         }
     }
 
-    private func createGame(in folderID: UUID?) {
-        let game = library.newStudy(folderID: folderID)
+    private func createGame(in _: UUID?) {
+        let game = library.newStudy()
         open(game)
     }
 
@@ -122,7 +123,7 @@ struct GameWindowRoot: View {
         Group {
             if let study = library.selectedStudy {
                 StudyWorkspace(study: study, inspectorTab: $inspectorTab, showDashboard: showLibrary)
-                    .id(study.id)
+                    .id(ObjectIdentifier(study))
             } else {
                 ContentUnavailableView(
                     "No game selected",
@@ -156,7 +157,7 @@ struct GameWindowRoot: View {
             engine.stopEngine()
             library.saveNow()
         }
-        .onChange(of: library.selectedStudyID) { _, _ in
+        .onChange(of: library.selectedStudy.map { ObjectIdentifier($0) }) { _, _ in
             inspectorTab = .analysis
             updateSelectedGame()
         }

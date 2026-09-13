@@ -26,8 +26,8 @@ struct GameWorkspaceHeader: View {
                 actionIcon("Set up position…", label: "Set up", symbol: "checkerboard.rectangle", shortcut: "⌥⇧⌘S") {
                     openWindow(id: AppWindowID.positionSetup)
                 }
-                actionIcon(study.filePath == nil ? "Save as PGN…" : "Save PGN", label: "Save", symbol: "square.and.arrow.down", shortcut: "⌘S") {
-                    library.saveSelected()
+                actionIcon("Save to collection…", label: "Save", symbol: "square.and.arrow.down", shortcut: "⌘S") {
+                    openWindow(id: AppWindowID.saveToCollection)
                 }
             }
             .modifier(WorkspaceActionGroup())
@@ -116,5 +116,41 @@ private struct WorkspaceActionGroup: ViewModifier {
             .padding(4)
             .background(.primary.opacity(0.025), in: RoundedRectangle(cornerRadius: 10))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(.primary.opacity(0.09), lineWidth: 1))
+    }
+}
+
+struct SaveToCollectionView: View {
+    @EnvironmentObject private var library: LibraryStore
+    @Environment(\.dismissWindow) private var dismissWindow
+    let study: ChessStudy
+    @State private var destination: UUID?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Save to collection").font(.title2.bold())
+            Text(study.folderID == nil ? "Your analysis is saved automatically in Unfiled. Choose a collection to file this game." : "Choose the collection where this game should be filed.")
+                .font(.callout).foregroundStyle(.secondary)
+            Picker("Collection", selection: $destination) {
+                Text("Choose a collection").tag(UUID?.none)
+                ForEach(library.folders) { folder in
+                    Text(folder.name).tag(Optional(folder.id))
+                }
+            }
+            HStack {
+                Spacer()
+                Button("Cancel") { dismissWindow(id: AppWindowID.saveToCollection) }.keyboardShortcut(.cancelAction)
+                Button("Save") {
+                    guard let destination else { return }
+                    library.move(study, to: destination)
+                    library.saveNow()
+                    dismissWindow(id: AppWindowID.saveToCollection)
+                }
+                .buttonStyle(.borderedProminent).tint(LucentTheme.accent)
+                .keyboardShortcut(.defaultAction)
+                .disabled(destination == nil)
+            }
+        }
+        .padding(24).frame(width: 440)
+        .onAppear { destination = nil }
     }
 }

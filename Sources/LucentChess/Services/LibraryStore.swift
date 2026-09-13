@@ -14,12 +14,15 @@ final class LibraryStore: ObservableObject {
         }
     }
     @Published var folders: [GameFolder] = []
-    @Published var selectedStudyID: UUID?
+    @Published var selectedStudyID: UUID? {
+        didSet { rememberCollectionOriginal() }
+    }
     @Published var lastError: String?
     @Published var searchText = ""
 
     private let archiveURL: URL
     private var studyByID: [UUID: ChessStudy] = [:]
+    private var collectionOriginal: StudyPersistenceSnapshot?
     private var pendingSave: DispatchWorkItem?
     private var saveGeneration = 0
     private var installedSeedVersion = 0
@@ -61,11 +64,9 @@ final class LibraryStore: ObservableObject {
     @discardableResult
     func newStudy(
         title: String = "Untitled game",
-        startFEN: String = ChessPosition.startFEN,
-        folderID: UUID? = nil
+        startFEN: String = ChessPosition.startFEN
     ) -> ChessStudy {
         let study = ChessStudy(title: title, startFEN: startFEN)
-        study.folderID = validFolderID(folderID)
         studies.insert(study, at: 0)
         selectedStudyID = study.id
         saveSoon()
@@ -86,6 +87,8 @@ final class LibraryStore: ObservableObject {
         copy.filePath = nil
         copy.lastSavedAt = nil
         copy.dirtyState = nil
+        copy.folderID = nil
+        copy.starterCollectionID = nil
         copy.sourceName = nil
         copy.sourceURL = nil
         studies.insert(copy, at: 0)
@@ -135,6 +138,7 @@ final class LibraryStore: ObservableObject {
 
     func move(_ study: ChessStudy, to folderID: UUID?) {
         study.folderID = validFolderID(folderID)
+        if selectedStudyID == study.id { rememberCollectionOriginal() }
         objectWillChange.send()
         saveSoon()
     }
@@ -209,26 +213,16 @@ final class LibraryStore: ObservableObject {
         guard !accepted.isEmpty else {
             let existingName = validFolderID(requestedFolderID)
                 .flatMap { id in folders.first(where: { $0.id == id })?.name }
-                ?? folders.first(where: { $0.name.compare(collectionName, options: .caseInsensitive) == .orderedSame })?.name
-                ?? collectionName
+                ?? "Unfiled"
             return CanonicalImportMergeSummary(importedCount: 0, duplicateCount: duplicateCount, folderName: existingName)
         }
 
-        let destination: GameFolder
-        if let requestedFolderID = validFolderID(requestedFolderID),
-           let existing = folders.first(where: { $0.id == requestedFolderID }) {
-            destination = existing
-        } else if let existing = folders.first(where: {
-            $0.name.compare(collectionName, options: .caseInsensitive) == .orderedSame
-        }) {
-            destination = existing
-        } else {
-            destination = createFolder(name: collectionName)!
-        }
+        let destination = validFolderID(requestedFolderID)
+            .flatMap { id in folders.first(where: { $0.id == id }) }
 
         let importedAt = Date()
         for game in accepted {
-            game.folderID = destination.id
+            game.folderID = destination?.id
             game.sourceName = sourceName
             game.sourceURL = sourceURL.absoluteString
             game.filePath = nil
@@ -242,7 +236,7 @@ final class LibraryStore: ObservableObject {
         return CanonicalImportMergeSummary(
             importedCount: accepted.count,
             duplicateCount: duplicateCount,
-            folderName: destination.name
+            folderName: destination?.name ?? "Unfiled"
         )
     }
 
@@ -278,15 +272,55 @@ final class LibraryStore: ObservableObject {
         study.sourceName = nil
         study.sourceURL = nil
         study.markChanged(notation: false)
+        if selectedStudyID == study.id { rememberCollectionOriginal() }
         saveSoon()
     }
 
     func changed(notation: Bool = false) {
         guard let study = selectedStudy else { return }
+        // Editors mutate the current object before calling changed. Keep that
+        // object as the draft so bindings and text focus survive the first edit.
+        if let original = collectionOriginal, original.id == study.id, study.folderID != nil {
+            var content = StudyPersistenceSnapshot(study)
+            content.lastNodeID = original.lastNodeID
+            content.modifiedAt = original.modifiedAt
+            content.dirtyState = original.dirtyState
+            if content == original {
+                study.modifiedAt = original.modifiedAt
+                study.dirtyState = original.dirtyState
+                study.markSelectionChanged()
+                saveSoon()
+                return
+            }
+            do {
+                let restored = try original.makeStudy()
+                guard let index = studies.firstIndex(where: { $0 === study }) else { return }
+                study.id = UUID()
+                study.folderID = nil
+                study.starterCollectionID = nil
+                study.filePath = nil
+                study.lastSavedAt = nil
+                study.sourceName = nil
+                study.sourceURL = nil
+                study.createdAt = Date()
+                studies[index] = restored
+                studies.insert(study, at: 0)
+                selectedStudyID = study.id
+            } catch {
+                lastError = "Could not preserve the collection original: \(error.localizedDescription)"
+                return
+            }
+        }
         study.modifiedAt = Date()
         study.dirtyState = true
         study.markChanged(notation: notation)
         saveSoon()
+    }
+
+    private func rememberCollectionOriginal() {
+        collectionOriginal = selectedStudy.flatMap { study in
+            study.folderID == nil ? nil : StudyPersistenceSnapshot(study)
+        }
     }
 
     func selectionChanged() {

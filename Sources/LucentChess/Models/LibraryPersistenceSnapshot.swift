@@ -18,7 +18,7 @@ struct LibraryPersistenceSnapshot: Codable, Sendable {
     }
 }
 
-struct StudyPersistenceSnapshot: Codable, Sendable {
+struct StudyPersistenceSnapshot: Codable, Sendable, Equatable {
     var id: UUID
     var title: String
     var white: String
@@ -129,7 +129,7 @@ struct StudyPersistenceSnapshot: Codable, Sendable {
     }
 }
 
-struct MovePersistenceSnapshot: Codable, Sendable {
+struct MovePersistenceSnapshot: Codable, Sendable, Equatable {
     var id: UUID
     var parentID: UUID?
     var moveUCI: String?

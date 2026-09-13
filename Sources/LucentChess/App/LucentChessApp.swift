@@ -49,6 +49,15 @@ struct LucentChessApp: App {
         }
         .windowResizability(.contentSize)
 
+        Window("Save to Collection", id: AppWindowID.saveToCollection) {
+            if let study = library.selectedStudy {
+                SaveToCollectionView(study: study)
+                    .environmentObject(library)
+                    .preferredColorScheme(appearance.interfaceAppearance.colorScheme)
+            }
+        }
+        .windowResizability(.contentSize)
+
         Settings {
             SettingsView()
                 .environmentObject(engine)
@@ -82,10 +91,10 @@ private struct LucentCommands: Commands {
                 .disabled(isTrainingWindow == true)
         }
         CommandGroup(replacing: .saveItem) {
-            Button("Save Game") { library.saveSelected() }
+            Button("Save to Collection…") { openWindow(id: AppWindowID.saveToCollection) }
                 .keyboardShortcut("s")
                 .disabled(library.selectedStudy == nil || isTrainingWindow == true)
-            Button("Save Game As…") { library.saveSelectedAs() }
+            Button("Export PGN…") { library.saveSelectedAs() }
                 .keyboardShortcut("s", modifiers: [.command, .shift])
                 .disabled(library.selectedStudy == nil || isTrainingWindow == true)
             Button("Show in Finder") {

@@ -15,6 +15,7 @@ The complete feature list. For the short version, see the [README](README.md).
 
 ## Notation and variations
 
+- Preserves collection originals: the first content edit creates a separate Unfiled analysis draft. Replaying existing moves does not create a draft or mark the original edited.
 - Displays clickable main-line moves and separate indented variations, with inline PGN comments and repeated move numbers when a line resumes.
 - Gives the score a clear reading hierarchy: bold main-line moves, readable variation colors, and an amber highlight for the current move. Right-click a move to promote or delete a variation or copy FEN/PGN.
 - Adds variations simply by going back and making another legal move.
@@ -22,9 +23,9 @@ The complete feature list. For the short version, see the [README](README.md).
 
 ## PGN and imports
 
-- Saves games as real `.pgn` files with Command-S and Save As, while keeping a local recovery library between launches.
+- Saves games automatically to the local library. Command-S explicitly files a game into a collection; Export PGN writes an ordinary `.pgn` file.
 - Imports and exports PGN, including player and event metadata, nested variations, comments, NAGs, and FEN starts.
-- Imports weekly TWIC archives and public Lichess games, players, studies, or broadcast rounds directly into source-named collections, with duplicate skipping and player-history filters.
+- Imports weekly TWIC archives and public Lichess games, players, studies, or broadcast rounds into Unfiled by default or a collection explicitly chosen in the import dialog, with duplicate skipping and player-history filters.
 
 ## Engine
 
