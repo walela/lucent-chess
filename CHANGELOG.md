@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.17.0 — 2026-09-13
+
+- Imports classic ChessBase CBH databases and unencrypted CBV archives with a bundled reader, preserving moves, variations, comments, and move annotations.
+- Adds ChessBase files to Open Games and Finder file associations; imports go to Unfiled and skip duplicates without changing source databases.
+- Adds collection browsing and preserves collection originals by creating Unfiled analysis drafts for edits.
+
 ## 1.16.0 — 2026-09-10
 
 - Adds a position editor with piece placement, FEN loading, side to move, castling, en passant, and move counters. Validated positions open as new games without changing the source game.

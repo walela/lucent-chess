@@ -16,3 +16,6 @@ is read or modified.
 
 `annotations.cbv` packages the annotation fixture with uncompressed CBV blocks.
 The upstream `small.cbv` is empty and is used only for archive-integrity checks.
+
+`small/small.ini` retains its original CRLF bytes and is marked `-text` in
+`.gitattributes` so Git cannot normalize the archive-integrity reference.

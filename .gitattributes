@@ -1,0 +1,2 @@
+# Keep archive reference bytes intact for CBV integrity checks.
+Tests/Fixtures/ChessBase/small/small.ini -text whitespace=cr-at-eol
