@@ -53,6 +53,12 @@ final class DatabaseCatalog: @unchecked Sendable {
         let db = try SQLConnection(url)
         try db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;")
         try db.exec(Self.schema)
+        let columns = try db.prepare("PRAGMA table_info(games)")
+        var names = Set<String>()
+        while try columns.next() { names.insert(columns.text(1)) }
+        for (name, definition) in [("white_elo", "TEXT"), ("black_elo", "TEXT"), ("elo_indexed", "INTEGER NOT NULL DEFAULT 0")] where !names.contains(name) {
+            try db.exec("ALTER TABLE games ADD COLUMN \(name) \(definition)")
+        }
     }
 
     static let schema = """
@@ -65,7 +71,7 @@ final class DatabaseCatalog: @unchecked Sendable {
       white TEXT NOT NULL,black TEXT NOT NULL,event TEXT NOT NULL,title TEXT NOT NULL,site TEXT NOT NULL DEFAULT '',
       date REAL NOT NULL,result TEXT NOT NULL,moves INTEGER NOT NULL DEFAULT 0,round TEXT NOT NULL DEFAULT '',
       players TEXT NOT NULL,round_sort TEXT NOT NULL,folder TEXT,source_name TEXT,file_path TEXT,source_url TEXT,starter TEXT,
-      dirty INTEGER NOT NULL DEFAULT 0,modified REAL NOT NULL,created REAL NOT NULL,saved REAL,fingerprint TEXT);
+      dirty INTEGER NOT NULL DEFAULT 0,modified REAL NOT NULL,created REAL NOT NULL,saved REAL,fingerprint TEXT,white_elo TEXT,black_elo TEXT,elo_indexed INTEGER NOT NULL DEFAULT 0);
     CREATE INDEX IF NOT EXISTS games_source ON games(source_id,record);
     CREATE INDEX IF NOT EXISTS games_fingerprint ON games(fingerprint) WHERE fingerprint IS NOT NULL;
     CREATE INDEX IF NOT EXISTS games_modified ON games(modified);
@@ -119,9 +125,9 @@ final class DatabaseCatalog: @unchecked Sendable {
         try db.exec("BEGIN IMMEDIATE")
         do {
             let query = try db.prepare("""
-            INSERT INTO games(id,payload,white,black,event,title,site,date,result,moves,round,players,round_sort,folder,source_name,file_path,source_url,starter,dirty,modified,created,saved,fingerprint)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,white=excluded.white,black=excluded.black,event=excluded.event,title=excluded.title,site=excluded.site,date=excluded.date,result=excluded.result,moves=excluded.moves,round=excluded.round,players=excluded.players,round_sort=excluded.round_sort,folder=excluded.folder,source_name=excluded.source_name,file_path=excluded.file_path,source_url=excluded.source_url,starter=excluded.starter,dirty=excluded.dirty,modified=excluded.modified,created=excluded.created,saved=excluded.saved,fingerprint=coalesce(excluded.fingerprint,games.fingerprint)
+            INSERT INTO games(id,payload,white,black,event,title,site,date,result,moves,round,players,round_sort,folder,source_name,file_path,source_url,starter,dirty,modified,created,saved,fingerprint,white_elo,black_elo,elo_indexed)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)
+            ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,white=excluded.white,black=excluded.black,event=excluded.event,title=excluded.title,site=excluded.site,date=excluded.date,result=excluded.result,moves=excluded.moves,round=excluded.round,players=excluded.players,round_sort=excluded.round_sort,folder=excluded.folder,source_name=excluded.source_name,file_path=excluded.file_path,source_url=excluded.source_url,starter=excluded.starter,dirty=excluded.dirty,modified=excluded.modified,created=excluded.created,saved=excluded.saved,fingerprint=coalesce(excluded.fingerprint,games.fingerprint),white_elo=excluded.white_elo,black_elo=excluded.black_elo,elo_indexed=1
             WHERE games.payload IS NOT excluded.payload
             """)
             let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
@@ -137,7 +143,7 @@ final class DatabaseCatalog: @unchecked Sendable {
                 let players = "\(game.white) – \(game.black)".lowercased()
                 let round = game.round ?? ""
                 let roundSort = Double(round).map { String(format: "%020.4f", $0) } ?? round.lowercased()
-                try query.bind([.text(game.id.uuidString), .blob(encoder.encode(game)), .text(game.white), .text(game.black), .text(game.event), .text(game.title), .text(game.site ?? ""), .number(game.date.timeIntervalSince1970), .text(game.result), .int(moveCount), .text(round), .text(players), .text(roundSort), .optional(game.folderID?.uuidString), .optional(game.sourceName), .optional(game.filePath), .optional(game.sourceURL), .optional(game.starterCollectionID), .int(game.dirtyState == true ? 1 : 0), .number(game.modifiedAt.timeIntervalSince1970), .number(game.createdAt.timeIntervalSince1970), game.lastSavedAt.map { .number($0.timeIntervalSince1970) } ?? .null, .optional(fingerprints[game.id.uuidString])])
+                try query.bind([.text(game.id.uuidString), .blob(encoder.encode(game)), .text(game.white), .text(game.black), .text(game.event), .text(game.title), .text(game.site ?? ""), .number(game.date.timeIntervalSince1970), .text(game.result), .int(moveCount), .text(round), .text(players), .text(roundSort), .optional(game.folderID?.uuidString), .optional(game.sourceName), .optional(game.filePath), .optional(game.sourceURL), .optional(game.starterCollectionID), .int(game.dirtyState == true ? 1 : 0), .number(game.modifiedAt.timeIntervalSince1970), .number(game.createdAt.timeIntervalSince1970), game.lastSavedAt.map { .number($0.timeIntervalSince1970) } ?? .null, .optional(fingerprints[game.id.uuidString]), .optional(game.whiteElo), .optional(game.blackElo)])
                 try query.run(); query.reset()
             }
             try db.exec("COMMIT")
@@ -165,12 +171,22 @@ final class DatabaseCatalog: @unchecked Sendable {
     func page(_ request: CatalogRequest) throws -> CatalogPage {
         let db = try SQLConnection(url)
         let column: String
-        switch request.sort { case "players", "event", "result", "moves": column = request.sort
-        case "round": column = "round_sort"
-        default: column = "date" }
-        if column != "date" && column != "players" {
+        let indexName: String
+        let numericSort: Bool
+        switch request.sort {
+        case "whiteElo", "blackElo":
+            indexName = request.sort == "whiteElo" ? "white_elo" : "black_elo"
+            column = "CAST(coalesce(\(indexName),'0') AS INTEGER)"
+            numericSort = true
+            try prepareRatingSort(request)
+        case "players", "event", "result", "moves":
+            column = request.sort; indexName = column; numericSort = column == "moves"
+        case "round": column = "round_sort"; indexName = column; numericSort = false
+        default: column = "date"; indexName = column; numericSort = true
+        }
+        if indexName != "date" && indexName != "players" {
             // Build additional sort indexes only when requested, on the query worker.
-            try db.exec("CREATE INDEX IF NOT EXISTS games_\(column) ON games(\(column),id); CREATE INDEX IF NOT EXISTS games_folder_\(column) ON games(folder,\(column),id);")
+            try db.exec("CREATE INDEX IF NOT EXISTS games_\(indexName) ON games(\(column),id); CREATE INDEX IF NOT EXISTS games_folder_\(indexName) ON games(folder,\(column),id);")
         }
         var conditions: [String] = []; var values: [SQLValue] = []
         if let folder = request.folder { conditions.append("folder=?"); values.append(.text(folder)) }
@@ -218,22 +234,29 @@ final class DatabaseCatalog: @unchecked Sendable {
         }
         if let cursor = request.cursor {
             conditions.append("(\(column),id) \(request.ascending ? ">" : "<") (?,?)")
-            values.append(column == "date" || column == "moves" ? .number(Double(cursor.value) ?? 0) : .text(cursor.value))
+            values.append(numericSort ? .number(Double(cursor.value) ?? 0) : .text(cursor.value))
             values.append(.text(cursor.id))
         }
         let whereSQL = conditions.isEmpty ? "" : " WHERE " + conditions.joined(separator: " AND ")
         let direction = request.ascending ? "ASC" : "DESC"
         // For broad matches, scan the ordering index and test the materialized FTS row-id set.
         // Otherwise SQLite fetches and sorts millions of full rows before returning one page.
-        let orderIndex = denseSearch ? " INDEXED BY games_\((request.folder != nil || request.unfiled) ? "folder_" : "")\(column)" : ""
-        let query = try db.prepare("SELECT id,source_id,record,white,black,event,title,site,date,result,moves,round,folder,source_name,file_path,source_url,starter,dirty,modified,created,saved,\(column) FROM games" + orderIndex + whereSQL + " ORDER BY \(column) \(direction),id \(direction) LIMIT \(Self.pageSize + 1)")
+        let orderIndex = denseSearch ? " INDEXED BY games_\((request.folder != nil || request.unfiled) ? "folder_" : "")\(indexName)" : ""
+        let query = try db.prepare("SELECT id,source_id,record,white,black,event,title,site,date,result,moves,round,folder,source_name,file_path,source_url,starter,dirty,modified,created,saved,\(column),white_elo,black_elo,elo_indexed FROM games" + orderIndex + whereSQL + " ORDER BY \(column) \(direction),id \(direction) LIMIT \(Self.pageSize + 1)")
         try query.bind(values)
-        var games: [ChessStudy] = []; var last: CatalogCursor?
+        var games: [ChessStudy] = []; var missingRatings: [ChessStudy] = []; var last: CatalogCursor?
         while try query.next() {
-            if games.count == Self.pageSize { return CatalogPage(games: games, next: last, count: count) }
+            if games.count == Self.pageSize {
+                query.reset()
+                try hydrateRatings(missingRatings)
+                return CatalogPage(games: games, next: last, count: count)
+            }
             let game = try Self.preview(query)
+            if query.int(24) == 0 { missingRatings.append(game) }
             games.append(game); last = CatalogCursor(value: query.text(21), id: game.id.uuidString)
         }
+        query.reset()
+        try hydrateRatings(missingRatings)
         return CatalogPage(games: games, next: nil, count: count)
     }
 
@@ -246,8 +269,100 @@ final class DatabaseCatalog: @unchecked Sendable {
         game.modifiedAt = Date(timeIntervalSince1970: query.double(18)); game.createdAt = Date(timeIntervalSince1970: query.double(19))
         game.lastSavedAt = query.isNull(20) ? nil : Date(timeIntervalSince1970: query.double(20))
         game.databaseReference = DatabaseGameReference(id: id.uuidString, sourceID: query.optionalText(1), record: query.int(2))
+        game.whiteElo = query.optionalText(22).flatMap { (Int($0) ?? 0) > 0 ? $0 : nil }
+        game.blackElo = query.optionalText(23).flatMap { (Int($0) ?? 0) > 0 ? $0 : nil }
         game.indexedPlyCount = query.int(10)
         return game
+    }
+
+    // Sorting must include ratings beyond the first page, including catalogs created by 1.18.0.
+    // Fill old metadata in bounded batches before creating the numeric ordering index.
+    private func prepareRatingSort(_ request: CatalogRequest) throws {
+        let db = try SQLConnection(url)
+        try db.exec("CREATE INDEX IF NOT EXISTS games_missing_elo ON games(id) WHERE elo_indexed=0; CREATE INDEX IF NOT EXISTS games_folder_missing_elo ON games(folder,id) WHERE elo_indexed=0;")
+        var lastID = ""
+        while true {
+            try Task.checkCancellation()
+            var whereSQL = "elo_indexed=0 AND id>?"
+            var values: [SQLValue] = [.text(lastID)]
+            if let folder = request.folder { whereSQL += " AND folder=?"; values.append(.text(folder)) }
+            if request.unfiled { whereSQL += " AND folder IS NULL" }
+            let query = try db.prepare("SELECT id FROM games WHERE " + whereSQL + " ORDER BY id LIMIT 200")
+            try query.bind(values)
+            var batch: [ChessStudy] = []
+            while try query.next() {
+                lastID = query.text(0)
+                if let id = UUID(uuidString: lastID) { batch.append(ChessStudy(id: id)) }
+            }
+            query.reset()
+            guard !batch.isEmpty else { return }
+            try hydrateRatings(batch, requireCache: true)
+        }
+    }
+
+    // Older catalogs acquire ratings only for the visible page. Read metadata, never move trees.
+    private func hydrateRatings(_ games: [ChessStudy], requireCache: Bool = false) throws {
+        guard !games.isEmpty else { return }
+        struct Ratings: Decodable { var whiteElo: String?; var blackElo: String? }
+        let db = try SQLConnection(url)
+        let read = try db.prepare("SELECT g.payload,s.path,s.kind,g.record,g.record_length FROM games g LEFT JOIN sources s ON s.id=g.source_id WHERE g.id=?")
+        var filled: [ChessStudy] = []
+        for game in games {
+            try Task.checkCancellation()
+            try read.bind([.text(game.id.uuidString)])
+            defer { read.reset() }
+            guard try read.next() else { continue }
+            do {
+                if !read.isNull(0) {
+                    let ratings = try JSONDecoder().decode(Ratings.self, from: read.data(0))
+                    game.whiteElo = ratings.whiteElo; game.blackElo = ratings.blackElo
+                } else {
+                    let handle = try FileHandle(forReadingFrom: URL(fileURLWithPath: read.text(1)))
+                    defer { try? handle.close() }
+                    if read.text(2) == "cbh" {
+                        try handle.seek(toOffset: UInt64(46 + read.int(3) * 46 + 31))
+                        guard let data = try handle.read(upToCount: 4), data.count == 4 else { continue }
+                        let bytes = Array(data)
+                        let white = ((Int(bytes[0]) << 8) | Int(bytes[1])) & 0xFFF
+                        let black = ((Int(bytes[2]) << 8) | Int(bytes[3])) & 0xFFF
+                        game.whiteElo = white > 0 ? String(white) : nil
+                        game.blackElo = black > 0 ? String(black) : nil
+                    } else if read.text(2) == "pgn" {
+                        try handle.seek(toOffset: UInt64(read.int(3)))
+                        let data = try handle.read(upToCount: min(read.int(4), 64 * 1024)) ?? Data()
+                        for line in String(decoding: data, as: UTF8.self).split(separator: "\n") {
+                            let line = line.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "\u{feff}")))
+                            if line.isEmpty { continue }
+                            guard line.hasPrefix("[") else { break }
+                            let pieces = line.split(separator: "\"", omittingEmptySubsequences: false)
+                            guard pieces.count >= 3 else { continue }
+                            let tag = pieces[0].dropFirst().trimmingCharacters(in: .whitespaces)
+                            if tag == "WhiteElo" { game.whiteElo = String(pieces[1]) }
+                            if tag == "BlackElo" { game.blackElo = String(pieces[1]) }
+                        }
+                    } else { continue }
+                }
+                filled.append(game)
+            } catch is CancellationError { throw CancellationError() }
+            catch { continue } // An unavailable source still has browsable indexed headers.
+        }
+        if requireCache && filled.count != games.count {
+            throw CatalogError.message("Could not read ratings from a source database. Restore its managed source files before sorting by Elo.")
+        }
+        // Cache this page if no importer holds the writer lock. Ratings can still display if it does.
+        try db.exec("PRAGMA busy_timeout=0")
+        do {
+            try db.exec("BEGIN IMMEDIATE")
+            let update = try db.prepare("UPDATE games SET white_elo=?,black_elo=?,elo_indexed=1 WHERE id=?")
+            for game in filled {
+                try update.bind([.optional(game.whiteElo),.optional(game.blackElo),.text(game.id.uuidString)])
+                try update.run(); update.reset()
+            }
+            try db.exec("COMMIT")
+        } catch {
+            try? db.exec("ROLLBACK")
+            if requireCache { throw error }
+        }
     }
 
     func load(_ id: UUID) throws -> ChessStudy {

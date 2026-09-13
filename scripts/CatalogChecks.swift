@@ -58,6 +58,7 @@ struct CatalogChecks {
         try check("restart loads a bounded working set and keeps collection counts and draft") {
             reopened.totalGameCount == prior+1 && reopened.studies.count <= 1 && reopened.selectedStudy?.root.comment.contains("Private study note") == true
         }
+        expected.games[0].whiteElo = "2712"; expected.games[0].blackElo = "2638"
         let pgn = root.appendingPathComponent("Portable collection.pgn")
         try (expected.games.map(PGNService.export).joined(separator:"\n")).write(to:pgn,atomically:true,encoding:.utf8)
         let pgnSuccess = await library.importFiles(from:[pgn])
@@ -73,6 +74,20 @@ struct CatalogChecks {
                 expected.games.contains { $0.black == game.black && PGNService.export($0) == PGNService.export(game) }
             }
         }
+        let rated = pgnPage.games.first { $0.black == expected.games[0].black }!
+        try check("PGN previews expose both Elo ratings without loading moves") {
+            rated.whiteElo == "2712" && rated.blackElo == "2638" && rated.root.children.isEmpty
+        }
+        // Simulate the previously shipped SQLite schema, then upgrade it in place.
+        do {
+            let old = try SQLConnection(catalog.url)
+            for name in ["white_elo", "black_elo", "elo_indexed"] { try old.exec("ALTER TABLE games DROP COLUMN \(name)") }
+        }
+        let upgraded = try DatabaseCatalog(url: catalog.url)
+        let upgradedPage = try upgraded.page(request)
+        try check("existing PGN catalogs recover ratings from headers on a bounded page") {
+            upgradedPage.games.contains { $0.black == rated.black && $0.whiteElo == "2712" && $0.blackElo == "2638" && $0.root.children.isEmpty }
+        }
         request.search = "Symbol"; request.cursor = nil
         let search = try await library.page(request)
         try check("indexed prefix search filters metadata") { search.count == 1 && search.games[0].black == "Symbol" }
@@ -87,6 +102,14 @@ struct CatalogChecks {
             migrated.lastError == nil && migrated.totalGameCount == 1 && migrated.folders.first?.name == "Prior"
                 && migrated.selectedStudy?.folderID != nil && (try? Data(contentsOf:legacyURL)) == backup
                 && migrated.selectedStudy?.mainLinePlyCount == legacy.mainLinePlyCount
+        }
+        do {
+            let db = try SQLConnection(migrated.catalog!.url)
+            try db.exec("UPDATE games SET white_elo=NULL,black_elo=NULL,elo_indexed=0")
+        }
+        let oldPayloadPage = try migrated.catalog!.page(CatalogRequest())
+        try check("existing saved games recover both ratings without rebuilding move trees") {
+            oldPayloadPage.games.first?.whiteElo == "2712" && oldPayloadPage.games.first?.blackElo == "2638" && oldPayloadPage.games.first?.root.children.isEmpty == true
         }
         let queryWorker = Task.detached {
             let connection = try SQLConnection(catalog.url)
@@ -117,6 +140,33 @@ struct CatalogChecks {
             pages += 1;paging.cursor = result.next
         } while paging.cursor != nil && pages < 10
         try check("keyset pagination reaches the exact final record") { ids.count == 601 && pages == 4 }
+        let ratingFolder = UUID()
+        let ratingGames = (0..<451).map { index in
+            let game = ChessStudy(white: "Rating \(index)", black: "Opponent", whiteElo: index % 17 == 0 ? nil : String(900 + index * 137 % 2000), blackElo: String(800 + index * 83 % 2100))
+            game.folderID = ratingFolder
+            return game
+        }
+        try catalog.save(ratingGames)
+        do {
+            let db = try SQLConnection(catalog.url)
+            let reset = try db.prepare("UPDATE games SET white_elo=NULL,black_elo=NULL,elo_indexed=0 WHERE folder=?")
+            try reset.bind([.text(ratingFolder.uuidString)]); try reset.run()
+        }
+        for field in ["whiteElo", "blackElo"] {
+            for ascending in [true, false] {
+                var request = CatalogRequest(); request.folder = ratingFolder.uuidString
+                request.sort = field; request.ascending = ascending
+                var result: [ChessStudy] = []
+                repeat {
+                    let page = try catalog.page(request); result += page.games; request.cursor = page.next
+                } while request.cursor != nil
+                let ratings = result.map { Int((field == "whiteElo" ? $0.whiteElo : $0.blackElo) ?? "") ?? 0 }
+                let expected = ratingGames.map { Int((field == "whiteElo" ? $0.whiteElo : $0.blackElo) ?? "") ?? 0 }.sorted(by: ascending ? (<) : (>))
+                try check("\(field) sorts numerically \(ascending ? "ascending" : "descending") across all pages, including legacy metadata and missing ratings") {
+                    ratings == expected && Set(result.map(\.id)).count == ratingGames.count && result.allSatisfy { $0.root.children.isEmpty }
+                }
+            }
+        }
         if CommandLine.arguments.count > 2 {
             let real = URL(fileURLWithPath:CommandLine.arguments[2])
             let timer = Date()
@@ -127,7 +177,16 @@ struct CatalogChecks {
             print("Real archive hash, extraction, copy, index and page: \(Date().timeIntervalSince(timer)) seconds")
             for preview in realPage.games.prefix(3) {
                 let game = try catalog.load(preview.id)
-                try check("real indexed header opens matching game on demand") { game.white == preview.white && game.black == preview.black && game.mainLinePlyCount > 0 }
+                try check("real indexed header opens matching game on demand") { game.white == preview.white && game.black == preview.black && game.mainLinePlyCount > 0 && game.whiteElo == preview.whiteElo && game.blackElo == preview.blackElo }
+            }
+            do {
+                let db = try SQLConnection(catalog.url)
+                let reset = try db.prepare("UPDATE games SET white_elo=NULL,black_elo=NULL,elo_indexed=0 WHERE folder=?")
+                try reset.bind([.text(realRequest.folder!)]); try reset.run()
+            }
+            let recovered = try catalog.page(realRequest)
+            try check("older ChessBase catalogs recover ratings directly from header records") {
+                zip(recovered.games,realPage.games).allSatisfy { $0.whiteElo == $1.whiteElo && $0.blackElo == $1.blackElo }
             }
             let cancelled = LibraryStore(archiveURL:root.appendingPathComponent("Cancelled.json"))
             let task = Task { await cancelled.importFiles(from:[real]) }

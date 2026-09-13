@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 enum AppWindowID {
     static let library = "library"
     static let game = "game"
+    static let collection = "collection"
     static let training = "training"
     static let positionSetup = "position-setup"
     static let saveToCollection = "save-to-collection"
@@ -29,6 +30,9 @@ struct RootView: View {
         var id: String { rawValue }
     }
 
+    let collectionID: UUID?
+    init(collectionID: UUID? = nil) { self.collectionID = collectionID }
+    @Environment(\.controlActiveState) private var activeState
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.openWindow) private var openWindow
     @State private var importing = false
@@ -38,6 +42,7 @@ struct RootView: View {
 
     var body: some View {
         GameDashboard(
+            collectionID: collectionID,
             openGame: open,
             newGame: createGame,
             importPGN: { folderID in
@@ -49,6 +54,7 @@ struct RootView: View {
                 showingSourceImport = true
             }
         )
+        .navigationTitle(collectionID.flatMap { id in library.folders.first { $0.id == id }?.name } ?? "Lucent Chess")
         .overlay(alignment: .bottomTrailing) {
             if library.isImportingFiles {
                 VStack(spacing: 14) {
@@ -82,7 +88,7 @@ struct RootView: View {
                 .environmentObject(library)
         }
         .alert("Lucent Chess", isPresented: Binding(
-            get: { library.lastError != nil || library.importNotice != nil },
+            get: { activeState == .key && (library.lastError != nil || library.importNotice != nil) },
             set: { if !$0 { library.lastError = nil; library.importNotice = nil } }
         )) {
             Button("OK", role: .cancel) { library.lastError = nil; library.importNotice = nil }
@@ -90,21 +96,24 @@ struct RootView: View {
             Text(library.lastError ?? library.importNotice ?? "Something went wrong.")
         }
         .onReceive(NotificationCenter.default.publisher(for: .importPGN)) { _ in
-            guard !library.isImportingFiles else { return }
+            guard collectionID == nil, !library.isImportingFiles else { return }
             openWindow(id: AppWindowID.library)
             importDestinationFolderID = nil
             importing = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .importSource)) { _ in
+            guard collectionID == nil else { return }
             openWindow(id: AppWindowID.library)
             sourceImportDestinationFolderID = nil
             showingSourceImport = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .showDashboard)) { _ in
+            guard collectionID == nil else { return }
             openWindow(id: AppWindowID.library)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .openSelectedGame)) { _ in openSelectedGame() }
+        .onReceive(NotificationCenter.default.publisher(for: .openSelectedGame)) { _ in if collectionID == nil { openSelectedGame() } }
         .onOpenURL { url in
+            guard collectionID == nil else { return }
             guard ChessBaseImportService.fileExtensions.contains(url.pathExtension.lowercased()) else { return }
             Task {
                 _ = await library.importFiles(from: [url])

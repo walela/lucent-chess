@@ -78,6 +78,7 @@ struct CatalogHeaders {
         game.eventTitle=tournaments.text(tournament,40);game.eventPlace=tournaments.text(tournament+40,30);
         auto date=index.number(offset+24,3);game.gameDate=Date((date>>9)&4095,(date>>5)&15,date&31);
         auto result=index.number(offset+27,1);game.result=result==2?1:result==1?3:result==0?2:0;
+        game.whiteElo=index.number(offset+31,2)&0xFFF;game.blackElo=index.number(offset+33,2)&0xFFF;
         game.round=index.number(offset+29,1);game.subround=index.number(offset+30,1);game.fullMoves=index.number(offset+45,1);
         return true;
     }
@@ -92,7 +93,7 @@ static int indexDatabase(const char* sourcePath, const char* catalogPath, const 
     if(sqlite3_step(source.stmt)!=SQLITE_ROW) throw std::runtime_error("Missing database registration.");
     const auto folder=source.text(0), name=source.text(1), url=source.text(2);
     sqlite3_reset(source.stmt);
-    CatalogStatement insert(db,"INSERT INTO games(id,source_id,record,white,black,event,title,site,date,result,moves,round,players,round_sort,folder,source_name,source_url,dirty,modified,created,saved) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?)");
+    CatalogStatement insert(db,"INSERT INTO games(id,source_id,record,white,black,event,title,site,date,result,moves,round,players,round_sort,folder,source_name,source_url,dirty,modified,created,saved,white_elo,black_elo,elo_indexed) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,1)");
     db.exec("BEGIN IMMEDIATE");
     size_t accepted=0,skipped=0; const double imported=std::time(nullptr);
     const auto parent = getppid();
@@ -116,7 +117,7 @@ static int indexDatabase(const char* sourcePath, const char* catalogPath, const 
             insert.text(4,white);insert.text(5,black);insert.text(6,event);insert.text(7,event.empty()?"Imported game":event);insert.text(8,catalogUTF8(game.eventPlace));
             insert.number(9,timegm(&date));insert.text(10,results[game.result<4?game.result:0]);insert.integer(11,game.fullMoves*2);
             insert.text(12,round);insert.text(13,players);insert.text(14,roundSort);insert.text(15,folder);insert.text(16,name);insert.text(17,url);
-            insert.number(18,imported);insert.number(19,imported);insert.number(20,imported);insert.run();++accepted;
+            insert.number(18,imported);insert.number(19,imported);insert.number(20,imported);insert.text(21,game.whiteElo?std::to_string(game.whiteElo):"");insert.text(22,game.blackElo?std::to_string(game.blackElo):"");insert.run();++accepted;
             if(index%10000==0) std::cout << index+1 << ' ' << codec.numGames() << std::endl;
         }
         CatalogStatement update(db,"UPDATE sources SET count=? WHERE id=?");update.integer(1,accepted);update.text(2,sourceID);update.run();
@@ -136,7 +137,7 @@ static int indexPGN(const char* sourcePath,const char* catalogPath,const char* s
     CatalogStatement source(db,"SELECT folder,name,url FROM sources WHERE id=?");source.text(1,sourceID);
     if(sqlite3_step(source.stmt)!=SQLITE_ROW)throw std::runtime_error("Missing PGN registration.");
     const auto folder=source.text(0),name=source.text(1),url=source.text(2);sqlite3_reset(source.stmt);
-    CatalogStatement insert(db,"INSERT INTO games(id,source_id,record,record_length,white,black,event,title,site,date,result,moves,round,players,round_sort,folder,source_name,source_url,dirty,modified,created,saved) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?)");
+    CatalogStatement insert(db,"INSERT INTO games(id,source_id,record,record_length,white,black,event,title,site,date,result,moves,round,players,round_sort,folder,source_name,source_url,dirty,modified,created,saved,white_elo,black_elo,elo_indexed) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?,1)");
     db.exec("BEGIN IMMEDIATE");
     std::map<std::string,std::string> tags;
     uint64_t start=0,position=0,accepted=0;bool active=false,movetext=false,ended=false;int braces=0,variation=0,moves=0;
@@ -156,7 +157,7 @@ static int indexPGN(const char* sourcePath,const char* catalogPath,const char* s
         insert.text(1,id);insert.text(2,sourceID);insert.integer(3,start);insert.integer(4,end-start);
         insert.text(5,white);insert.text(6,black);insert.text(7,event);insert.text(8,event.empty()?"Imported game":event);insert.text(9,tags["Site"]);
         insert.number(10,timegm(&date));insert.text(11,tags["Result"].empty()?"*":tags["Result"]);insert.integer(12,moves);insert.text(13,round);insert.text(14,players);insert.text(15,roundSort);
-        insert.text(16,folder);insert.text(17,name);insert.text(18,url);insert.number(19,imported);insert.number(20,imported);insert.number(21,imported);insert.run();
+        insert.text(16,folder);insert.text(17,name);insert.text(18,url);insert.number(19,imported);insert.number(20,imported);insert.number(21,imported);insert.text(22,tags["WhiteElo"]);insert.text(23,tags["BlackElo"]);insert.run();
         ++accepted;tags.clear();active=false;movetext=false;ended=false;moves=0;braces=0;variation=0;
         if(accepted%10000==0)std::cout<<end<<' '<<total<<std::endl;
     };

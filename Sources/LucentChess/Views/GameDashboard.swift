@@ -8,6 +8,8 @@ struct GameDashboard: View {
 
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var appearance: AppearanceSettings
+    @Environment(\.openWindow) private var openWindow
+    let collectionID: UUID?
     let openGame: (ChessStudy) -> Void
     let newGame: (UUID?) -> Void
     let importPGN: (UUID?) -> Void
@@ -18,6 +20,15 @@ struct GameDashboard: View {
     @State private var fileFilter = GameFileFilter.all
     @State private var sortField = GameSortField.date
     @State private var sortAscending = false
+
+    @State private var searchText = ""
+
+    init(collectionID: UUID? = nil, openGame: @escaping (ChessStudy) -> Void, newGame: @escaping (UUID?) -> Void, importPGN: @escaping (UUID?) -> Void, importSource: @escaping (UUID?) -> Void) {
+        self.collectionID = collectionID
+        self.openGame = openGame; self.newGame = newGame
+        self.importPGN = importPGN; self.importSource = importSource
+        _selection = State(initialValue: collectionID.map(Selection.folder) ?? .all)
+    }
 
     @State private var displayedGames: [ChessStudy] = []
     @State private var displayedCount = 0
@@ -31,7 +42,7 @@ struct GameDashboard: View {
         value.folder = selectedFolderID?.uuidString
         value.unfiled = selection == .unfiled
         value.recent = selection == .recent
-        value.search = library.searchText
+        value.search = searchText
         value.result = resultFilter.rawValue; value.file = fileFilter.rawValue
         value.sort = sortField.rawValue; value.ascending = sortAscending
         value.cursor = pageCursors.last ?? nil
@@ -60,16 +71,20 @@ struct GameDashboard: View {
         VStack(spacing: 0) {
             dashboardToolbar
             Divider()
-            HSplitView {
-                librarySidebar
-                VSplitView {
-                    collectionBrowser
-                        .frame(minHeight: 210, idealHeight: 340, maxHeight: .infinity)
-                    librarySection(displayedGames)
-                        .padding(20)
-                        .frame(minHeight: 300, maxHeight: .infinity)
+            if collectionID != nil {
+                librarySection(displayedGames).padding(20)
+            } else {
+                HSplitView {
+                    librarySidebar
+                    VSplitView {
+                        collectionBrowser
+                            .frame(minHeight: 210, idealHeight: 340, maxHeight: .infinity)
+                        librarySection(displayedGames)
+                            .padding(20)
+                            .frame(minHeight: 300, maxHeight: .infinity)
+                    }
+                    .frame(minWidth: 680)
                 }
-                .frame(minWidth: 680)
             }
         }
         .background(
@@ -89,13 +104,14 @@ struct GameDashboard: View {
             catch { library.lastError = error.localizedDescription; loadingPage = false }
         }
         .onChange(of: selection) { _, _ in pageCursors = [nil] }
-        .onChange(of: library.searchText) { _, _ in pageCursors = [nil] }
+        .onChange(of: searchText) { _, _ in pageCursors = [nil] }
         .onChange(of: resultFilter) { _, _ in pageCursors = [nil] }
         .onChange(of: fileFilter) { _, _ in pageCursors = [nil] }
         .onChange(of: sortField) { _, _ in pageCursors = [nil] }
         .onChange(of: sortAscending) { _, _ in pageCursors = [nil] }
         .onChange(of: library.lastImportedFolderID) { _, id in
-            if let id { selection = .folder(id); pageCursors = [nil] }
+            guard collectionID == nil else { return }
+            if let id { selectCollection(.folder(id)); pageCursors = [nil] }
         }
         .sheet(item: $folderEditor) { editor in
             FolderEditorSheet(editor: editor) { name in
@@ -106,6 +122,14 @@ struct GameDashboard: View {
                 }
             }
         }
+    }
+
+    private func selectCollection(_ value: Selection) {
+        if case let .folder(id) = value,
+           let folder = library.folders.first(where: { $0.id == id }),
+           library.gameCount(in: folder) > 100 {
+            openWindow(id: AppWindowID.collection, value: id)
+        } else { selection = value }
     }
 
     private var dashboardToolbar: some View {
@@ -125,14 +149,19 @@ struct GameDashboard: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            if collectionID != nil {
+                Button { openWindow(id: AppWindowID.library) } label: {
+                    Label("Library", systemImage: "square.grid.2x2")
+                }.help("Return to the library")
+            }
             Divider().frame(height: 28).padding(.leading, 4)
             Spacer()
             HStack(spacing: 7) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Search players, events, or games", text: $library.searchText)
+                TextField("Search players, events, or games", text: $searchText)
                     .textFieldStyle(.plain)
-                if !library.searchText.isEmpty {
-                    Button { library.searchText = "" } label: {
+                if !searchText.isEmpty {
+                    Button { searchText = "" } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
                     }
                     .buttonStyle(.plain)
@@ -145,10 +174,10 @@ struct GameDashboard: View {
             .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 9))
             appearanceSwitcher
             Menu {
-                Button { importSource(nil) } label: {
+                Button { importSource(selectedFolderID) } label: {
                     Label("TWIC or Lichess…", systemImage: "network")
                 }
-                Button { importPGN(nil) } label: {
+                Button { importPGN(selectedFolderID) } label: {
                     Label("PGN or ChessBase…", systemImage: "square.and.arrow.down")
                 }
             } label: {
@@ -261,7 +290,7 @@ struct GameDashboard: View {
         acceptsDrop: Bool = false,
         dropFolderID: UUID? = nil
     ) -> some View {
-        Button { selection = value } label: {
+        Button { selectCollection(value) } label: {
             HStack(spacing: 9) {
                 Image(systemName: systemImage)
                     .symbolVariant(selection == value ? .fill : .none)
@@ -270,6 +299,9 @@ struct GameDashboard: View {
                 Text(title).lineLimit(1)
                 Spacer(minLength: 4)
                 Text("\(count)").font(.caption).monospacedDigit().foregroundStyle(.secondary)
+                if case .folder = value, count > 100 {
+                    Image(systemName: "arrow.up.forward.square").font(.caption2).foregroundStyle(.tertiary)
+                }
             }
             .padding(.horizontal, 12)
             .frame(height: 34)
@@ -323,8 +355,9 @@ struct GameDashboard: View {
     private func collectionTile(_ title: String, symbol: String, count: Int,
                                 value: Selection, folderID: UUID?) -> some View {
         CollectionTile(title: title, symbol: symbol, count: count, selected: selection == value) {
-            selection = value
+            selectCollection(value)
         }
+        .help(count > 100 && folderID != nil ? "Open \(title) in its own window" : "Show \(title)")
         .dropDestination(for: String.self) { ids, _ in
             moveGames(ids, to: folderID)
         }
@@ -394,40 +427,45 @@ struct GameDashboard: View {
             }.font(.caption).foregroundStyle(.secondary)
 
             let tableShape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-            VStack(spacing: 0) {
-                libraryHeader
-                Divider()
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        if games.isEmpty {
-                            ContentUnavailableView(
-                                hasActiveFilters ? "No matching games" : "No games here",
-                                systemImage: "doc.text.magnifyingglass",
-                                description: Text(emptyLibraryDescription)
-                            )
-                            .frame(maxWidth: .infinity, minHeight: 220)
-                        } else {
-                            ForEach(games) { game in
-                                GameLibraryRow(
-                                    game: game,
-                                    folderName: selectedFolderID == game.folderID ? nil : folderName(for: game)
-                                ) { openGame(game) }
-                                    .draggable(game.id.uuidString)
-                                    .contextMenu {
-                                        Button("Open") { openGame(game) }
-                                        Button("Save PGN") { library.select(game); library.saveSelected() }
-                                        Button("Export PGN…") { library.select(game); library.saveSelectedAs() }
-                                        moveToFolderMenu(for: game).disabled(library.isImportingFiles)
-                                        Divider()
-                                        Button("Duplicate") { library.select(game); library.duplicateSelected() }.disabled(library.isImportingFiles)
-                                        Button("Delete from Library", role: .destructive) { library.delete(game) }.disabled(library.isImportingFiles)
-                                    }
-                                if game.id != games.last?.id { Divider().padding(.leading, 20) }
+            GeometryReader { geometry in
+                ScrollView(.horizontal) {
+                VStack(spacing: 0) {
+                    libraryHeader
+                    Divider()
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            if games.isEmpty {
+                                ContentUnavailableView(
+                                    hasActiveFilters ? "No matching games" : "No games here",
+                                    systemImage: "doc.text.magnifyingglass",
+                                    description: Text(emptyLibraryDescription)
+                                )
+                                .frame(maxWidth: .infinity, minHeight: 220)
+                            } else {
+                                ForEach(games) { game in
+                                    GameLibraryRow(
+                                        game: game,
+                                        folderName: selectedFolderID == game.folderID ? nil : folderName(for: game)
+                                    ) { openGame(game) }
+                                        .draggable(game.id.uuidString)
+                                        .contextMenu {
+                                            Button("Open") { openGame(game) }
+                                            Button("Save PGN") { library.select(game); library.saveSelected() }
+                                            Button("Export PGN…") { library.select(game); library.saveSelectedAs() }
+                                            moveToFolderMenu(for: game).disabled(library.isImportingFiles)
+                                            Divider()
+                                            Button("Duplicate") { library.select(game); library.duplicateSelected() }.disabled(library.isImportingFiles)
+                                            Button("Delete from Library", role: .destructive) { library.delete(game) }.disabled(library.isImportingFiles)
+                                        }
+                                    if game.id != games.last?.id { Divider().padding(.leading, 20) }
+                                }
                             }
                         }
                     }
+                    .id(selection)
                 }
-                .id(selection)
+                .frame(width: max(geometry.size.width, 1_100), height: geometry.size.height, alignment: .top)
+                }
             }
             .frame(maxHeight: .infinity, alignment: .top)
             .background(.background.opacity(0.68))
@@ -504,13 +542,13 @@ struct GameDashboard: View {
     }
 
     private var hasActiveFilters: Bool {
-        query.isFiltered || !library.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        query.isFiltered || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func clearFilters() {
         resultFilter = .all
         fileFilter = .all
-        library.searchText = ""
+        searchText = ""
     }
 
     private func chooseSort(_ field: GameSortField) {
@@ -556,9 +594,11 @@ struct GameDashboard: View {
     private var libraryHeader: some View {
         HStack(spacing: 14) {
             sortableHeader("GAME", field: .players)
-            sortableHeader("EVENT", field: .event, width: 160)
-            sortableHeader("DATE", field: .date, width: 92)
+            sortableHeader("WHITE ELO", field: .whiteElo, width: 82, alignment: .trailing)
+            sortableHeader("BLACK ELO", field: .blackElo, width: 82, alignment: .trailing)
             sortableHeader("RESULT", field: .result, width: 68)
+            sortableHeader("TOURNAMENT", field: .event, width: 160)
+            sortableHeader("DATE", field: .date, width: 92)
             sortableHeader("MOVES", field: .moves, width: 56, alignment: .trailing)
             sortableHeader("ROUND", field: .round, width: 70)
             Image(systemName: "chevron.right").hidden().frame(width: 12)
@@ -733,10 +773,12 @@ private struct GameLibraryRow: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                Text(rating(game.whiteElo)).monospacedDigit().frame(width: 82, alignment: .trailing)
+                Text(rating(game.blackElo)).monospacedDigit().frame(width: 82, alignment: .trailing)
+                Text(game.result).monospacedDigit().frame(width: 68, alignment: .leading)
                 Text(game.event.isEmpty ? "—" : game.event).lineLimit(1).frame(width: 160, alignment: .leading)
                 Text(game.date, format: .dateTime.day().month(.abbreviated).year())
                     .monospacedDigit().frame(width: 92, alignment: .leading)
-                Text(game.result).monospacedDigit().frame(width: 68, alignment: .leading)
                 Text("\((game.mainLinePlyCount + 1) / 2)").monospacedDigit().frame(width: 56, alignment: .trailing)
                 Text(game.round ?? "—").monospacedDigit().frame(width: 70, alignment: .leading)
                 Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.tertiary).frame(width: 12)
@@ -746,6 +788,11 @@ private struct GameLibraryRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private func rating(_ value: String?) -> String {
+        guard let value, let number = Int(value), number > 0 else { return "—" }
+        return String(number)
     }
 
     private var rowAccent: Color {

@@ -20,6 +20,19 @@ struct LucentChessApp: App {
         .windowStyle(.hiddenTitleBar)
         .commands { LucentCommands(library: library, appearance: appearance) }
 
+        WindowGroup("Collection", id: AppWindowID.collection, for: UUID.self) { $collectionID in
+            if let collectionID {
+                RootView(collectionID: collectionID)
+                    .environmentObject(library)
+                    .environmentObject(appearance)
+                    .preferredColorScheme(appearance.interfaceAppearance.colorScheme)
+                    .frame(minWidth: 1_180, minHeight: 720)
+                    .onDisappear { library.saveNow() }
+            }
+        }
+        .defaultSize(width: 1_320, height: 820)
+        .windowStyle(.hiddenTitleBar)
+
         Window("Lucent Chess — Game", id: AppWindowID.game) {
             GameWindowRoot()
                 .environmentObject(library)

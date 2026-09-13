@@ -3,6 +3,8 @@ import Foundation
 enum GameSortField: String, CaseIterable, Identifiable {
     case players
     case event
+    case whiteElo
+    case blackElo
     case date
     case result
     case moves
@@ -13,7 +15,9 @@ enum GameSortField: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .players: return "Players"
-        case .event: return "Event"
+        case .whiteElo: return "White Elo"
+        case .blackElo: return "Black Elo"
+        case .event: return "Tournament"
         case .date: return "Date"
         case .result: return "Result"
         case .moves: return "Moves"
@@ -23,7 +27,7 @@ enum GameSortField: String, CaseIterable, Identifiable {
 
     var defaultAscending: Bool {
         switch self {
-        case .date, .moves: return false
+        case .date, .moves, .whiteElo, .blackElo: return false
         default: return true
         }
     }
@@ -134,6 +138,10 @@ struct GameLibraryQuery {
             comparison = compare(lhs.playerDescription, rhs.playerDescription)
         case .event:
             comparison = compare(lhs.event, rhs.event)
+        case .whiteElo, .blackElo:
+            let left = Int((sort == .whiteElo ? lhs.whiteElo : lhs.blackElo) ?? "") ?? 0
+            let right = Int((sort == .whiteElo ? rhs.whiteElo : rhs.blackElo) ?? "") ?? 0
+            comparison = left == right ? .orderedSame : (left < right ? .orderedAscending : .orderedDescending)
         case .date:
             comparison = lhs.date == rhs.date ? .orderedSame : (lhs.date < rhs.date ? .orderedAscending : .orderedDescending)
         case .result:

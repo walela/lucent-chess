@@ -64,6 +64,12 @@ Uses Swift, the macOS SDK and a vendored C++20 ChessBase reader. `swift build` b
 | Command-Shift-L | Game library |
 | Command-Option-Shift-S | Set up position |
 
+## Browsing collections
+
+Click a collection with more than 100 games to open its dedicated window. Clicking it again brings the same window forward; collections with 100 games or fewer stay in the library preview. Each window keeps its own search, filters, sort order, and page. Use **Library** to return to the collection browser.
+
+The game table shows **White Elo**, **Black Elo**, **Result**, and **Tournament**, along with players, date, moves, and round. Every column header is sortable; click again to reverse its order. Elo sorts numerically, with unrated games below rated games in descending order. Missing ratings display as a dash. The first Elo sort of an older library fills in any remaining ratings from metadata in the background. On narrower layouts, scroll the table horizontally to see every column.
+
 ## Your data
 
 The indexed library is stored at `~/Library/Application Support/Lucent Chess/Library.sqlite`.

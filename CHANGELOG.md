@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.18.1 — 2026-09-13
+
+- Opens collections with more than 100 games in a dedicated window, reusing that window on subsequent clicks. Smaller collections remain in the library preview.
+- Gives each collection window independent search, filters, sorting, and pagination, with a Library button to return to the archive.
+- Adds numerically sortable White Elo and Black Elo columns, keeps Result next to the ratings, and labels the event column Tournament. Wide tables scroll horizontally.
+- Indexes ratings for new CBH/CBV and PGN imports. Older libraries recover ratings from metadata for the visible page without decoding move trees or reimporting games. The first Elo sort fills remaining ratings in bounded batches before sorting the entire collection.
+
 ## 1.18.0 — 2026-09-13
 
 - Imports ChessBase and PGN databases into their own named collections by default.
