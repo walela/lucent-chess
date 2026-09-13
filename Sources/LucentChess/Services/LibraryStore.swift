@@ -20,6 +20,7 @@ final class LibraryStore: ObservableObject {
     @Published var lastError: String?
     @Published var importNotice: String?
     @Published var isImportingFiles = false
+    @Published var fileImportProgress = "Importing games…"
     @Published var searchText = ""
 
     private let archiveURL: URL
@@ -171,8 +172,13 @@ final class LibraryStore: ObservableObject {
                 continue
             }
             do {
-                let batch = try await Task.detached(priority: .userInitiated) {
-                    try ChessBaseImportService.read(url)
+                fileImportProgress = "Opening \(url.lastPathComponent)…"
+                let batch = try await Task.detached(priority: .userInitiated) { [self] in
+                    try ChessBaseImportService.read(url) { completed, total in
+                        Task { @MainActor in
+                            self.fileImportProgress = "Importing \(url.lastPathComponent): \(completed.formatted()) of \(total.formatted()) records"
+                        }
+                    }
                 }.value
                 let summary = importCanonicalGames(batch.games, sourceName: url.lastPathComponent,
                                                    sourceURL: url, collectionName: url.deletingPathExtension().lastPathComponent,

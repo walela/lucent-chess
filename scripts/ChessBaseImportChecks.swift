@@ -97,6 +97,36 @@ struct ChessBaseImportChecks {
         try check("imported game trees survive a library restart") {
             restored.studies.map { tree($0.root) } == library.studies.map { tree($0.root) }
         }
+        // Repeat a known valid CBH index record across multiple reader batches.
+        // Its companion offsets still point into the unchanged tiny fixture files.
+        let large = temporary.appendingPathComponent("large")
+        try FileManager.default.copyItem(at: fixtures.appendingPathComponent("annotations"), to: large)
+        let indexURL = large.appendingPathComponent("TestBase.cbh")
+        let index = try Data(contentsOf: indexURL)
+        var repeated = Data(index.prefix(46))
+        for i in 0..<10_001 {
+            let offset = 46 + (i % 3) * 46
+            repeated.append(index.subdata(in: offset..<(offset + 46)))
+        }
+        try repeated.write(to: indexURL)
+        let largeBatch = try ChessBaseImportService.read(indexURL, readerURL: reader)
+        try check("databases above 10,000 records import through every batch including the final partial batch") {
+            largeBatch.games.count == 10_001 && largeBatch.skipped == 0
+                && largeBatch.games.enumerated().allSatisfy { i, game in
+                    game.black == cbh.games[i % 3].black && tree(game.root) == tree(cbh.games[i % 3].root)
+                }
+        }
+        if CommandLine.arguments.count > 4 {
+            let source = URL(fileURLWithPath: CommandLine.arguments[3])
+            let expected = Int(CommandLine.arguments[4])!
+            let real = try ChessBaseImportService.read(source, readerURL: reader) { completed, total in
+                print("Real database: \(completed)/\(total) records")
+            }
+            try check("real database accounts for every source record") {
+                real.games.count + real.skipped == expected
+            }
+            print("Real database imported \(real.games.count) games; \(real.skipped) unsupported or unreadable records.")
+        }
         print("All ChessBase import checks passed.")
     }
 

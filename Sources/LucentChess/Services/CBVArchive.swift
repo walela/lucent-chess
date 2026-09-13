@@ -15,7 +15,7 @@ enum ChessBaseImportError: LocalizedError {
         switch self {
         case .invalidArchive: return "This CBV archive is damaged or uses an unsupported compression format."
         case .unsupportedFormat: return "Open a classic CBH database or an unencrypted CBV archive. Newer 2CBH databases and encrypted archives are not supported."
-        case .tooLarge: return "This ChessBase database is too large for one import. Use a smaller database (up to 10,000 games and 256 MB of database files)."
+        case .tooLarge: return "This ChessBase database exceeds the supported size of 256 MB of database files."
         case let .missingFiles(names): return "Keep the CBH file and its companion files in the same folder. Missing or unreadable: \(names)."
         case .readerUnavailable: return "The ChessBase reader is missing from this Lucent Chess build. Rebuild the app with scripts/build_app.sh."
         case let .readerFailed(message): return "Could not import this ChessBase database. \(message)"

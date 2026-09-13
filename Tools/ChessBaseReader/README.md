@@ -23,8 +23,11 @@ Revision: `3c18e8a7c6a30c21f945a1ab5462521c306dca57`
 It validates archive paths, sizes, Huffman trees and backward references.
 The uncbv license is bundled as `UNCBV-GPL-3.0.txt`.
 
-Import limits: 10,000 records, 500,000 move tokens, 256 MiB of database
-files; helper CPU limit 60 seconds and wall-clock limit 90 seconds.
+The app requests batches of up to 256 records using the helper arguments
+`database.cbh output.json start count`. Each JSON response includes `next` and
+`total` record offsets. There is no total record-count limit. Per batch, the helper
+allows 500,000 move tokens, 60 CPU seconds and 90 wall-clock seconds. Database
+files are limited to 256 MiB per import.
 Classic unencrypted CBV/CBH only. Null-move and Chess960 games are rejected.
 Guiding text records are counted as skipped. Multimedia, training overlays,
 extra ChessBase tags and proprietary annotations are not imported.

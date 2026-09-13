@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.17.1 — 2026-09-13
+
+- Fixes imports failing on multiline comments and preserves Windows-1252 annotation text in the reader JSON.
+- Removes the 10,000-record ChessBase import limit by reading databases automatically in batches, including the final partial batch.
+- Shows record progress during ChessBase imports and applies reader time and move limits per batch instead of to the full database.
+
 ## 1.17.0 — 2026-09-13
 
 - Imports classic ChessBase CBH databases and unencrypted CBV archives with a bundled reader, preserving moves, variations, comments, and move annotations.

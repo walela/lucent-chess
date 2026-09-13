@@ -52,7 +52,7 @@ struct RootView: View {
         .disabled(library.isImportingFiles)
         .overlay {
             if library.isImportingFiles {
-                ProgressView("Importing games…")
+                ProgressView(library.fileImportProgress)
                     .padding(24)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             }

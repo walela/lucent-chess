@@ -79,8 +79,8 @@ For CBH, keep the matching `.cbg`, `.cba`, `.cbp`, `.cbt`, `.cbc` and `.cbs`
 files in the same folder. CBV archives are unpacked into temporary storage;
 source files are never modified. Imports default to Unfiled and skip duplicates.
 
-Supports classic CBH and unencrypted CBV, up to 10,000 records, 500,000 move
-tokens and 256 MiB of database files per import. Newer 2CBH databases, encrypted
+Supports classic CBH and unencrypted CBV, processed automatically in batches of
+256 records with visible progress. Database files may total up to 256 MiB per import. Newer 2CBH databases, encrypted
 archives, Chess960 and null-move games are unsupported. Unsupported or unreadable
 records are counted in the import result. Text pages, multimedia, training features
 and extra proprietary tags are not imported. Arrows and square highlights are

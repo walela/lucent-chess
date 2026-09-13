@@ -13,7 +13,8 @@ enum ChessBaseImportService {
         fileExtensions.map { UTType(filenameExtension: $0) ?? UTType(importedAs: "local.lucent.chess.\($0)", conformingTo: .data) }
     }
 
-    static func read(_ url: URL, readerURL: URL? = nil) throws -> ChessBaseImportBatch {
+    static func read(_ url: URL, readerURL: URL? = nil,
+                     progress: @Sendable (Int, Int) -> Void = { _, _ in }) throws -> ChessBaseImportBatch {
         let access = url.startAccessingSecurityScopedResource()
         defer { if access { url.stopAccessingSecurityScopedResource() } }
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("LucentChessImport-\(UUID())", isDirectory: true)
@@ -34,22 +35,32 @@ enum ChessBaseImportService {
         var games: [ChessStudy] = []
         var skipped = 0
         var totalBytes = 0
-        var totalMoves = 0
         for (index, database) in databases.enumerated() {
             let staged = try stage(database, in: directory.appendingPathComponent("database-\(index)"), totalBytes: &totalBytes)
             let output = directory.appendingPathComponent("games-\(index).json")
-            try runReader(at: readerURL ?? bundledReader(), database: staged, output: output)
-            let size = try output.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-            guard size <= CBVArchive.maximumSize else { throw ChessBaseImportError.tooLarge }
-            let decoded = try JSONDecoder().decode(DecodedDatabase.self, from: Data(contentsOf: output))
-            skipped += decoded.skipped
-            guard games.count + decoded.games.count + skipped <= 10000 else { throw ChessBaseImportError.tooLarge }
-            for game in decoded.games {
-                totalMoves += game.moves.count
-                guard totalMoves <= 500000 else { throw ChessBaseImportError.tooLarge }
-                do { games.append(try game.makeStudy()) }
-                catch { skipped += 1 }
-            }
+            var next = 0
+            repeat {
+                try Task.checkCancellation()
+                try runReader(at: readerURL ?? bundledReader(), database: staged, output: output, start: next)
+                let size = try output.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                guard size <= CBVArchive.maximumSize else { throw ChessBaseImportError.tooLarge }
+                let decoded = try JSONDecoder().decode(DecodedDatabase.self, from: Data(contentsOf: output))
+                guard decoded.next <= decoded.total, decoded.next >= next,
+                      decoded.next > next || decoded.total == 0,
+                      decoded.games.count + decoded.skipped == decoded.next - next else {
+                    throw ChessBaseImportError.readerFailed("The reader returned an incomplete batch.")
+                }
+                progress(next, decoded.total)
+                skipped += decoded.skipped
+                for game in decoded.games {
+                    try Task.checkCancellation()
+                    do { games.append(try game.makeStudy()) }
+                    catch { skipped += 1 }
+                }
+                next = decoded.next
+                progress(next, decoded.total)
+                if next == decoded.total { break }
+            } while true
         }
         guard !games.isEmpty else {
             throw ChessBaseImportError.readerFailed("No supported games were found; \(skipped) records could not be imported.")
@@ -94,14 +105,14 @@ enum ChessBaseImportService {
         return directory.appendingPathComponent("database.cbh")
     }
 
-    private static func runReader(at executable: URL, database: URL, output: URL) throws {
+    private static func runReader(at executable: URL, database: URL, output: URL, start: Int) throws {
         let log = output.appendingPathExtension("log")
         FileManager.default.createFile(atPath: log.path, contents: nil)
         let errors = try FileHandle(forWritingTo: log)
         defer { try? errors.close() }
         let process = Process()
         process.executableURL = executable
-        process.arguments = [database.path, output.path]
+        process.arguments = [database.path, output.path, String(start), "256"]
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = errors
         process.standardError = errors
@@ -120,6 +131,8 @@ enum ChessBaseImportService {
 private struct DecodedDatabase: Decodable {
     let games: [DecodedChessBaseGame]
     let skipped: Int
+    let next: Int
+    let total: Int
 }
 
 struct DecodedChessBaseGame: Decodable {

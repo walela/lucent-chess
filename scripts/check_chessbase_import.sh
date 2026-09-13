@@ -14,6 +14,8 @@ clang++ -std=c++20 -O2 -DNDEBUG -target arm64-apple-macosx14.0 \
   "$READER_DIR/main.cpp" "$READER_DIR"/libcbh/src/*.cpp \
   -o "$CHECK_DIR/LucentChessCBH"
 
+python3 "$PROJECT_DIR/scripts/check_chessbase_comments.py" "$PROJECT_DIR/Tests/Fixtures/ChessBase" "$CHECK_DIR/LucentChessCBH"
+
 CLANG_MODULE_CACHE_PATH="$CHECK_DIR/clang" swiftc \
   -interface-compiler-version "$SDK_COMPILER" -sdk "$SDK_DIR" \
   -target arm64-apple-macosx14.0 -parse-as-library -O \
@@ -28,4 +30,4 @@ CLANG_MODULE_CACHE_PATH="$CHECK_DIR/clang" swiftc \
   "$PROJECT_DIR/scripts/ChessBaseImportChecks.swift" \
   -o "$CHECK_DIR/ChessBaseImportChecks"
 
-"$CHECK_DIR/ChessBaseImportChecks" "$PROJECT_DIR/Tests/Fixtures/ChessBase" "$CHECK_DIR/LucentChessCBH"
+"$CHECK_DIR/ChessBaseImportChecks" "$PROJECT_DIR/Tests/Fixtures/ChessBase" "$CHECK_DIR/LucentChessCBH" "$@"
