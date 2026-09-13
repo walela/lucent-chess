@@ -11,6 +11,15 @@ SDK_COMPILER='Apple Swift version 6.3 effective-5.10 (swiftlang-6.3.0.123.4 clan
 
 mkdir -p "$CACHE_DIR" "$BIN_DIR" "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
+READER_DIR="$PROJECT_DIR/Tools/ChessBaseReader"
+clang++ -std=c++20 -O2 -DNDEBUG -target arm64-apple-macosx14.0 \
+  -isysroot "$SDK_DIR" \
+  -I"$READER_DIR/libcbh/include" -I"$READER_DIR/libcbh/src" \
+  "$READER_DIR/main.cpp" "$READER_DIR"/libcbh/src/*.cpp \
+  -o "$BIN_DIR/LucentChessCBH"
+cp "$BIN_DIR/LucentChessCBH" "$APP_DIR/Contents/MacOS/LucentChessCBH"
+codesign --force --sign - "$APP_DIR/Contents/MacOS/LucentChessCBH"
+
 CLANG_MODULE_CACHE_PATH="$CACHE_DIR" swiftc \
   -interface-compiler-version "$SDK_COMPILER" \
   -sdk "$SDK_DIR" \
@@ -38,6 +47,7 @@ fi
 if [[ -f "$PROJECT_DIR/Sources/LucentChess/Resources/GPL-2.0.txt" ]]; then
   cp "$PROJECT_DIR/Sources/LucentChess/Resources/GPL-2.0.txt" "$APP_DIR/Contents/Resources/"
 fi
+cp "$PROJECT_DIR/Sources/LucentChess/Resources/UNCBV-GPL-3.0.txt" "$APP_DIR/Contents/Resources/"
 cp "$PROJECT_DIR/Sources/LucentChess/Resources/LICHESS-COPYING.md" "$APP_DIR/Contents/Resources/"
 cp "$PROJECT_DIR/Sources/LucentChess/Resources/LICHESS-AGPL-3.0.txt" "$APP_DIR/Contents/Resources/"
 

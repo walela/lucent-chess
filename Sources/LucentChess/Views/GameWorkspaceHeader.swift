@@ -20,7 +20,7 @@ struct GameWorkspaceHeader: View {
 
             HStack(spacing: 4) {
                 actionIcon("New game", label: "New game", symbol: "doc.badge.plus", shortcut: "⌘N") { library.newStudy() }
-                actionIcon("Open PGN…", label: "Open", symbol: "folder", shortcut: "⌘O") {
+                actionIcon("Open games…", label: "Open", symbol: "folder", shortcut: "⌘O") {
                     NotificationCenter.default.post(name: .importPGN, object: nil)
                 }
                 actionIcon("Set up position…", label: "Set up", symbol: "checkerboard.rectangle", shortcut: "⌥⇧⌘S") {

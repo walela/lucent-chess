@@ -126,7 +126,7 @@ struct GameDashboard: View {
                     Label("TWIC or Lichess…", systemImage: "network")
                 }
                 Button { importPGN(nil) } label: {
-                    Label("PGN from Disk…", systemImage: "square.and.arrow.down")
+                    Label("PGN or ChessBase…", systemImage: "square.and.arrow.down")
                 }
             } label: {
                 Label("Import", systemImage: "square.and.arrow.down.on.square")

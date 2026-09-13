@@ -18,6 +18,8 @@ final class LibraryStore: ObservableObject {
         didSet { rememberCollectionOriginal() }
     }
     @Published var lastError: String?
+    @Published var importNotice: String?
+    @Published var isImportingFiles = false
     @Published var searchText = ""
 
     private let archiveURL: URL
@@ -150,6 +152,44 @@ final class LibraryStore: ObservableObject {
 
     func gameCount(in folder: GameFolder) -> Int {
         studies.count { $0.folderID == folder.id }
+    }
+
+    func importFiles(from urls: [URL], folderID: UUID? = nil) async -> Bool {
+        guard !isImportingFiles else { return false }
+        isImportingFiles = true
+        lastError = nil
+        importNotice = nil
+        defer { isImportingFiles = false }
+        var succeeded = false
+        var summaries: [String] = []
+        var failures: [String] = []
+        for url in urls {
+            if url.pathExtension.lowercased() == "pgn" {
+                _ = importPGN(from: [url], folderID: folderID)
+                if let error = lastError { failures.append(error); lastError = nil }
+                else { succeeded = true }
+                continue
+            }
+            do {
+                let batch = try await Task.detached(priority: .userInitiated) {
+                    try ChessBaseImportService.read(url)
+                }.value
+                let summary = importCanonicalGames(batch.games, sourceName: url.lastPathComponent,
+                                                   sourceURL: url, collectionName: url.deletingPathExtension().lastPathComponent,
+                                                   folderID: folderID)
+                if summary.importedCount > 0 { selectedStudyID = studies.first?.id }
+                summaries.append("\(url.lastPathComponent): imported \(summary.importedCount) games into \(summary.folderName); \(summary.duplicateCount) duplicates and \(batch.skipped) unsupported or unreadable records skipped.")
+                succeeded = succeeded || summary.importedCount > 0
+            } catch {
+                failures.append("\(url.lastPathComponent): \(error.localizedDescription)")
+            }
+        }
+        if !summaries.isEmpty {
+            summaries.append("ChessBase text pages, multimedia, training features and extra proprietary annotations are not imported. Board arrows and highlights are retained as text annotations.")
+        }
+        if !failures.isEmpty { summaries.append(contentsOf: failures) }
+        if !summaries.isEmpty { importNotice = summaries.joined(separator: "\n\n") }
+        return succeeded
     }
 
     @discardableResult

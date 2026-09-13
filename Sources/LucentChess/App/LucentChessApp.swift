@@ -83,7 +83,7 @@ private struct LucentCommands: Commands {
             }
             .keyboardShortcut("n")
                 .disabled(isTrainingWindow == true)
-            Button("Open PGN…") { NotificationCenter.default.post(name: .importPGN, object: nil) }
+            Button("Open Games…") { NotificationCenter.default.post(name: .importPGN, object: nil) }
                 .keyboardShortcut("o")
                 .disabled(isTrainingWindow == true)
             Button("Import from Source…") { NotificationCenter.default.post(name: .importSource, object: nil) }

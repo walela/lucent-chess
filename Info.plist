@@ -38,6 +38,30 @@
             <key>LSHandlerRank</key>
             <string>Alternate</string>
         </dict>
+        <dict>
+            <key>CFBundleTypeExtensions</key>
+            <array><string>cbh</string><string>cbv</string></array>
+            <key>LSItemContentTypes</key>
+            <array><string>local.lucent.chess.cbh</string><string>local.lucent.chess.cbv</string></array>
+            <key>CFBundleTypeName</key><string>ChessBase Database</string>
+            <key>CFBundleTypeRole</key><string>Viewer</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+        </dict>
+    </array>
+    <key>UTImportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key><string>local.lucent.chess.cbh</string>
+            <key>UTTypeDescription</key><string>ChessBase Database</string>
+            <key>UTTypeConformsTo</key><array><string>public.data</string></array>
+            <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>cbh</string></array></dict>
+        </dict>
+        <dict>
+            <key>UTTypeIdentifier</key><string>local.lucent.chess.cbv</string>
+            <key>UTTypeDescription</key><string>ChessBase Archive</string>
+            <key>UTTypeConformsTo</key><array><string>public.data</string></array>
+            <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>cbv</string></array></dict>
+        </dict>
     </array>
 </dict>
 </plist>

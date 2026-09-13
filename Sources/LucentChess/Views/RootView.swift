@@ -49,17 +49,27 @@ struct RootView: View {
                 showingSourceImport = true
             }
         )
+        .disabled(library.isImportingFiles)
+        .overlay {
+            if library.isImportingFiles {
+                ProgressView("Importing games…")
+                    .padding(24)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            }
+        }
         .background(Color(nsColor: .windowBackgroundColor))
         .fileImporter(
             isPresented: $importing,
-            allowedContentTypes: [UTType(filenameExtension: "pgn") ?? .plainText],
+            allowedContentTypes: ChessBaseImportService.contentTypes,
             allowsMultipleSelection: true
         ) { result in
             switch result {
             case let .success(urls):
-                _ = library.importPGN(from: urls, folderID: importDestinationFolderID)
+                let destination = importDestinationFolderID
                 importDestinationFolderID = nil
-                openSelectedGame()
+                Task {
+                    if await library.importFiles(from: urls, folderID: destination) { openSelectedGame() }
+                }
             case let .failure(error):
                 library.lastError = error.localizedDescription
             }
@@ -69,14 +79,15 @@ struct RootView: View {
                 .environmentObject(library)
         }
         .alert("Lucent Chess", isPresented: Binding(
-            get: { library.lastError != nil },
-            set: { if !$0 { library.lastError = nil } }
+            get: { library.lastError != nil || library.importNotice != nil },
+            set: { if !$0 { library.lastError = nil; library.importNotice = nil } }
         )) {
-            Button("OK", role: .cancel) { library.lastError = nil }
+            Button("OK", role: .cancel) { library.lastError = nil; library.importNotice = nil }
         } message: {
-            Text(library.lastError ?? "Something went wrong.")
+            Text(library.lastError ?? library.importNotice ?? "Something went wrong.")
         }
         .onReceive(NotificationCenter.default.publisher(for: .importPGN)) { _ in
+            guard !library.isImportingFiles else { return }
             openWindow(id: AppWindowID.library)
             importDestinationFolderID = nil
             importing = true
@@ -91,9 +102,10 @@ struct RootView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .openSelectedGame)) { _ in openSelectedGame() }
         .onOpenURL { url in
-            guard url.pathExtension.lowercased() == "pgn" else { return }
-            _ = library.importPGN(from: [url])
-            openSelectedGame()
+            guard ChessBaseImportService.fileExtensions.contains(url.pathExtension.lowercased()) else { return }
+            Task {
+                if await library.importFiles(from: [url]) { openSelectedGame() }
+            }
         }
     }
 

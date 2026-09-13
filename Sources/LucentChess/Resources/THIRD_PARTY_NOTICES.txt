@@ -14,3 +14,15 @@ The reillycraig and riohacha piece directories are not bundled because the
 upstream license table does not state redistribution terms for them.
 
 All included upstream assets are unmodified.
+
+ChessBase importing
+
+LucentChessCBH includes libcbh by Roland Loetscher and its Scid/Scidb
+contributors, licensed under GPL-2.0; see GPL-2.0.txt. Source, license notices
+and the pinned revision are in Tools/ChessBaseReader/libcbh.
+https://github.com/rolandlo/libcbh
+
+CBVArchive.swift adapts the CBV decompression algorithms from uncbv,
+Copyright (C) 2016 Antoni Boucher, GPL-3.0-or-later.
+https://github.com/antoyo/uncbv
+See UNCBV-GPL-3.0.txt.

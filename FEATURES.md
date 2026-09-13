@@ -23,6 +23,8 @@ The complete feature list. For the short version, see the [README](README.md).
 
 ## PGN and imports
 
+- Imports classic CBH databases with their companion files and unencrypted CBV archives into Unfiled, with duplicate skipping and a count of unsupported records. Retains standard moves, variations, text comments and NAGs; preserves board markings as annotation text. See README for format and size limits.
+
 - Saves games automatically to the local library. Command-S explicitly files a game into a collection; Export PGN writes an ordinary `.pgn` file.
 - Imports and exports PGN, including player and event metadata, nested variations, comments, NAGs, and FEN starts.
 - Imports weekly TWIC archives and public Lichess games, players, studies, or broadcast rounds into Unfiled by default or a collection explicitly chosen in the import dialog, with duplicate skipping and player-history filters.
