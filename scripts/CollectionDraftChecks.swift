@@ -39,7 +39,7 @@ struct CollectionDraftChecks {
         try check("draft and collection original both survive restart") {
             restored.selectedStudy?.id == draftID && restored.selectedStudy?.folderID == nil
                 && restored.selectedStudy?.currentNode.comment == "My analysis"
-                && PGNService.export(restored.studies.first { $0.id == originalID }!) == originalPGN
+                && (try? PGNService.export(restored.catalog!.load(originalID))) == originalPGN
         }
         library.move(game, to: folder.id)
         let filedPGN = PGNService.export(game)
@@ -63,8 +63,8 @@ struct CollectionDraftChecks {
         let source = URL(string: "https://example.org/games")!
         let imported = ChessStudy(white: "White A", black: "Black A")
         let result = library.importCanonicalGames([imported], sourceName: "Fixture", sourceURL: source, collectionName: "Implicit")
-        try check("source imports do not automatically create or inherit a collection") {
-            imported.folderID == nil && result.folderName == "Unfiled" && !library.folders.contains { $0.name == "Implicit" }
+        try check("source imports create a named collection by default") {
+            imported.folderID != nil && result.folderName == "Implicit" && library.folders.contains { $0.name == "Implicit" }
         }
         let explicit = ChessStudy(white: "White B", black: "Black B")
         library.importCanonicalGames([explicit], sourceName: "Fixture", sourceURL: source, collectionName: "Ignored", folderID: folder.id)

@@ -16,7 +16,7 @@ clang++ -std=c++20 -O2 -DNDEBUG -target arm64-apple-macosx14.0 \
   -isysroot "$SDK_DIR" \
   -I"$READER_DIR/libcbh/include" -I"$READER_DIR/libcbh/src" \
   "$READER_DIR/main.cpp" "$READER_DIR"/libcbh/src/*.cpp \
-  -o "$BIN_DIR/LucentChessCBH"
+  -lsqlite3 -o "$BIN_DIR/LucentChessCBH"
 cp "$BIN_DIR/LucentChessCBH" "$APP_DIR/Contents/MacOS/LucentChessCBH"
 codesign --force --sign - "$APP_DIR/Contents/MacOS/LucentChessCBH"
 

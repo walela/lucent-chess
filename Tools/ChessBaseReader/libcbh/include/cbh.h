@@ -63,7 +63,7 @@ public:
 	 * - ERROR_NotFound if there are no more games to be read.
 	 * - OK otherwise.
 	 */
-	errorT parseNext(GameReturnValue& game) EXPORT_SYMBOL;
+	errorT parseNext(GameReturnValue& game, bool decodeMoves = true) EXPORT_SYMBOL;
 
 	/**
 	 * Sets the index of the game to be parsed next.

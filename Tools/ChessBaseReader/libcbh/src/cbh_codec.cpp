@@ -86,7 +86,7 @@ errorT CbhCodec::open(const char* filename) {
 	                : err_gm;
 }
 
-errorT CbhCodec::parseNext(GameReturnValue& game) {
+errorT CbhCodec::parseNext(GameReturnValue& game, bool decodeMoves) {
 	if (pImpl->n_parsed_ >= pImpl->n_games_)
 		return ERROR_NotFound;
 
@@ -143,12 +143,12 @@ errorT CbhCodec::parseNext(GameReturnValue& game) {
 	    game, std::vector<uint32_t>{white_player, black_player});
 	errorT err_tournament = pImpl->tournament_decoder->decode_record(
 	    game, std::vector<uint32_t>{tournament});
-	errorT err_annotator = pImpl->annotator_decoder->decode_record(
-	    game, std::vector<uint32_t>{annotator});
-	errorT err_source = pImpl->source_decoder->decode_record(
-	    game, std::vector<uint32_t>{source});
-	errorT err_game = pImpl->game_decoder->decode_record(
-	    game, std::vector<uint32_t>{game_offset, annotation_offset});
+    errorT err_annotator = OK, err_source = OK, err_game = OK;
+    if (decodeMoves) {
+        err_annotator = pImpl->annotator_decoder->decode_record(game, std::vector<uint32_t>{annotator});
+        err_source = pImpl->source_decoder->decode_record(game, std::vector<uint32_t>{source});
+        err_game = pImpl->game_decoder->decode_record(game, std::vector<uint32_t>{game_offset, annotation_offset});
+    }
 
 	pImpl->n_parsed_ += 1;
 
@@ -162,7 +162,8 @@ errorT CbhCodec::parseNext(GameReturnValue& game) {
 errorT CbhCodec::setGameIndex(uint32_t index) {
 	if (index >= numGames())
 		return ERROR_NotFound;
-	pImpl->idxfile_.pubseekpos(INDEX_HEADER_SIZE + index * INDEX_ENTRY_SIZE);
+	pImpl->idxfile_.pubseekpos(INDEX_HEADER_SIZE + uint64_t(index) * INDEX_ENTRY_SIZE);
+    pImpl->n_parsed_ = index;
 	return OK;
 }
 

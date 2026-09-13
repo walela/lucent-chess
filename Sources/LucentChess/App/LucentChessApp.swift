@@ -82,21 +82,21 @@ private struct LucentCommands: Commands {
                 NotificationCenter.default.post(name: .openSelectedGame, object: nil)
             }
             .keyboardShortcut("n")
-                .disabled(isTrainingWindow == true)
+                .disabled(isTrainingWindow == true || library.isImportingFiles)
             Button("Open Games…") { NotificationCenter.default.post(name: .importPGN, object: nil) }
                 .keyboardShortcut("o")
-                .disabled(isTrainingWindow == true)
+                .disabled(isTrainingWindow == true || library.isImportingFiles)
             Button("Import from Source…") { NotificationCenter.default.post(name: .importSource, object: nil) }
                 .keyboardShortcut("o", modifiers: [.command, .option])
-                .disabled(isTrainingWindow == true)
+                .disabled(isTrainingWindow == true || library.isImportingFiles)
         }
         CommandGroup(replacing: .saveItem) {
             Button("Save to Collection…") { openWindow(id: AppWindowID.saveToCollection) }
                 .keyboardShortcut("s")
-                .disabled(library.selectedStudy == nil || isTrainingWindow == true)
+                .disabled(library.selectedStudy == nil || isTrainingWindow == true || library.isImportingFiles)
             Button("Export PGN…") { library.saveSelectedAs() }
                 .keyboardShortcut("s", modifiers: [.command, .shift])
-                .disabled(library.selectedStudy == nil || isTrainingWindow == true)
+                .disabled(library.selectedStudy == nil || isTrainingWindow == true || library.isImportingFiles)
             Button("Show in Finder") {
                 if let url = library.selectedStudy?.fileURL {
                     NSWorkspace.shared.activateFileViewerSelecting([url])
@@ -107,30 +107,30 @@ private struct LucentCommands: Commands {
         CommandMenu("Game") {
             Button("Set Up Position…") { openWindow(id: AppWindowID.positionSetup) }
                 .keyboardShortcut("s", modifiers: [.command, .shift, .option])
-                .disabled(isTrainingWindow == true)
+                .disabled(isTrainingWindow == true || library.isImportingFiles)
             Divider()
             Button("Game Library") { NotificationCenter.default.post(name: .showDashboard, object: nil) }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
             Divider()
             Button("First Move") { NotificationCenter.default.post(name: .firstMove, object: nil) }
                 .keyboardShortcut(.leftArrow, modifiers: [.command])
-                .disabled(isTrainingWindow == true)
+                .disabled(isTrainingWindow == true || library.isImportingFiles)
             Button("Previous Move") { NotificationCenter.default.post(name: .previousMove, object: nil) }
                 .keyboardShortcut(.leftArrow, modifiers: [])
-                .disabled(isTrainingWindow == true)
+                .disabled(isTrainingWindow == true || library.isImportingFiles)
             Button("Next Move") { NotificationCenter.default.post(name: .nextMove, object: nil) }
                 .keyboardShortcut(.rightArrow, modifiers: [])
-                .disabled(isTrainingWindow == true)
+                .disabled(isTrainingWindow == true || library.isImportingFiles)
             Button("Last Move") { NotificationCenter.default.post(name: .lastMove, object: nil) }
                 .keyboardShortcut(.rightArrow, modifiers: [.command])
-                .disabled(isTrainingWindow == true)
+                .disabled(isTrainingWindow == true || library.isImportingFiles)
             Divider()
             Button("Flip Board") { appearance.boardFlipped.toggle() }
                 .keyboardShortcut("f")
-                .disabled(isTrainingWindow == true)
+                .disabled(isTrainingWindow == true || library.isImportingFiles)
             Button("Toggle Engine") { NotificationCenter.default.post(name: .toggleEngine, object: nil) }
                 .keyboardShortcut("e")
-                .disabled(isTrainingWindow == true)
+                .disabled(isTrainingWindow == true || library.isImportingFiles)
         }
     }
 }

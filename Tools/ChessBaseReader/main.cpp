@@ -8,6 +8,10 @@
 #include <stdexcept>
 #include <sys/resource.h>
 #include <unistd.h>
+#include <sqlite3.h>
+#include <ctime>
+#include <algorithm>
+#include "catalog_index.h"
 
 // CBH text uses Windows-1252. Escape it into ASCII JSON for the Swift reader.
 static std::string jsonQuoted(const std::string& text) {
@@ -85,6 +89,14 @@ static void writeGame(std::ostream& out, const GameReturnValue& game) {
 
 int main(int argc, char** argv) {
     if (argc != 5) return 2;
+    if (std::string(argv[1]) == "--index-pgn") {
+        try { return indexPGN(argv[2], argv[3], argv[4]); }
+        catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
+    if (std::string(argv[1]) == "--index") {
+        try { return indexDatabase(argv[2], argv[3], argv[4]); }
+        catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
     rlimit cpu{60, 60}, memory{1024ULL * 1024 * 1024, 1024ULL * 1024 * 1024};
     rlimit output{256ULL * 1024 * 1024, 256ULL * 1024 * 1024};
     setrlimit(RLIMIT_CPU, &cpu);

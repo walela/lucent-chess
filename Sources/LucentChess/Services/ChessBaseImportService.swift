@@ -68,7 +68,18 @@ enum ChessBaseImportService {
         return ChessBaseImportBatch(games: games, skipped: skipped)
     }
 
-    private static func bundledReader() throws -> URL {
+    static func readRecord(_ database: URL, index: Int) throws -> ChessStudy {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("LucentGame-\(UUID())")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let output = directory.appendingPathComponent("game.json")
+        try runReader(at: bundledReader(), database: database, output: output, start: index, count: 1)
+        let data = try Data(contentsOf: output)
+        guard let game = try JSONDecoder().decode(DecodedDatabase.self, from: data).games.first else { throw ChessBaseImportError.unsupportedGame }
+        return try game.makeStudy()
+    }
+
+    static func bundledReader() throws -> URL {
         if let url = Bundle.main.url(forAuxiliaryExecutable: "LucentChessCBH") { return url }
         if let executable = Bundle.main.executableURL {
             let sibling = executable.deletingLastPathComponent().appendingPathComponent("LucentChessCBH")
@@ -105,14 +116,14 @@ enum ChessBaseImportService {
         return directory.appendingPathComponent("database.cbh")
     }
 
-    private static func runReader(at executable: URL, database: URL, output: URL, start: Int) throws {
+    private static func runReader(at executable: URL, database: URL, output: URL, start: Int, count: Int = 256) throws {
         let log = output.appendingPathExtension("log")
         FileManager.default.createFile(atPath: log.path, contents: nil)
         let errors = try FileHandle(forWritingTo: log)
         defer { try? errors.close() }
         let process = Process()
         process.executableURL = executable
-        process.arguments = [database.path, output.path, String(start), "256"]
+        process.arguments = [database.path, output.path, String(start), String(count)]
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = errors
         process.standardError = errors

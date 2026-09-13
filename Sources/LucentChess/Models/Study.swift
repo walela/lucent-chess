@@ -90,6 +90,9 @@ final class ChessStudy: Codable, Identifiable, ObservableObject {
     var sourceName: String?
     var sourceURL: String?
 
+    var databaseReference: DatabaseGameReference?
+    var indexedPlyCount: Int?
+
     private var nodeIndex: [UUID: MoveNode] = [:]
     private var cachedPositionNodeID: UUID?
     private var cachedPosition: ChessPosition?
@@ -293,6 +296,7 @@ final class ChessStudy: Codable, Identifiable, ObservableObject {
         return names.allSatisfy(\.isEmpty) ? "Unspecified players" : "\(names[0].isEmpty ? "?" : names[0]) – \(names[1].isEmpty ? "?" : names[1])"
     }
     var mainLinePlyCount: Int {
+        if let indexedPlyCount { return indexedPlyCount }
         if let cachedMainLinePlyCount { return cachedMainLinePlyCount }
         var count = 0
         var node = root

@@ -74,28 +74,31 @@ struct ChessBaseImportChecks {
         let library = LibraryStore(archiveURL: temporary.appendingPathComponent("Library.json"))
         let existingCount = library.studies.count
         let result = library.importCanonicalGames(cbv.games, sourceName: "small.cbv", sourceURL: fixtures.appendingPathComponent("small.cbv"), collectionName: "small")
-        try check("ChessBase imports remain Unfiled and never become writable source files") {
-            result.importedCount == cbv.games.count && result.folderName == "Unfiled"
+        try check("ChessBase imports get their named collection and never become writable source files") {
+            result.importedCount == cbv.games.count && result.folderName == "small"
                 && library.studies.count == existingCount + cbv.games.count
-                && cbv.games.allSatisfy { $0.folderID == nil && $0.filePath == nil && $0.sourceName == "small.cbv" }
+                && cbv.games.allSatisfy { $0.folderID != nil && $0.filePath == nil && $0.sourceName == "small.cbv" }
         }
         let duplicates = library.importCanonicalGames(cbh.games, sourceName: "small.cbh", sourceURL: fixtures.appendingPathComponent("small/small.cbh"), collectionName: "small")
         try check("reimporting the same ChessBase games skips duplicates") {
             duplicates.importedCount == 0 && duplicates.duplicateCount == cbh.games.count
         }
         let viaOpen = LibraryStore(archiveURL: temporary.appendingPathComponent("OpenGames.json"))
-        let openExistingCount = viaOpen.studies.count
+        let openExistingCount = viaOpen.totalGameCount
         let opened = await viaOpen.importFiles(from: [fixtures.appendingPathComponent("annotations.cbv")])
         try check("Open Games locates the bundled reader and completes the asynchronous import") {
             opened && !viaOpen.isImportingFiles && viaOpen.lastError == nil
-                && viaOpen.studies.count == openExistingCount + cbv.games.count && viaOpen.importNotice != nil
-                && viaOpen.selectedStudy?.sourceName == "annotations.cbv"
+                && viaOpen.totalGameCount == openExistingCount + cbv.games.count && viaOpen.importNotice != nil
+                && viaOpen.folders.contains { $0.name == "annotations" && $0.id == viaOpen.lastImportedFolderID }
         }
         viaOpen.saveNow()
         library.saveNow()
         let restored = LibraryStore(archiveURL: temporary.appendingPathComponent("Library.json"))
         try check("imported game trees survive a library restart") {
-            restored.studies.map { tree($0.root) } == library.studies.map { tree($0.root) }
+            restored.totalGameCount == library.totalGameCount && library.studies.allSatisfy { game in
+                guard let loaded = try? restored.catalog?.load(game.id) else { return false }
+                return tree(loaded.root) == tree(game.root)
+            }
         }
         // Repeat a known valid CBH index record across multiple reader batches.
         // Its companion offsets still point into the unchanged tiny fixture files.

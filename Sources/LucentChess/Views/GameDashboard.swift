@@ -19,18 +19,23 @@ struct GameDashboard: View {
     @State private var sortField = GameSortField.date
     @State private var sortAscending = false
 
-    private var scopedGames: [ChessStudy] {
-        let source = library.filteredStudies
-        switch selection {
-        case .all:
-            return source
-        case .recent:
-            return source.filter { $0.modifiedAt > Date().addingTimeInterval(-14 * 86_400) }
-        case .unfiled:
-            return source.filter { $0.folderID == nil }
-        case let .folder(id):
-            return source.filter { $0.folderID == id }
-        }
+    @State private var displayedGames: [ChessStudy] = []
+    @State private var displayedCount = 0
+    @State private var pageCursors: [CatalogCursor?] = [nil]
+    @State private var nextCursor: CatalogCursor?
+    @State private var loadingPage = false
+
+    private var request: CatalogRequest {
+        var value = CatalogRequest()
+        value.revision = library.catalogRevision
+        value.folder = selectedFolderID?.uuidString
+        value.unfiled = selection == .unfiled
+        value.recent = selection == .recent
+        value.search = library.searchText
+        value.result = resultFilter.rawValue; value.file = fileFilter.rawValue
+        value.sort = sortField.rawValue; value.ascending = sortAscending
+        value.cursor = pageCursors.last ?? nil
+        return value
     }
 
     private var query: GameLibraryQuery {
@@ -52,7 +57,6 @@ struct GameDashboard: View {
     }
 
     var body: some View {
-        let displayedGames = query.apply(to: scopedGames)
         VStack(spacing: 0) {
             dashboardToolbar
             Divider()
@@ -74,6 +78,25 @@ struct GameDashboard: View {
                 LucentTheme.dashboardWash
             }
         )
+        .task(id: request) {
+            loadingPage = true
+            do {
+                if !request.search.isEmpty { try await Task.sleep(for: .milliseconds(180)) }
+                let page = try await library.page(request)
+                displayedGames = page.games; displayedCount = page.count; nextCursor = page.next
+                loadingPage = false
+            } catch is CancellationError { }
+            catch { library.lastError = error.localizedDescription; loadingPage = false }
+        }
+        .onChange(of: selection) { _, _ in pageCursors = [nil] }
+        .onChange(of: library.searchText) { _, _ in pageCursors = [nil] }
+        .onChange(of: resultFilter) { _, _ in pageCursors = [nil] }
+        .onChange(of: fileFilter) { _, _ in pageCursors = [nil] }
+        .onChange(of: sortField) { _, _ in pageCursors = [nil] }
+        .onChange(of: sortAscending) { _, _ in pageCursors = [nil] }
+        .onChange(of: library.lastImportedFolderID) { _, id in
+            if let id { selection = .folder(id); pageCursors = [nil] }
+        }
         .sheet(item: $folderEditor) { editor in
             FolderEditorSheet(editor: editor) { name in
                 if let folder = editor.folder {
@@ -131,8 +154,10 @@ struct GameDashboard: View {
             } label: {
                 Label("Import", systemImage: "square.and.arrow.down.on.square")
             }
+            .disabled(library.isImportingFiles)
             Button { newGame(nil) } label: { Label("New Game", systemImage: "doc.badge.plus") }
                 .buttonStyle(.borderedProminent).tint(LucentTheme.accent)
+                .disabled(library.isImportingFiles)
         }
         .padding(.horizontal, 22)
         .frame(height: 66)
@@ -176,7 +201,7 @@ struct GameDashboard: View {
             Text("LIBRARY")
                 .font(.caption2.bold()).tracking(0.7).foregroundStyle(.secondary)
                 .padding(.horizontal, 14).padding(.top, 18).padding(.bottom, 5)
-            sidebarRow("All Games", systemImage: "books.vertical", count: library.studies.count, value: .all)
+            sidebarRow("All Games", systemImage: "books.vertical", count: library.totalGameCount, value: .all)
             sidebarRow("Recently Edited", systemImage: "clock.arrow.circlepath", count: recentCount, value: .recent)
 
             Divider().padding(.vertical, 10).padding(.horizontal, 12)
@@ -197,7 +222,7 @@ struct GameDashboard: View {
             sidebarRow(
                 "Unfiled",
                 systemImage: "tray.full",
-                count: library.studies.filter { $0.folderID == nil }.count,
+                count: library.unfiledGameCount,
                 value: .unfiled,
                 acceptsDrop: true,
                 dropFolderID: nil
@@ -214,7 +239,7 @@ struct GameDashboard: View {
                             acceptsDrop: true,
                             dropFolderID: folder.id
                         )
-                        .contextMenu { collectionActions(folder) }
+                        .contextMenu { collectionActions(folder).disabled(library.isImportingFiles) }
                     }
                 }
             }
@@ -254,13 +279,13 @@ struct GameDashboard: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 6)
         .dropDestination(for: String.self) { ids, _ in
-            guard acceptsDrop else { return false }
+            guard acceptsDrop && !library.isImportingFiles else { return false }
             return moveGames(ids, to: dropFolderID)
         }
     }
 
     private var recentCount: Int {
-        library.studies.count { $0.modifiedAt > Date().addingTimeInterval(-14 * 86_400) }
+        library.recentGameCount
     }
 
     private var collectionBrowser: some View {
@@ -279,12 +304,12 @@ struct GameDashboard: View {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 148, maximum: 180), spacing: 12)], alignment: .leading, spacing: 12) {
                     collectionTile("Unfiled", symbol: "tray.full.fill",
-                                   count: library.studies.filter { $0.folderID == nil }.count,
+                                   count: library.unfiledGameCount,
                                    value: .unfiled, folderID: nil)
                     ForEach(library.folders) { folder in
                         collectionTile(folder.name, symbol: "folder.fill", count: library.gameCount(in: folder),
                                        value: .folder(folder.id), folderID: folder.id)
-                            .contextMenu { collectionActions(folder) }
+                            .contextMenu { collectionActions(folder).disabled(library.isImportingFiles) }
                     }
                 }
                 .padding(.horizontal, 20).padding(.bottom, 16)
@@ -317,6 +342,7 @@ struct GameDashboard: View {
     }
 
     private func moveGames(_ ids: [String], to folderID: UUID?) -> Bool {
+        guard !library.isImportingFiles else { return false }
         var moved = false
         for id in ids.compactMap(UUID.init(uuidString:)) {
             library.move(studyID: id, to: folderID)
@@ -344,7 +370,7 @@ struct GameDashboard: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                Text("\(games.count)").font(.caption.bold()).foregroundStyle(.secondary)
+                Text(displayedCount.formatted()).font(.caption.bold()).foregroundStyle(.secondary)
                     .padding(.horizontal, 7).padding(.vertical, 3).background(.quaternary, in: Capsule())
                 Spacer()
                 if case .folder = selection {
@@ -356,7 +382,16 @@ struct GameDashboard: View {
                 }
             }
 
-            libraryControls(shownCount: games.count)
+            libraryControls(shownCount: displayedCount)
+            HStack {
+                if loadingPage { ProgressView().controlSize(.small); Text("Loading games…") }
+                else if displayedCount > 0 {
+                    Text("\(((pageCursors.count-1)*DatabaseCatalog.pageSize+1).formatted())–\(min(pageCursors.count*DatabaseCatalog.pageSize,displayedCount).formatted()) of \(displayedCount.formatted())")
+                }
+                Spacer()
+                Button("Previous") { pageCursors.removeLast() }.disabled(pageCursors.count == 1 || loadingPage)
+                Button("Next") { if let nextCursor { pageCursors.append(nextCursor) } }.disabled(nextCursor == nil || loadingPage)
+            }.font(.caption).foregroundStyle(.secondary)
 
             let tableShape = RoundedRectangle(cornerRadius: 12, style: .continuous)
             VStack(spacing: 0) {
@@ -382,10 +417,10 @@ struct GameDashboard: View {
                                         Button("Open") { openGame(game) }
                                         Button("Save PGN") { library.select(game); library.saveSelected() }
                                         Button("Export PGN…") { library.select(game); library.saveSelectedAs() }
-                                        moveToFolderMenu(for: game)
+                                        moveToFolderMenu(for: game).disabled(library.isImportingFiles)
                                         Divider()
-                                        Button("Duplicate") { library.select(game); library.duplicateSelected() }
-                                        Button("Delete from Library", role: .destructive) { library.delete(game) }
+                                        Button("Duplicate") { library.select(game); library.duplicateSelected() }.disabled(library.isImportingFiles)
+                                        Button("Delete from Library", role: .destructive) { library.delete(game) }.disabled(library.isImportingFiles)
                                     }
                                 if game.id != games.last?.id { Divider().padding(.leading, 20) }
                             }

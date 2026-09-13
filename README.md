@@ -12,8 +12,8 @@ A native, offline macOS app for studying chess games — a PGN library and analy
 - **Set up any position.** Place pieces or load a FEN, choose the side to move and special rights, and open a new game for analysis or practice.
 - **Play from any position.** Start a separate Stockfish training game, choose your color and strength, and keep its moves in your library without changing the original study.
 - **ChessBase-style notation.** Readable indented variations with clickable moves, inline comments, and move-specific context menus. Add a variation by going back and playing another legal move; save an engine line into the tree with one click.
-- **ChessBase files.** Import classic CBH databases (with their companion files) and unencrypted CBV archives into Unfiled, including moves, variations, comments and move annotations.
-- **Direct imports.** Pull weekly TWIC archives and public Lichess games, studies, and broadcasts into Unfiled or an explicitly chosen collection, with duplicate skipping.
+- **Large databases.** Index classic CBH databases, unencrypted CBV archives, and PGN files into named collections. Browse and search the index; games, variations, and comments load when you open a game.
+- **Direct imports.** Pull weekly TWIC archives and public Lichess games, studies, and broadcasts into named collections, with duplicate skipping.
 - **Comes with games.** A starter archive of 256 games: both 2026 Candidates tournaments and all five Kasparov–Karpov World Championship matches.
 - **Yours to theme.** 42 piece sets and all 25 Lichess board themes, plus custom square colors, light/dark/system modes, and a resizable board–notation–engine layout.
 - **Offline, no telemetry.** Native Swift app with a bundled C++ ChessBase reader. Nothing leaves the machine.
@@ -66,7 +66,20 @@ Uses Swift, the macOS SDK and a vendored C++20 ChessBase reader. `swift build` b
 
 ## Your data
 
-The recovery library is stored at `~/Library/Application Support/Lucent Chess/Library.json`. New games and analysis drafts stay in Unfiled until you explicitly choose a collection. Editing a collection game preserves its original and creates an Unfiled analysis copy. Export PGN writes an ordinary PGN file wherever you choose.
+The indexed library is stored at `~/Library/Application Support/Lucent Chess/Library.sqlite`.
+Managed copies of imported database files live in the adjacent `Databases` folder;
+keep that folder with the SQLite database when backing up or moving the library.
+The SQLite `-wal` and `-shm` files, when present, belong to the live database—quit
+Lucent before making a filesystem copy of the library directory.
+
+Existing `Library.json` libraries migrate automatically. The original JSON file is
+retained as a recovery backup; it does not contain edits made after migration.
+Database imports get a collection named after the file by default. New games and
+analysis drafts stay in Unfiled until explicitly filed. Editing a collection or
+indexed source game preserves the original and creates an Unfiled analysis copy.
+Only working games are decoded in memory; the browser loads 200 metadata rows at
+a time. Date and player sorts are indexed immediately; other sort indexes are
+built on first use and reused.
 
 ## License
 
@@ -77,16 +90,24 @@ Lucent Chess is published under the [GNU Affero General Public License v3](LICEN
 Use **Open Games…** (Command-O) or **Import → PGN or ChessBase…**.
 For CBH, keep the matching `.cbg`, `.cba`, `.cbp`, `.cbt`, `.cbc` and `.cbs`
 files in the same folder. CBV archives are unpacked into temporary storage;
-source files are never modified. Imports default to Unfiled and skip duplicates.
+source files are never modified. Database imports create a named collection unless
+an existing destination is chosen. Reimporting an identical source database is
+skipped. Overlap between different databases is retained rather than guessed
+from matching player names; small TWIC/Lichess imports still deduplicate games.
 
-Supports classic CBH and unencrypted CBV, processed automatically in batches of
-256 records with visible progress. Database files may total up to 256 MiB per import. Newer 2CBH databases, encrypted
-archives, Chess960 and null-move games are unsupported. Unsupported or unreadable
-records are counted in the import result. Text pages, multimedia, training features
-and extra proprietary tags are not imported. Arrows and square highlights are
-preserved as PGN annotation text, not rendered overlays. Legacy text uses
-Windows-1252; other code pages are not automatically detected.
+Classic CBH and unencrypted CBV are supported. Archives are unpacked block by
+block, then their headers are indexed without decoding every move. PGN imports
+index headers and byte ranges. Actual game contents, including SAN and variations,
+are decoded and validated on open. The previous 10,000-game, whole-import move,
+and 256 MiB database-file limits do not apply to indexed imports. Available disk
+space and the source format's own limits still apply. An individual opened game
+and a decompression block remain bounded against malformed inputs.
+
+Newer 2CBH databases, encrypted archives, Chess960 and null-move games remain
+unsupported. Text pages, multimedia, training features and extra proprietary tags
+are not imported. Arrows and square highlights are preserved as PGN annotation
+text, not rendered overlays. Legacy CBH text uses Windows-1252.
 
 Reader provenance and local changes: [Tools/ChessBaseReader](Tools/ChessBaseReader/README.md).
 
-Focused import checks: `./scripts/check_chessbase_import.sh` (temporary fixtures only).
+Checks: `./scripts/check_catalog.sh` covers indexing, paging, migration and on-demand opening; `./scripts/check_chessbase_import.sh` covers game fidelity and archive integrity. Both use temporary test libraries.

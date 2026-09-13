@@ -23,6 +23,16 @@ final class LibraryStore: ObservableObject {
     @Published var fileImportProgress = "Importing games…"
     @Published var searchText = ""
 
+    @Published var catalogRevision = 0
+    @Published var recentGameCount = 0
+    @Published var folderCounts: [String: Int] = [:]
+    @Published var lastImportedFolderID: UUID?
+    @Published var isOpeningGame = false
+    private(set) var catalog: DatabaseCatalog?
+    private var importTask: Task<IndexedImportResult, Error>?
+    var totalGameCount: Int { folderCounts.values.reduce(0,+) }
+    var unfiledGameCount: Int { folderCounts[""] ?? 0 }
+
     private let archiveURL: URL
     private var studyByID: [UUID: ChessStudy] = [:]
     private var collectionOriginal: StudyPersistenceSnapshot?
@@ -39,6 +49,8 @@ final class LibraryStore: ObservableObject {
             let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
             self.archiveURL = base.appendingPathComponent("Lucent Chess", isDirectory: true).appendingPathComponent("Library.json")
         }
+        do { catalog = try DatabaseCatalog(url: self.archiveURL.deletingPathExtension().appendingPathExtension("sqlite")) }
+        catch { lastError = "Could not open the library index: \(error.localizedDescription)" }
         load()
         if let starterGamesURL = starterGamesURL ?? (shouldUseBundledStarterGames ? Self.bundledStarterGamesURL() : nil) {
             installStarterGamesIfNeeded(from: starterGamesURL)
@@ -77,8 +89,42 @@ final class LibraryStore: ObservableObject {
     }
 
     func select(_ study: ChessStudy) {
-        selectedStudyID = study.id
+        do {
+            let loaded = study.indexedPlyCount != nil ? try studyByID[study.id] ?? catalog?.load(study.id) ?? study : study
+            if !studies.contains(where: { $0.id == loaded.id }) { studies.append(loaded) }
+            if studies.count > 64 && !isImportingFiles {
+                saveNow()
+                studies = Array(studies.filter { $0.id != loaded.id }.suffix(63)) + [loaded]
+            }
+            selectedStudyID = loaded.id
+        } catch { lastError = error.localizedDescription }
     }
+
+    func page(_ request: CatalogRequest) async throws -> CatalogPage {
+        guard let catalog else { throw CatalogError.message("The library index is unavailable.") }
+        let worker = Task.detached(priority: .userInitiated) { try catalog.page(request) }
+        return try await withTaskCancellationHandler {
+            let result = try await worker.value
+            try Task.checkCancellation()
+            return result
+        } onCancel: { worker.cancel() }
+    }
+
+    func refreshCatalog() {
+        do {
+            folderCounts = try catalog?.counts() ?? [:]; catalogRevision += 1
+            if let catalog {
+                Task {
+                    let count = try? await Task.detached { try catalog.recentCount() }.value
+                    if let count { recentGameCount = count }
+                }
+            }
+        }
+        catch { lastError = error.localizedDescription }
+    }
+
+    func cancelImport() { importTask?.cancel() }
+
 
     func duplicateSelected() {
         guard let selectedStudy,
@@ -100,15 +146,18 @@ final class LibraryStore: ObservableObject {
     }
 
     func deleteSelected() {
-        guard let id = selectedStudyID, let index = studies.firstIndex(where: { $0.id == id }) else { return }
-        studies.remove(at: index)
+        guard let id = selectedStudyID else { return }
+        do { Self.persistenceQueue.sync {}; try catalog?.delete(id) } catch { lastError = error.localizedDescription; return }
+        studies.removeAll { $0.id == id }
         selectedStudyID = studies.first?.id
-        saveSoon()
+        saveSoon(); refreshCatalog()
     }
 
     func delete(_ study: ChessStudy) {
-        selectedStudyID = study.id
-        deleteSelected()
+        do { Self.persistenceQueue.sync {}; try catalog?.delete(study.id) } catch { lastError = error.localizedDescription; return }
+        studies.removeAll { $0.id == study.id }
+        if selectedStudyID == study.id { selectedStudyID = studies.first?.id }
+        saveSoon(); refreshCatalog()
     }
 
     @discardableResult
@@ -133,6 +182,7 @@ final class LibraryStore: ObservableObject {
     }
 
     func deleteFolder(_ folder: GameFolder) {
+        do { Self.persistenceQueue.sync {}; try catalog?.removeFolder(folder.id) } catch { lastError = error.localizedDescription; return }
         folders.removeAll { $0.id == folder.id }
         for study in studies where study.folderID == folder.id { study.folderID = nil }
         objectWillChange.send()
@@ -140,6 +190,8 @@ final class LibraryStore: ObservableObject {
     }
 
     func move(_ study: ChessStudy, to folderID: UUID?) {
+        do { Self.persistenceQueue.sync {}; try catalog?.move(study.id, folder: validFolderID(folderID)) } catch { lastError = error.localizedDescription; return }
+        refreshCatalog()
         study.folderID = validFolderID(folderID)
         if selectedStudyID == study.id { rememberCollectionOriginal() }
         objectWillChange.send()
@@ -147,12 +199,15 @@ final class LibraryStore: ObservableObject {
     }
 
     func move(studyID: UUID, to folderID: UUID?) {
-        guard let study = studyByID[studyID] else { return }
-        move(study, to: folderID)
+        if let study = studyByID[studyID] { move(study, to: folderID) }
+        else {
+            do { Self.persistenceQueue.sync {}; try catalog?.move(studyID, folder: validFolderID(folderID)); refreshCatalog() }
+            catch { lastError = error.localizedDescription }
+        }
     }
 
     func gameCount(in folder: GameFolder) -> Int {
-        studies.count { $0.folderID == folder.id }
+        folderCounts[folder.id.uuidString] ?? 0
     }
 
     func importFiles(from urls: [URL], folderID: UUID? = nil) async -> Bool {
@@ -165,33 +220,34 @@ final class LibraryStore: ObservableObject {
         var summaries: [String] = []
         var failures: [String] = []
         for url in urls {
-            if url.pathExtension.lowercased() == "pgn" {
-                _ = importPGN(from: [url], folderID: folderID)
-                if let error = lastError { failures.append(error); lastError = nil }
-                else { succeeded = true }
-                continue
-            }
             do {
-                fileImportProgress = "Opening \(url.lastPathComponent)…"
-                let batch = try await Task.detached(priority: .userInitiated) { [self] in
-                    try ChessBaseImportService.read(url) { completed, total in
-                        Task { @MainActor in
-                            self.fileImportProgress = "Importing \(url.lastPathComponent): \(completed.formatted()) of \(total.formatted()) records"
-                        }
+                guard let catalog else { throw CatalogError.message("The library index is unavailable.") }
+                let destination = folderID.flatMap { id in folders.first { $0.id == id } }
+                    ?? GameFolder(name: uniqueFolderName(url.deletingPathExtension().lastPathComponent))
+                // Flush current edits before the indexer takes the write transaction.
+                saveNow()
+                let task = Task.detached(priority: .userInitiated) { [self] in
+                    try IndexedDatabaseImport.importFile(url, catalog: catalog, folder: destination) { message in
+                        Task { @MainActor in self.fileImportProgress = message }
                     }
-                }.value
-                let summary = importCanonicalGames(batch.games, sourceName: url.lastPathComponent,
-                                                   sourceURL: url, collectionName: url.deletingPathExtension().lastPathComponent,
-                                                   folderID: folderID)
-                if summary.importedCount > 0 { selectedStudyID = studies.first?.id }
-                summaries.append("\(url.lastPathComponent): imported \(summary.importedCount) games into \(summary.folderName); \(summary.duplicateCount) duplicates and \(batch.skipped) unsupported or unreadable records skipped.")
-                succeeded = succeeded || summary.importedCount > 0
+                }
+                importTask = task
+                let result = try await task.value
+                importTask = nil
+                if !folders.contains(where: { $0.id == result.folder.id }) { folders.append(result.folder) }
+                folders.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                lastImportedFolderID = result.folder.id
+                summaries.append("\(url.lastPathComponent): \(result.count.formatted()) games \(result.existing ? "already available" : "indexed") in \(result.folder.name).")
+                succeeded = true
+                saveNow(); refreshCatalog()
+            } catch is CancellationError {
+                importTask = nil
+                summaries.append("Import cancelled. No partially indexed games were added.")
+                break
             } catch {
+                importTask = nil
                 failures.append("\(url.lastPathComponent): \(error.localizedDescription)")
             }
-        }
-        if !summaries.isEmpty {
-            summaries.append("ChessBase text pages, multimedia, training features and extra proprietary annotations are not imported. Board arrows and highlights are retained as text annotations.")
         }
         if !failures.isEmpty { summaries.append(contentsOf: failures) }
         if !summaries.isEmpty { importNotice = summaries.joined(separator: "\n\n") }
@@ -249,7 +305,7 @@ final class LibraryStore: ObservableObject {
 
         for game in incoming {
             let fingerprint = Self.gameFingerprint(game)
-            guard known.insert(fingerprint).inserted else {
+            guard known.insert(fingerprint).inserted, (try? catalog?.containsFingerprint(fingerprint)) != true else {
                 duplicateCount += 1
                 continue
             }
@@ -265,6 +321,9 @@ final class LibraryStore: ObservableObject {
 
         let destination = validFolderID(requestedFolderID)
             .flatMap { id in folders.first(where: { $0.id == id }) }
+            ?? folders.first(where: { $0.name == collectionName })
+            ?? createFolder(name: collectionName)
+        lastImportedFolderID = destination?.id
 
         let importedAt = Date()
         for game in accepted {
@@ -278,7 +337,7 @@ final class LibraryStore: ObservableObject {
             game.dirtyState = false
         }
         studies.insert(contentsOf: accepted, at: 0)
-        saveSoon()
+        saveNow()
         return CanonicalImportMergeSummary(
             importedCount: accepted.count,
             duplicateCount: duplicateCount,
@@ -312,6 +371,7 @@ final class LibraryStore: ObservableObject {
 
     func save(_ study: ChessStudy, to url: URL) throws {
         try PGNService.export(study).write(to: url, atomically: true, encoding: .utf8)
+        if study.databaseReference != nil { return }
         study.filePath = url.path
         study.lastSavedAt = Date()
         study.dirtyState = false
@@ -326,7 +386,7 @@ final class LibraryStore: ObservableObject {
         guard let study = selectedStudy else { return }
         // Editors mutate the current object before calling changed. Keep that
         // object as the draft so bindings and text focus survive the first edit.
-        if let original = collectionOriginal, original.id == study.id, study.folderID != nil {
+        if let original = collectionOriginal, original.id == study.id, (study.folderID != nil || study.databaseReference != nil) {
             var content = StudyPersistenceSnapshot(study)
             content.lastNodeID = original.lastNodeID
             content.modifiedAt = original.modifiedAt
@@ -340,8 +400,11 @@ final class LibraryStore: ObservableObject {
             }
             do {
                 let restored = try original.makeStudy()
+                restored.databaseReference = study.databaseReference
                 guard let index = studies.firstIndex(where: { $0 === study }) else { return }
                 study.id = UUID()
+                study.databaseReference = nil
+                study.indexedPlyCount = nil
                 study.folderID = nil
                 study.starterCollectionID = nil
                 study.filePath = nil
@@ -365,7 +428,7 @@ final class LibraryStore: ObservableObject {
 
     private func rememberCollectionOriginal() {
         collectionOriginal = selectedStudy.flatMap { study in
-            study.folderID == nil ? nil : StudyPersistenceSnapshot(study)
+            (study.folderID == nil && study.databaseReference == nil) ? nil : StudyPersistenceSnapshot(study)
         }
     }
 
@@ -374,6 +437,7 @@ final class LibraryStore: ObservableObject {
     }
 
     func saveSoon() {
+        guard importTask == nil else { return }
         pendingSave?.cancel()
         saveGeneration += 1
         let generation = saveGeneration
@@ -387,82 +451,76 @@ final class LibraryStore: ObservableObject {
     }
 
     func saveNow() {
-        pendingSave?.cancel()
-        pendingSave = nil
-        saveGeneration += 1
-        let snapshot = persistenceSnapshot()
+        guard importTask == nil else { return }
+        pendingSave?.cancel(); pendingSave = nil; saveGeneration += 1
+        guard let catalog else { return }
         do {
+            let local = studies.filter { $0.databaseReference == nil }
+            let fingerprints = Dictionary(uniqueKeysWithValues: local.map { ($0.id.uuidString, Self.gameFingerprint($0)) })
+            let snapshots = local.map(StudyPersistenceSnapshot.init)
+            let state = CatalogLibraryState(selectedStudyID: selectedStudyID, folders: folders, seedVersion: installedSeedVersion)
             try Self.persistenceQueue.sync {
-                try Self.write(Self.encode(snapshot), to: archiveURL)
+                try catalog.saveSnapshots(snapshots, fingerprints: fingerprints)
+                try catalog.saveMetadata("state", value: state)
             }
+            refreshCatalog()
         } catch { lastError = error.localizedDescription }
     }
 
     private func saveSnapshotInBackground() {
-        let snapshot = persistenceSnapshot()
-        let destination = archiveURL
+        guard let catalog else { return }
+        let local = studies.filter { $0.databaseReference == nil }
+        let snapshots = local.map(StudyPersistenceSnapshot.init)
+        let fingerprints = Dictionary(uniqueKeysWithValues: local.map { ($0.id.uuidString, Self.gameFingerprint($0)) })
+        let state = CatalogLibraryState(selectedStudyID: selectedStudyID, folders: folders, seedVersion: installedSeedVersion)
         Self.persistenceQueue.async { [weak self] in
             do {
-                let data = try Self.encode(snapshot)
-                try Self.write(data, to: destination)
-            } catch {
-                DispatchQueue.main.async { self?.lastError = error.localizedDescription }
-            }
+                try catalog.saveSnapshots(snapshots, fingerprints: fingerprints)
+                try catalog.saveMetadata("state", value: state)
+                DispatchQueue.main.async { self?.refreshCatalog() }
+            } catch { DispatchQueue.main.async { self?.lastError = error.localizedDescription } }
         }
     }
 
-    private func persistenceSnapshot() -> LibraryPersistenceSnapshot {
-        LibraryPersistenceSnapshot(
-            studies: studies,
-            selectedStudyID: selectedStudyID,
-            folders: folders,
-            seedVersion: installedSeedVersion
-        )
-    }
-
-    nonisolated private static func encode(_ snapshot: LibraryPersistenceSnapshot) throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        return try encoder.encode(snapshot)
-    }
-
-    nonisolated private static func write(_ data: Data, to destination: URL) throws {
-        try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try data.write(to: destination, options: .atomic)
-    }
-
     private func load() {
+        guard let catalog else { return }
         do {
-            let data = try Data(contentsOf: archiveURL)
-            let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
-            if let snapshot = try? decoder.decode(LibraryPersistenceSnapshot.self, from: data) {
-                studies = try snapshot.makeStudies()
-                folders = (snapshot.folders ?? []).sorted {
-                    $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            if let state = try catalog.metadata("state", as: CatalogLibraryState.self) {
+                folders = state.folders; installedSeedVersion = state.seedVersion
+                if let id = state.selectedStudyID, let game = try? catalog.load(id) { studies = [game]; selectedStudyID = id }
+                refreshCatalog()
+                return
+            }
+            // One-time migration. Keep Library.json untouched as a recovery backup.
+            if FileManager.default.fileExists(atPath: archiveURL.path) {
+                let data = try Data(contentsOf: archiveURL)
+                let decoder = JSONDecoder(); decoder.dateDecodingStrategy = .iso8601
+                if let snapshot = try? decoder.decode(LibraryPersistenceSnapshot.self, from: data) {
+                    studies = try snapshot.makeStudies(); folders = snapshot.folders ?? []
+                    installedSeedVersion = snapshot.seedVersion ?? 0; selectedStudyID = snapshot.selectedStudyID
+                } else {
+                    let archive = try decoder.decode(LibraryArchive.self, from: data)
+                    studies = archive.studies; folders = archive.folders ?? []
+                    installedSeedVersion = archive.seedVersion ?? 0; selectedStudyID = archive.selectedStudyID
                 }
-                installedSeedVersion = snapshot.seedVersion ?? 0
-                selectedStudyID = snapshot.selectedStudyID ?? studies.first?.id
+                let imported = Dictionary(grouping: studies.filter { $0.sourceURL != nil && ["cbv","cbh"].contains(URL(string:$0.sourceURL!)?.pathExtension.lowercased() ?? "") }, by: { $0.sourceURL! })
+                for (sourceURL, games) in imported {
+                    let name = URL(string:sourceURL)?.deletingPathExtension().lastPathComponent ?? "Imported database"
+                    let destination = games.compactMap { $0.folderID }.first.flatMap { id in folders.first { $0.id == id } }
+                        ?? GameFolder(name: uniqueFolderName(name))
+                    if !folders.contains(where: { $0.id == destination.id }) { folders.append(destination) }
+                    for game in games where game.folderID == nil { game.folderID = destination.id }
+                    try catalog.addSource(id: UUID().uuidString, path:"",kind:"legacy",name:destination.name,original:sourceURL,hash:nil,folder:destination.id,count:games.count)
+                }
             } else {
-                // Pre-1.7 libraries stored recursive move trees. Retain this one-way
-                // compatibility path; the next save upgrades them to flat snapshots.
-                let archive = try decoder.decode(LibraryArchive.self, from: data)
-                studies = archive.studies
-                folders = (archive.folders ?? []).sorted {
-                    $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-                }
-                installedSeedVersion = archive.seedVersion ?? 0
-                selectedStudyID = archive.selectedStudyID ?? studies.first?.id
+                studies = [Self.welcomeStudy()]; selectedStudyID = studies.first?.id
             }
-
-            let knownFolderIDs = Set(folders.map(\.id))
-            for study in studies where study.folderID.map({ !knownFolderIDs.contains($0) }) == true {
-                study.folderID = nil
-            }
-        } catch {
-            let welcome = Self.welcomeStudy()
-            studies = [welcome]
-            selectedStudyID = welcome.id
             saveNow()
+            // Retain only the working game after migration; other games open from SQLite.
+            studies = studies.filter { $0.id == selectedStudyID }
+            refreshCatalog()
+        } catch {
+            lastError = "The existing library could not be migrated. Its JSON backup is unchanged: \(error.localizedDescription)"
         }
     }
 
@@ -598,4 +656,10 @@ private struct StarterGameCollection {
     let id: String
     let fileName: String
     let folderName: String
+}
+
+private struct CatalogLibraryState: Codable {
+    var selectedStudyID: UUID?
+    var folders: [GameFolder]
+    var seedVersion: Int
 }

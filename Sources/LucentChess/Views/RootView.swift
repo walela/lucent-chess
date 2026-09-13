@@ -49,11 +49,14 @@ struct RootView: View {
                 showingSourceImport = true
             }
         )
-        .disabled(library.isImportingFiles)
-        .overlay {
+        .overlay(alignment: .bottomTrailing) {
             if library.isImportingFiles {
-                ProgressView(library.fileImportProgress)
-                    .padding(24)
+                VStack(spacing: 14) {
+                    ProgressView(library.fileImportProgress)
+                    Button("Cancel Import") { library.cancelImport() }
+                }
+                    .padding(20)
+                    .frame(maxWidth: 420)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             }
         }
@@ -68,7 +71,7 @@ struct RootView: View {
                 let destination = importDestinationFolderID
                 importDestinationFolderID = nil
                 Task {
-                    if await library.importFiles(from: urls, folderID: destination) { openSelectedGame() }
+                    _ = await library.importFiles(from: urls, folderID: destination)
                 }
             case let .failure(error):
                 library.lastError = error.localizedDescription
@@ -104,7 +107,7 @@ struct RootView: View {
         .onOpenURL { url in
             guard ChessBaseImportService.fileExtensions.contains(url.pathExtension.lowercased()) else { return }
             Task {
-                if await library.importFiles(from: [url]) { openSelectedGame() }
+                _ = await library.importFiles(from: [url])
             }
         }
     }
@@ -136,6 +139,13 @@ struct GameWindowRoot: View {
             if let study = library.selectedStudy {
                 StudyWorkspace(study: study, inspectorTab: $inspectorTab, showDashboard: showLibrary)
                     .id(ObjectIdentifier(study))
+                    .disabled(library.isImportingFiles)
+                    .overlay(alignment: .top) {
+                        if library.isImportingFiles {
+                            Text("Database import in progress. Editing resumes when it finishes.")
+                                .font(.caption).padding(8).background(.regularMaterial, in: Capsule())
+                        }
+                    }
             } else {
                 ContentUnavailableView(
                     "No game selected",

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.18.0 — 2026-09-13
+
+- Imports ChessBase and PGN databases into their own named collections by default.
+- Indexes database headers in SQLite and keeps source game data on disk; move trees are decoded only when opening a game.
+- Adds indexed search and paged browsing with 200 rows per page, cached collection counts, import progress, and cancellation.
+- Replaces whole-library JSON rewrites with per-game SQLite saves. Existing libraries migrate automatically, with the original JSON retained as a backup.
+- Gives previously imported ChessBase games a named collection during migration while preserving games already filed elsewhere.
+
 ## 1.17.1 — 2026-09-13
 
 - Fixes imports failing on multiline comments and preserves Windows-1252 annotation text in the reader JSON.

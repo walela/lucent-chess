@@ -32,3 +32,11 @@ Classic unencrypted CBV/CBH only. Null-move and Chess960 games are rejected.
 Guiding text records are counted as skipped. Multimedia, training overlays,
 extra ChessBase tags and proprietary annotations are not imported.
 Windows-1252 text is decoded; other legacy code pages are not detected.
+
+Large-library indexing uses `--index database.cbh catalog.sqlite source-id` to
+read fixed-size CBH, player and tournament headers directly, without decoding
+move or annotation streams. `--index-pgn source.pgn catalog.sqlite source-id`
+streams PGN headers and records byte ranges. Both store metadata in an existing
+SQLite catalog transaction and report progress; interruption rolls back that
+source's index. The normal bounded reader invocation remains the path for opening
+an individual CBH game. Catalog-owned source files are copied before indexing.

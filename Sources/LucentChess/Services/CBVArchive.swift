@@ -83,6 +83,71 @@ enum CBVArchive {
         return files
     }
 
+    // Large archives are decoded one block at a time; no full archive or companion file is held in RAM.
+    static func extractFile(_ source: URL, to directory: URL,
+                            progress: @Sendable (String) -> Void = { _ in }) throws -> [URL] {
+        let handle = try FileHandle(forReadingFrom: source)
+        defer { try? handle.close() }
+        func take(_ count: Int) throws -> [UInt8] {
+            let data = try handle.read(upToCount: count) ?? Data()
+            guard data.count == count else { throw ChessBaseImportError.invalidArchive }
+            return Array(data)
+        }
+        var header = ByteReader(bytes: try take(8))
+        guard try header.take(2) == [8,0] else { throw ChessBaseImportError.unsupportedFormat }
+        let count = try header.little(2), entrySize = try header.little(1)
+        guard count > 0, count <= 1024, entrySize >= 140 else { throw ChessBaseImportError.invalidArchive }
+        var entries: [(String, Int, Int)] = [], names = Set<String>()
+        var required = 0
+        for _ in 0..<count {
+            var item = ByteReader(bytes: try take(entrySize))
+            let raw = try item.take(132).prefix { $0 != 0 }
+            guard let decoded = String(data: Data(raw), encoding: .windowsCP1252), !decoded.isEmpty else { throw ChessBaseImportError.invalidArchive }
+            let name = decoded.replacingOccurrences(of: "\\", with: "/")
+            let parts = name.split(separator: "/", omittingEmptySubsequences: false)
+            guard !name.contains(":"), parts.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." }), names.insert(name.lowercased()).inserted else { throw ChessBaseImportError.invalidArchive }
+            let compressed = try item.little(4), expanded = try item.little(4)
+            required += expanded; entries.append((name,compressed,expanded))
+        }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let space = try FileManager.default.attributesOfFileSystem(forPath: directory.path)
+        if let free = space[.systemFreeSize] as? NSNumber, free.int64Value < Int64(required) {
+            throw CatalogError.message("There is not enough free disk space to unpack this database.")
+        }
+        var files: [URL] = []
+        for (name, compressed, expanded) in entries {
+            try Task.checkCancellation()
+            progress("Unpacking \(name)…")
+            let file = directory.appendingPathComponent(name)
+            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            guard FileManager.default.createFile(atPath: file.path, contents: nil) else { throw ChessBaseImportError.invalidArchive }
+            let output = try FileHandle(forWritingTo: file)
+            do {
+                var consumed = 0, written = 0
+                while consumed < compressed {
+                    try Task.checkCancellation()
+                    guard compressed - consumed >= 4 else { throw ChessBaseImportError.invalidArchive }
+                    var blockHeader = ByteReader(bytes: try take(4))
+                    let length = try blockHeader.little(2)
+                    guard length > 0, length <= compressed - consumed - 4 else { throw ChessBaseImportError.invalidArchive }
+                    var block = ByteReader(bytes: try take(length))
+                    let flags = try block.little(1)
+                    guard flags <= 3 else { throw ChessBaseImportError.invalidArchive }
+                    var bytes = try block.take(block.remaining)
+                    if flags & 2 != 0 { bytes = try decodeHuffman(bytes) }
+                    if flags & 1 != 0 { bytes = try decompress(bytes, limit: min(expanded-written,64*1024*1024)) }
+                    guard bytes.count <= expanded-written else { throw ChessBaseImportError.invalidArchive }
+                    try output.write(contentsOf: Data(bytes)); written += bytes.count; consumed += 4 + length
+                }
+                guard consumed == compressed, written == expanded else { throw ChessBaseImportError.invalidArchive }
+                try output.close()
+            } catch { try? output.close(); throw error }
+            files.append(file)
+        }
+        guard (try handle.read(upToCount: 1) ?? Data()).isEmpty else { throw ChessBaseImportError.invalidArchive }
+        return files
+    }
+
     private static func decompress(_ bytes: [UInt8], limit: Int) throws -> [UInt8] {
         var input = ByteReader(bytes: bytes)
         var result: [UInt8] = []

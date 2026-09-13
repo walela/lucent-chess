@@ -107,6 +107,7 @@ struct Date {
 };
 
 struct GameReturnValue {
+    unsigned fullMoves = 0;
 	std::vector<AnnotatedMove> annotatedMoves;
 	std::vector<Tag> tags;
 	Date gameDate;

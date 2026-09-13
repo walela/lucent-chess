@@ -19,7 +19,8 @@ let package = Package(
             path: "Tools/ChessBaseReader",
             exclude: ["README.md", "libcbh/README.md", "libcbh/LICENSE"],
             sources: ["main.cpp", "libcbh/src"],
-            cxxSettings: [.headerSearchPath("libcbh/include"), .headerSearchPath("libcbh/src")]
+            cxxSettings: [.headerSearchPath("libcbh/include"), .headerSearchPath("libcbh/src")],
+            linkerSettings: [.linkedLibrary("sqlite3")]
         ),
         .testTarget(
             name: "LucentChessTests",
