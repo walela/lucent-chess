@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 PROJECT_DIR=${0:A:h:h}
-CHECK_DIR="$PROJECT_DIR/.build-local/catalog-checks"
+CHECK_DIR="$PROJECT_DIR/.build-local/interactive-bench"
 mkdir -p "$CHECK_DIR"
 SDK_DIR=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
 READER_DIR="$PROJECT_DIR/Tools/ChessBaseReader"
@@ -12,5 +12,5 @@ CLANG_MODULE_CACHE_PATH="$PROJECT_DIR/.build-local/clang" swiftc -interface-comp
  "$PROJECT_DIR/Sources/LucentChess/Services/PGNService.swift" "$PROJECT_DIR/Sources/LucentChess/Services/CanonicalGameImportService.swift" \
  "$PROJECT_DIR/Sources/LucentChess/Services/LibraryStore.swift" "$PROJECT_DIR/Sources/LucentChess/Services/CBVArchive.swift" \
  "$PROJECT_DIR/Sources/LucentChess/Services/ChessBaseImportService.swift" "$PROJECT_DIR/Sources/LucentChess/Services/DatabaseCatalog.swift" "$PROJECT_DIR/Sources/LucentChess/Services/LocalCatalog.swift" "$PROJECT_DIR/Sources/LucentChess/Services/InteractiveCatalogService.swift" "$PROJECT_DIR/Sources/LucentChess/Services/CatalogFilter.swift" "$PROJECT_DIR/Sources/LucentChess/Services/PositionSearchService.swift" "$PROJECT_DIR/Sources/LucentChess/Services/PGNPositionScanner.swift" \
- "$PROJECT_DIR/Sources/LucentChess/Services/IndexedDatabaseImport.swift" "$PROJECT_DIR/scripts/CatalogChecks.swift" -o "$CHECK_DIR/CatalogChecks"
-"$CHECK_DIR/CatalogChecks" "$PROJECT_DIR/Tests/Fixtures/ChessBase" "$@"
+ "$PROJECT_DIR/Sources/LucentChess/Services/IndexedDatabaseImport.swift" "$PROJECT_DIR/scripts/InteractiveBench.swift" -o "$CHECK_DIR/InteractiveBench"
+"$CHECK_DIR/InteractiveBench" "$@"

@@ -1,5 +1,8 @@
 # Reference database performance review — 1.19.0
 
+Historical measurements: the scan architecture below is superseded in 1.20.0 by
+[prepared exact position and metadata indexes](Interactive-Database-Architecture.md).
+
 Measured on the development Mac, 14 September 2026. This is a first pass at
 reference search, not a persistent index of every position in every game.
 

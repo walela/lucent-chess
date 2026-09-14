@@ -7,7 +7,7 @@ import Foundation
         let root=URL(fileURLWithPath:CommandLine.arguments[2])
         try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
         let input=root.appendingPathComponent("Sample.pgn")
-        let previews=try sample.page(CatalogRequest()).games.prefix(64)
+        let previews=try sample.sqliteOraclePage(CatalogRequest()).games.prefix(64)
         var games:[ChessStudy]=[]
         for preview in previews {
             if let game=try? sample.load(preview.id) {games.append(game)}

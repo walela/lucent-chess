@@ -31,6 +31,7 @@
 #include "error.h"
 #include "interface.h"
 #include <vector>
+#include <functional>
 
 /**
  * This class implements a CBG game decoder that invokes the appropriate member
@@ -43,6 +44,8 @@ public:
 
 	bool configureMatch(const std::string& fen);
 	int matchRecord(uint32_t offset);
+	// Enumerates the same first-child main line used by the full decoder.
+	int visitMainline(uint32_t offset, const std::function<void(const Position&, uint32_t)>& visitor);
 	errorT open() override;
 	errorT flush() override;
 

@@ -10,6 +10,7 @@ struct DatabaseGameReference: Codable, Sendable {
 struct CatalogCursor: Hashable, Sendable {
     let value: String
     let id: String
+    var rawValue: Data? = nil
 }
 
 struct CatalogPage: @unchecked Sendable {
@@ -19,6 +20,7 @@ struct CatalogPage: @unchecked Sendable {
 }
 
 struct CatalogRequest: Hashable, Sendable {
+    var localOnly = false
     var revision = 0
     var contentRevision = ""
     var folder: String? = nil
@@ -41,6 +43,7 @@ struct CatalogSource: Sendable {
     let name: String
     let folder: String?
     let count: Int
+    var hash: String? = nil
 }
 
 // Connections are confined to each operation. WAL allows paged readers while an import is indexing.
@@ -67,6 +70,7 @@ final class DatabaseCatalog: @unchecked Sendable {
         for (name, definition) in [("white_elo", "TEXT"), ("black_elo", "TEXT"), ("elo_indexed", "INTEGER NOT NULL DEFAULT 0")] where !names.contains(name) {
             try db.exec("ALTER TABLE games ADD COLUMN \(name) \(definition)")
         }
+        try db.exec(Self.localSchema)
     }
 
     static let schema = """
@@ -159,6 +163,7 @@ final class DatabaseCatalog: @unchecked Sendable {
                 try query.bind([.text(game.id.uuidString), .blob(encoder.encode(game)), .text(game.white), .text(game.black), .text(game.event), .text(game.title), .text(game.site ?? ""), .number(game.date.timeIntervalSince1970), .text(game.result), .int(moveCount), .text(round), .text(players), .text(roundSort), .optional(game.folderID?.uuidString), .optional(game.sourceName), .optional(game.filePath), .optional(game.sourceURL), .optional(game.starterCollectionID), .int(game.dirtyState == true ? 1 : 0), .number(game.modifiedAt.timeIntervalSince1970), .number(game.createdAt.timeIntervalSince1970), game.lastSavedAt.map { .number($0.timeIntervalSince1970) } ?? .null, .optional(fingerprints[game.id.uuidString]), .optional(game.whiteElo), .optional(game.blackElo)])
                 try query.run(); query.reset()
                 if sqlite3_changes(db.handle) > 0 {
+                    try Self.updateLocalPositions(game,db:db)
                     changedFolders.insert(game.folderID?.uuidString ?? "")
                     if let oldFolder { changedFolders.insert(oldFolder) }
                 }
@@ -187,7 +192,16 @@ final class DatabaseCatalog: @unchecked Sendable {
     }
 
     func page(_ request: CatalogRequest) throws -> CatalogPage {
+        guard request.localOnly else {throw CatalogError.message("Imported databases must use InteractiveCatalogService.")}
+        return try sqliteOraclePage(request)
+    }
+
+    // Retained as an independent differential-test oracle for legacy catalogs.
+    // Production callers are fenced into the prepared service or local headers.
+    func sqliteOraclePage(_ request: CatalogRequest) throws -> CatalogPage {
+        try request.validateCursor()
         let db = try SQLConnection(url)
+        let table = request.localOnly ? "local_headers AS games" : "games"
         let column: String
         let indexName: String
         let numericSort: Bool
@@ -196,23 +210,23 @@ final class DatabaseCatalog: @unchecked Sendable {
             indexName = request.sort == "whiteElo" ? "white_elo" : "black_elo"
             column = "CAST(coalesce(\(indexName),'0') AS INTEGER)"
             numericSort = true
-            try prepareRatingSort(request)
+            if !request.localOnly { try prepareRatingSort(request) }
         case "players", "event", "result", "moves":
             column = request.sort; indexName = column; numericSort = column == "moves"
         case "round": column = "round_sort"; indexName = column; numericSort = false
         default: column = "date"; indexName = column; numericSort = true
         }
-        if indexName != "date" && indexName != "players" {
+        if !request.localOnly && indexName != "date" && indexName != "players" {
             // Build additional sort indexes only when requested, on the query worker.
             try db.exec("CREATE INDEX IF NOT EXISTS games_\(indexName) ON games(\(column),id); CREATE INDEX IF NOT EXISTS games_folder_\(indexName) ON games(folder,\(column),id);")
         }
         try request.filter.validate()
-        if request.filter.hasRatings && request.sort != "whiteElo" && request.sort != "blackElo" { try prepareRatingSort(request) }
+        if !request.localOnly && request.filter.hasRatings && request.sort != "whiteElo" && request.sort != "blackElo" { try prepareRatingSort(request) }
         var (conditions, values, textMatches) = try predicate(request, db: db)
         let tokens = request.search.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
         let baseWhere = conditions.isEmpty ? "" : " WHERE " + conditions.joined(separator: " AND ")
         let denseSearch = (textMatches ?? 0) > 10_000
-        let ratingIndex = request.positionSearchKey == nil && textMatches == nil && request.filter.hasRatings
+        let ratingIndex = !request.localOnly && request.positionSearchKey == nil && textMatches == nil && request.filter.hasRatings
             ? try prepareRatingFilterIndex(request, db: db) : nil
         var countRequest=request;countRequest.revision=0;countRequest.contentRevision="";countRequest.cursor=nil;countRequest.sort="date";countRequest.ascending=false
         let cacheKey=CatalogCountKey(request:countRequest,version:try contentVersion(for: request) + (request.recent ? ":\(Int(Date().timeIntervalSince1970/30))" : ""))
@@ -220,14 +234,14 @@ final class DatabaseCatalog: @unchecked Sendable {
         let count: Int
         if let cachedCount { count=cachedCount }
         else if request.positionSearchKey != nil { count=textMatches ?? 0 }
-        else if let textMatches, !request.filter.hasRanges, request.positionSearchKey == nil, !request.unfiled, !request.recent, request.result == "all", request.file == "all" {
+        else if let textMatches, !request.filter.hasRanges, request.filter.boardFEN.isEmpty, request.positionSearchKey == nil, !request.unfiled, !request.recent, request.result == "all", request.file == "all" {
             count = textMatches
-        } else if !request.filter.hasHeaders && request.positionSearchKey == nil && !request.recent && request.result == "all" && request.file == "all" && tokens.isEmpty {
+        } else if !request.localOnly && !request.filter.hasHeaders && request.positionSearchKey == nil && !request.recent && request.result == "all" && request.file == "all" && tokens.isEmpty {
             let counts = try counts()
             count = request.folder.map { counts[$0] ?? 0 } ?? (request.unfiled ? counts[""] ?? 0 : counts.values.reduce(0,+))
         } else {
-            let countIndex = textMatches != nil && !denseSearch ? " NOT INDEXED" : (ratingIndex.map { " INDEXED BY \($0)" } ?? (denseSearch && (request.folder != nil || request.unfiled) && !request.recent && request.result == "all" && request.file == "all" ? " INDEXED BY games_folder_date" : ""))
-            let q = try db.prepare("SELECT count(*) FROM games" + countIndex + baseWhere); try q.bind(values)
+            let countIndex = request.localOnly ? "" : (textMatches != nil && !denseSearch ? " NOT INDEXED" : (ratingIndex.map { " INDEXED BY \($0)" } ?? (denseSearch && (request.folder != nil || request.unfiled) && !request.recent && request.result == "all" && request.file == "all" ? " INDEXED BY games_folder_date" : "")))
+            let q = try db.prepare("SELECT count(*) FROM " + table + countIndex + baseWhere); try q.bind(values)
             count = try q.next() ? q.int(0) : 0
         }
         cacheLock.withLock {
@@ -236,15 +250,15 @@ final class DatabaseCatalog: @unchecked Sendable {
         }
         if let cursor = request.cursor {
             conditions.append("(\(column),id) \(request.ascending ? ">" : "<") (?,?)")
-            values.append(numericSort ? .number(Double(cursor.value) ?? 0) : .text(cursor.value))
+            values.append(numericSort ? (indexName == "date" ? .number(Double(cursor.value) ?? 0) : .int(Int(cursor.value) ?? 0)) : (cursor.rawValue.map(SQLValue.rawText) ?? .text(cursor.value)))
             values.append(.text(cursor.id))
         }
         let whereSQL = conditions.isEmpty ? "" : " WHERE " + conditions.joined(separator: " AND ")
         let direction = request.ascending ? "ASC" : "DESC"
         // For broad matches, scan the ordering index and test the materialized FTS row-id set.
         // Otherwise SQLite fetches and sorts millions of full rows before returning one page.
-        let orderIndex = denseSearch || ratingIndex != nil ? " INDEXED BY games_\((request.folder != nil || request.unfiled) ? "folder_" : "")\(indexName)" : (textMatches != nil ? " NOT INDEXED" : "")
-        let query = try db.prepare("SELECT id,source_id,record,white,black,event,title,site,date,result,moves,round,folder,source_name,file_path,source_url,starter,dirty,modified,created,saved,\(column),white_elo,black_elo,elo_indexed FROM games" + orderIndex + whereSQL + " ORDER BY \(column) \(direction),id \(direction) LIMIT \(Self.pageSize + 1)")
+        let orderIndex = request.localOnly ? "" : (denseSearch || ratingIndex != nil ? " INDEXED BY games_\((request.folder != nil || request.unfiled) ? "folder_" : "")\(indexName)" : (textMatches != nil ? " NOT INDEXED" : ""))
+        let query = try db.prepare("SELECT id,source_id,record,white,black,event,title,site,date,result,moves,round,folder,source_name,file_path,source_url,starter,dirty,modified,created,saved,\(column),white_elo,black_elo,elo_indexed FROM " + table + orderIndex + whereSQL + " ORDER BY \(column) \(direction),id \(direction) LIMIT \(Self.pageSize + 1)")
         try query.bind(values)
         var games: [ChessStudy] = []; var missingRatings: [ChessStudy] = []; var last: CatalogCursor?
         while try query.next() {
@@ -255,7 +269,7 @@ final class DatabaseCatalog: @unchecked Sendable {
             }
             let game = try Self.preview(query)
             if query.int(24) == 0 { missingRatings.append(game) }
-            games.append(game); last = CatalogCursor(value: query.text(21), id: game.id.uuidString)
+            games.append(game); last = CatalogCursor(value: indexName == "date" ? String(query.double(21)) : query.text(21), id: game.id.uuidString, rawValue: numericSort ? nil : query.data(21))
         }
         query.reset()
         try hydrateRatings(missingRatings)
@@ -281,6 +295,11 @@ final class DatabaseCatalog: @unchecked Sendable {
             return (conditions,values,count)
         }
         var conditions: [String] = []; var values: [SQLValue] = []
+        let ftsTable = request.localOnly ? "local_fts" : "games_fts"
+        if request.localOnly && !request.filter.boardFEN.isEmpty {
+            conditions.append("id IN (SELECT game_id FROM local_positions WHERE board=?)")
+            values.append(.text(try CatalogFilter.boardKey(request.filter.boardFEN)))
+        }
         if let folder = request.folder { conditions.append("folder=?"); values.append(.text(folder)) }
         if request.unfiled { conditions.append("folder IS NULL") }
         if request.recent { conditions.append("modified>?"); values.append(.number(Date().addingTimeInterval(-14 * 86400).timeIntervalSince1970)) }
@@ -302,7 +321,7 @@ final class DatabaseCatalog: @unchecked Sendable {
             text.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.map { "\"\($0)\"*" }.joined(separator: " AND ")
         }
         var expressions: [String] = []
-        if !tokens.isEmpty { expressions.append(terms(request.search)) }
+        if !tokens.isEmpty { expressions.append("{white black event title source_name} : (\(terms(request.search)))") }
         for (column, text) in [("white",request.filter.white),("black",request.filter.black),("event",request.filter.tournament)] {
             let query = terms(text)
             if !query.isEmpty { expressions.append("\(column) : (\(query))") }
@@ -316,10 +335,10 @@ final class DatabaseCatalog: @unchecked Sendable {
         var textMatches: Int?
         if !expressions.isEmpty {
             if countTextMatches {
-            let textKey=try contentVersion(for: request)+"|"+matchExpression
+            let textKey=try contentVersion(for: request)+"|"+ftsTable+"|"+matchExpression
             if let cached=cacheLock.withLock({textCountCache[textKey]}) {textMatches=cached}
             else {
-                let fts=try db.prepare("SELECT count(*) FROM games_fts WHERE games_fts MATCH ?")
+                let fts=try db.prepare("SELECT count(*) FROM \(ftsTable) WHERE \(ftsTable) MATCH ?")
                 try fts.bind([.text(matchExpression)])
                 textMatches=try fts.next() ? fts.int(0) : 0
                 cacheLock.withLock {
@@ -329,7 +348,7 @@ final class DatabaseCatalog: @unchecked Sendable {
             }
             }
             if textMatches == 0 { conditions.append("0") }
-            conditions.append("rowid IN (SELECT rowid FROM games_fts WHERE games_fts MATCH ?)")
+            conditions.append("rowid IN (SELECT rowid FROM \(ftsTable) WHERE \(ftsTable) MATCH ?)")
             values.append(.text(matchExpression))
         }
         for (field, low, high) in [("white_elo",request.filter.whiteMin,request.filter.whiteMax),("black_elo",request.filter.blackMin,request.filter.blackMax)] {
@@ -395,7 +414,7 @@ final class DatabaseCatalog: @unchecked Sendable {
         }
     }
 
-    private static func preview(_ query: SQLStatement) throws -> ChessStudy {
+    static func preview(_ query: SQLStatement) throws -> ChessStudy {
         guard let id = UUID(uuidString: query.text(0)) else { throw CatalogError.message("Invalid game identifier in the library index.") }
         let game = ChessStudy(id: id, title: query.text(6), white: query.text(3), black: query.text(4), event: query.text(5), site: query.text(7), round: query.text(11), date: Date(timeIntervalSince1970: query.double(8)), result: query.text(9))
         game.folderID = query.optionalText(12).flatMap(UUID.init(uuidString:))
@@ -448,7 +467,7 @@ final class DatabaseCatalog: @unchecked Sendable {
     }
 
     // Older catalogs acquire ratings only for the visible page. Read metadata, never move trees.
-    private func hydrateRatings(_ games: [ChessStudy], requireCache: Bool = false) throws {
+    func hydrateRatings(_ games: [ChessStudy], requireCache: Bool = false) throws {
         guard !games.isEmpty else { return }
         struct Ratings: Decodable { var whiteElo: String?; var blackElo: String? }
         let db = try SQLConnection(url)
@@ -568,12 +587,17 @@ final class DatabaseCatalog: @unchecked Sendable {
         return folders
     }
 
+    private static func finishInteractiveBulk(_ db: SQLConnection) throws {
+        try db.exec("DELETE FROM metadata WHERE key='interactiveBulk'; DELETE FROM imported_overrides; INSERT OR REPLACE INTO metadata VALUES('interactiveLayout',lower(hex(randomblob(16))))")
+    }
+
     func removeSource(_ id: String) throws {
         let db = try SQLConnection(url); try db.exec("BEGIN IMMEDIATE")
         do {
+            try db.exec("INSERT OR REPLACE INTO metadata VALUES('interactiveBulk','1')")
             for sql in ["DELETE FROM games WHERE source_id=?", "DELETE FROM sources WHERE id=?"] {
                 let q = try db.prepare(sql); try q.bind([.text(id)]); try q.run()
-            }; try db.exec("COMMIT")
+            }; try Self.finishInteractiveBulk(db); try db.exec("COMMIT")
         } catch { try? db.exec("ROLLBACK"); throw error }
     }
 
@@ -596,8 +620,10 @@ final class DatabaseCatalog: @unchecked Sendable {
     func removeFolder(_ id: UUID) throws {
         let db = try SQLConnection(url);try db.exec("BEGIN IMMEDIATE")
         do {
+            try db.exec("INSERT OR REPLACE INTO metadata VALUES('interactiveBulk','1')")
             let q=try db.prepare("UPDATE games SET folder=NULL WHERE folder=?")
             try q.bind([.text(id.uuidString)]);try q.run()
+            try Self.finishInteractiveBulk(db)
             try Self.invalidatePositionSearches(db,folders:[id.uuidString,""]);try db.exec("COMMIT")
         } catch {try? db.exec("ROLLBACK");throw error}
     }
@@ -620,7 +646,7 @@ enum CatalogError: LocalizedError {
 }
 
 enum SQLValue {
-    case text(String), blob(Data), number(Double), int(Int), null
+    case rawText(Data), text(String), blob(Data), number(Double), int(Int), null
     static func optional(_ value: String?) -> SQLValue { value.map(SQLValue.text) ?? .null }
 }
 final class SQLConnection {
@@ -661,6 +687,7 @@ final class SQLStatement {
             let position = Int32(index + 1)
             switch value {
             case let .text(text): result = sqlite3_bind_text(handle, position, text, -1, transient)
+            case let .rawText(data): result = data.isEmpty ? sqlite3_bind_text(handle, position, "", 0, transient) : data.withUnsafeBytes { sqlite3_bind_text(handle, position, $0.baseAddress?.assumingMemoryBound(to:CChar.self), Int32(data.count), transient) }
             case let .blob(data): result = data.withUnsafeBytes { sqlite3_bind_blob(handle, position, $0.baseAddress, Int32(data.count), transient) }
             case let .number(number): result = sqlite3_bind_double(handle, position, number)
             case let .int(number): result = sqlite3_bind_int64(handle, position, Int64(number))
@@ -677,7 +704,11 @@ final class SQLStatement {
     }
     func run() throws { _ = try next() }
     func isNull(_ column: Int32) -> Bool { sqlite3_column_type(handle, column) == SQLITE_NULL }
-    func text(_ column: Int32) -> String { sqlite3_column_text(handle,column).map { String(cString:$0) } ?? "" }
+    func text(_ column: Int32) -> String {
+        guard let bytes=sqlite3_column_text(handle,column) else {return ""}
+        let data=Data(bytes:bytes,count:Int(sqlite3_column_bytes(handle,column)))
+        return String(data:data,encoding:.utf8) ?? String(data:data,encoding:.windowsCP1252) ?? String(decoding:data,as:UTF8.self)
+    }
     func optionalText(_ column: Int32) -> String? { isNull(column) ? nil : text(column) }
     func int(_ column: Int32) -> Int { Int(sqlite3_column_int64(handle,column)) }
     func double(_ column: Int32) -> Double { sqlite3_column_double(handle,column) }

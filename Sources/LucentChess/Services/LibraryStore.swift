@@ -137,13 +137,7 @@ final class LibraryStore: ObservableObject {
     func page(_ request: CatalogRequest, progress: @escaping @Sendable (String) -> Void = { _ in }) async throws -> CatalogPage {
         guard let catalog else { throw CatalogError.message("The library index is unavailable.") }
         let worker = Task.detached(priority: .userInitiated) {
-            var resolved = request
-            if !request.filter.boardFEN.isEmpty {
-                let search = try PositionSearchService.search(catalog:catalog,request:request,progress:progress)
-                resolved.positionSearchKey = search.key
-                progress(search.skipped > 0 ? "\(search.skipped.formatted()) unreadable games were skipped." : (search.cached ? "Cached board search" : "Board search complete"))
-            }
-            return try catalog.page(resolved)
+            return try InteractiveCatalogService.page(catalog:catalog,request:request,progress:progress)
         }
         return try await withTaskCancellationHandler {
             let result = try await worker.value

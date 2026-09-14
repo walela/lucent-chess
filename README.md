@@ -86,17 +86,26 @@ independent of the game inspector's current-board results. Names match word
 prefixes; unknown Elo does not satisfy a numeric range. All table columns remain
 sortable, and results load in pages of 200.
 
-Header filters use the catalog indexes. The first board search still scans the
-main lines of header-matching games; narrowing the header criteria first helps.
-The scanner handles both indexed ChessBase and PGN sources, reports progress,
-supports cancellation, and caches completed results. The game inspector waits
-briefly when scrubbing notation, cancels searches for previous positions, and
-clears stale rows. This UI uses the existing scanner; it does not yet have a
-persistent index of every position. Board matches compare exact
-piece placement and side to move, including transpositions, but ignore castling
-rights, en passant and clocks. Variations and chess variants are excluded.
+Imported databases are prepared once for interactive browsing: all eight sort
+orders and name indexes, then an exact index of every main-line position when
+board search is first used. Preparation runs in the background, survives board
+navigation, and resumes position work after an app restart. Progress is shown;
+there is no fallback to scanning the database for each new position.
 
-See [performance measurements and remaining limits](Docs/Reference-Database-Performance-Review.md).
+Queries read compressed position postings and compact metadata columns, then
+load only 200 visible rows. Saved studies update their positions incrementally.
+Moving or deleting individual imported games applies a small overlay, preserving
+the large prepared indexes. New imports and bulk collection changes rebuild the
+metadata snapshot; unchanged source positions remain reusable.
+
+Board matches compare exact piece placement and side to move, including
+transpositions, but ignore castling rights, en passant and clocks. Only main lines
+of standard chess games are indexed. Damaged games retain readable prefixes and
+are reported as incomplete coverage. Preparation requires extra disk space;
+on this Mac the 11.74-million-game source uses about 10 GiB for exact positions
+plus about 2 GiB for imported metadata.
+
+See [architecture, measurements, and remaining limits](Docs/Interactive-Database-Architecture.md).
 
 ## Your data
 
@@ -112,8 +121,7 @@ Database imports get a collection named after the file by default. New games and
 analysis drafts stay in Unfiled until explicitly filed. Editing a collection or
 indexed source game preserves the original and creates an Unfiled analysis copy.
 Only working games are decoded in memory; the browser loads 200 metadata rows at
-a time. Date and player sorts are indexed immediately; other sort indexes are
-built on first use and reused.
+a time. All column orders are prepared together and reused.
 
 ## License
 
@@ -144,4 +152,4 @@ text, not rendered overlays. Legacy CBH text uses Windows-1252.
 
 Reader provenance and local changes: [Tools/ChessBaseReader](Tools/ChessBaseReader/README.md).
 
-Checks: `./scripts/check_catalog.sh` covers indexing, paging, migration and on-demand opening; `./scripts/check_chessbase_import.sh` covers game fidelity and archive integrity. Both use temporary test libraries.
+Checks: `./scripts/check_catalog.sh` covers indexing, paging, migration and on-demand opening; `./scripts/check_chessbase_import.sh` covers game fidelity and archive integrity. Both use temporary test libraries. `./scripts/check_position_index.sh` checks corruption, crash recovery, and concurrent builders.

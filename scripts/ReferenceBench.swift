@@ -7,7 +7,7 @@ import Foundation
         let catalog = try DatabaseCatalog(url:URL(fileURLWithPath:CommandLine.arguments[1]))
         var base=CatalogRequest();base.folder=CommandLine.arguments.count>2 ? CommandLine.arguments[2] : nil
         func measure(_ name:String,_ request:CatalogRequest) throws -> CatalogPage {
-            let start=Date();let result=try catalog.page(request)
+            let start=Date();let result=try catalog.sqliteOraclePage(request)
             print("\(name): \(String(format:"%.4f",Date().timeIntervalSince(start))) s, \(result.count) matches, \(result.games.count) rows")
             return result
         }

@@ -81,10 +81,14 @@ struct CatalogChecks {
         // Simulate the previously shipped SQLite schema, then upgrade it in place.
         do {
             let old = try SQLConnection(catalog.url)
+            for trigger in ["game_local_insert","game_local_update","game_local_clear","game_local_delete","imported_layout_update","imported_layout_delete","imported_folder_update"] {
+                try old.exec("DROP TRIGGER IF EXISTS \(trigger)")
+            }
+            try old.exec("DROP TABLE local_headers; DROP TABLE local_positions; DROP TABLE local_fts; DELETE FROM metadata WHERE key='localHeadersReady'")
             for name in ["white_elo", "black_elo", "elo_indexed"] { try old.exec("ALTER TABLE games DROP COLUMN \(name)") }
         }
         let upgraded = try DatabaseCatalog(url: catalog.url)
-        let upgradedPage = try upgraded.page(request)
+        let upgradedPage = try upgraded.sqliteOraclePage(request)
         try check("existing PGN catalogs recover ratings from headers on a bounded page") {
             upgradedPage.games.contains { $0.black == rated.black && $0.whiteElo == "2712" && $0.blackElo == "2638" && $0.root.children.isEmpty }
         }
@@ -107,7 +111,7 @@ struct CatalogChecks {
             let db = try SQLConnection(migrated.catalog!.url)
             try db.exec("UPDATE games SET white_elo=NULL,black_elo=NULL,elo_indexed=0")
         }
-        let oldPayloadPage = try migrated.catalog!.page(CatalogRequest())
+        let oldPayloadPage = try migrated.catalog!.sqliteOraclePage(CatalogRequest())
         try check("existing saved games recover both ratings without rebuilding move trees") {
             oldPayloadPage.games.first?.whiteElo == "2712" && oldPayloadPage.games.first?.blackElo == "2638" && oldPayloadPage.games.first?.root.children.isEmpty == true
         }
@@ -158,7 +162,7 @@ struct CatalogChecks {
                 request.sort = field; request.ascending = ascending
                 var result: [ChessStudy] = []
                 repeat {
-                    let page = try catalog.page(request); result += page.games; request.cursor = page.next
+                    let page = try catalog.sqliteOraclePage(request); result += page.games; request.cursor = page.next
                 } while request.cursor != nil
                 let ratings = result.map { Int((field == "whiteElo" ? $0.whiteElo : $0.blackElo) ?? "") ?? 0 }
                 let expected = ratingGames.map { Int((field == "whiteElo" ? $0.whiteElo : $0.blackElo) ?? "") ?? 0 }.sorted(by: ascending ? (<) : (>))
@@ -172,7 +176,7 @@ struct CatalogChecks {
         let expectedRated=Set(ratingGames.filter { (Int($0.whiteElo ?? "") ?? 0)>=1000 && (Int($0.blackElo ?? "") ?? 0)>=1000 }.map(\.id))
         var filteredIDs=Set<UUID>()
         repeat {
-            let page=try catalog.page(ratingFilter)
+            let page=try catalog.sqliteOraclePage(ratingFilter)
             try check("covering Elo counts stay exact across pages") {page.count==expectedRated.count}
             filteredIDs.formUnion(page.games.map(\.id));ratingFilter.cursor=page.next
         } while ratingFilter.cursor != nil
@@ -200,21 +204,21 @@ struct CatalogChecks {
         for game in [alpha,beta,unknown] {game.folderID=filterFolder}
         try catalog.save([alpha,beta,unknown])
         var filters=CatalogRequest();filters.folder=filterFolder.uuidString;filters.filter.player="Alpha"
-        try check("player search matches either color with accent normalization") {try catalog.page(filters).count==3}
+        try check("player search matches either color with accent normalization") {try catalog.sqliteOraclePage(filters).count==3}
         filters.filter.white="Alpha";filters.filter.black="Beta";filters.filter.tournament="City";filters.filter.whiteMin=2600;filters.filter.whiteMax=2800;filters.filter.blackMax=1000;filters.filter.yearMin=2021;filters.filter.yearMax=2021;filters.result="whiteWin"
-        try check("player colors, Elo bands, tournament, year endpoints and result combine correctly") {try catalog.page(filters).games.map(\.id)==[alpha.id]}
+        try check("player colors, Elo bands, tournament, year endpoints and result combine correctly") {try catalog.sqliteOraclePage(filters).games.map(\.id)==[alpha.id]}
         filters.filter=CatalogFilter();filters.result="all";filters.filter.blackMax=3000
-        try check("Elo bounds exclude unrated players") {try catalog.page(filters).count==2}
+        try check("Elo bounds exclude unrated players") {try catalog.sqliteOraclePage(filters).count==2}
         filters.filter=CatalogFilter();filters.filter.yearMin=2022
-        try check("year lower bound includes January first and excludes prior December") {try catalog.page(filters).games.map(\.id)==[beta.id]}
+        try check("year lower bound includes January first and excludes prior December") {try catalog.sqliteOraclePage(filters).games.map(\.id)==[beta.id]}
         filters.filter.player="Alpha' OR 1=1 --"
-        try check("filter values remain data, never SQL") {try catalog.page(filters).count==0}
+        try check("filter values remain data, never SQL") {try catalog.sqliteOraclePage(filters).count==0}
 
         var localCalendar=Calendar(identifier:.gregorian);localCalendar.timeZone = .current
         let januaryFirst=ChessStudy(white:"Local New Year",date:localCalendar.date(from:DateComponents(year:2024,month:1,day:1))!)
         januaryFirst.folderID=filterFolder;try catalog.save([januaryFirst])
         var localYear=CatalogRequest();localYear.folder=filterFolder.uuidString;localYear.filter.yearMin=2024;localYear.filter.yearMax=2024
-        try check("year filters include January first in the table's local calendar") {try catalog.page(localYear).games.map(\.id)==[januaryFirst.id]}
+        try check("year filters include January first in the table's local calendar") {try catalog.sqliteOraclePage(localYear).games.map(\.id)==[januaryFirst.id]}
 
         var rejectedSpace=false
         do {try IndexedDatabaseImport.validateIndexSpace(gameCount:10_000_000,availableBytes:2_000_000_000)} catch {rejectedSpace=true}
@@ -253,8 +257,12 @@ struct CatalogChecks {
             var boardRequest=CatalogRequest();boardRequest.folder=folder.id.uuidString;boardRequest.filter.boardFEN=target.positionFEN
             let result=try await library.page(boardRequest)
             try check("native main-line board matching agrees with decoded fixture \(targetGame.black)") {Set(result.games.map(\.black))==expectedIDs}
-            let cached=try PositionSearchService.search(catalog:catalog,request:boardRequest,progress:{_ in})
-            try check("identical completed board search reuses its cached result") {cached.cached && cached.skipped==0}
+            let state=try InteractiveCatalogService.state(catalog)
+            let metadata=try InteractiveCatalogService.prepareMetadata(catalog:catalog,state:state,progress:{_ in})
+            let before=try FileManager.default.attributesOfItem(atPath:metadata.appendingPathComponent("catalog.bin").path)[.modificationDate] as? Date
+            let again=try await library.page(boardRequest)
+            let after=try FileManager.default.attributesOfItem(atPath:metadata.appendingPathComponent("catalog.bin").path)[.modificationDate] as? Date
+            try check("repeated board lookup reuses immutable preparation") {again.games.map(\.id)==result.games.map(\.id) && before==after}
         }
         // CBH serializes the main continuation inside push/pop blocks before
         // returning to the branch point for alternatives. Exercise positions
@@ -264,6 +272,21 @@ struct CatalogChecks {
         try check("annotated board-search fixture decodes completely") { annotated.skipped == 0 && annotated.games.count == 28 }
         _ = await library.importFiles(from: [variationInput])
         let annotatedFolder = library.lastImportedFolderID!.uuidString
+        let exactIndex = root.appendingPathComponent("ExactPositions", isDirectory: true)
+        func runPositionTool(_ arguments: [String]) throws {
+            let process = Process()
+            process.executableURL = try ChessBaseImportService.bundledReader()
+            process.arguments = arguments
+            process.standardOutput = FileHandle.nullDevice
+            try process.run(); process.waitUntilExit()
+            guard process.terminationStatus == 0 else { throw CatalogError.message("Position index helper failed: \(arguments.first ?? "")") }
+        }
+        try runPositionTool(["--prepare-cbh-positions", variationInput.path, exactIndex.path, "4294967295"])
+        // A completed preparation must resume without rewriting immutable parts.
+        let indexPart = exactIndex.appendingPathComponent("part-0000000000.lcpi")
+        let beforeResume = try Data(contentsOf: indexPart)
+        try runPositionTool(["--prepare-cbh-positions", variationInput.path, exactIndex.path, "4294967295"])
+        try check("completed position preparation resumes without changing the index") { try Data(contentsOf: indexPart) == beforeResume }
         var mainlineRecords: [String: Set<Int>] = [:]
         var branchTargets = Set<String>()
         for (record, game) in annotated.games.enumerated() {
@@ -285,6 +308,11 @@ struct CatalogChecks {
             let actual = Set(result.games.compactMap { $0.databaseReference?.record })
             let expected = mainlineRecords[board] ?? []
             try check("CBH branches preserve main-line matches for \(board) (expected \(expected.sorted()), got \(actual.sorted()))") { actual == expected }
+            let matchesFile = root.appendingPathComponent("position-matches.bits")
+            try runPositionTool(["--query-position-index", exactIndex.path, query.filter.boardFEN, matchesFile.path])
+            let bits = try Data(contentsOf: matchesFile)
+            let indexed = Set((0..<28).filter { bits[32 + $0 / 8] & (1 << ($0 % 8)) != 0 })
+            try check("persistent exact position index agrees with the full annotated game trees") { indexed == expected }
         }
         print("Verified \(branchTargets.count) main-line and variation positions across 28 annotated ChessBase games.")
 
@@ -301,11 +329,24 @@ struct CatalogChecks {
             let file=root.appendingPathComponent("Scanner.pgn")
             try text.write(to:file,atomically:true,encoding:.utf8)
             let decoded=try PGNService.parse(text.replacingOccurrences(of:"e5$1",with:"e5 $1"))[0]
+            let rangeCatalog = root.appendingPathComponent("PGNRange-\(UUID()).sqlite")
+            do {
+                let db = try SQLConnection(rangeCatalog)
+                try db.exec("CREATE TABLE games(source_id TEXT,record INTEGER,record_length INTEGER,payload BLOB)")
+                let row = try db.prepare("INSERT INTO games VALUES('test',0,?,NULL)")
+                try row.bind([.int(text.utf8.count)]); try row.run()
+            }
+            let pgnIndex = root.appendingPathComponent("PGNPositions-\(UUID())")
+            try runPositionTool(["--prepare-pgn-positions", file.path, rangeCatalog.path, "test", pgnIndex.path])
             var node:MoveNode?=decoded.root,ply=0
             while let current=node {
                 let scanner=try PGNPositionScanner(path:file.path,board:CatalogFilter.boardKey(current.positionFEN))
                 let match=try scanner.match(offset:0,length:text.utf8.count)
                 try check("streaming PGN matches full decoder for special-move line at ply \(ply)") {match==ply}
+                let nativeMatches = root.appendingPathComponent("pgn-matches.bits")
+                try runPositionTool(["--query-position-index", pgnIndex.path, current.positionFEN, nativeMatches.path])
+                let nativeBits = try Data(contentsOf: nativeMatches)
+                try check("native PGN position index preserves special-move position at ply \(ply)") { nativeBits.count == 40 && nativeBits[32] == 1 && nativeBits[16] == 0 }
                 node=current.children.first;ply+=1
             }
         }
@@ -339,6 +380,12 @@ struct CatalogChecks {
         var transposed=CatalogRequest();transposed.folder=library.lastImportedFolderID!.uuidString;transposed.filter.boardFEN=transposeGames[0].currentPosition.fen
         let matches=try await library.page(transposed)
         try check("board search finds transpositions in PGN main lines and excludes variation-only positions") {Set(matches.games.map(\.white))==Set(["First","Second"])}
+        let transposedSource = try catalog.source(id: matches.games[0].databaseReference!.sourceID!)!
+        let transposedIndex = root.appendingPathComponent("PGNTranspositions")
+        try runPositionTool(["--prepare-pgn-positions", transposedSource.path, catalog.url.path, transposedSource.id, transposedIndex.path])
+        let transposedBits = root.appendingPathComponent("transposed.bits")
+        try runPositionTool(["--query-position-index", transposedIndex.path, transposed.filter.boardFEN, transposedBits.path])
+        try check("persistent PGN position index finds both move orders and excludes variation-only match") { try Data(contentsOf: transposedBits)[32] == 3 }
         let cachedBeforeEdit=try PositionSearchService.search(catalog:catalog,request:transposed,progress:{_ in})
         let unrelated=ChessStudy(white:"Working game",black:"Outside reference collection")
         try catalog.save([unrelated])
@@ -376,6 +423,69 @@ struct CatalogChecks {
         try catalog.addSource(id:UUID().uuidString,path:"",kind:"legacy",name:"Recovered committed collection",original:"test:committed",hash:nil,folder:recoveredFolder,count:1)
         let recoveryLibrary=LibraryStore(archiveURL:archive)
         try check("restart recovers a collection committed before its window metadata was saved") {recoveryLibrary.folders.contains {$0.id==recoveredFolder && $0.name=="Recovered committed collection"}}
+        // Compare the production merge path with SQLite's exact order across
+        // imported PGN/CBH and editable games, in both directions and all pages.
+        for sort in ["date","players","whiteElo","blackElo","event","result","moves","round"] {
+            for ascending in [true,false] {
+                var combined=CatalogRequest();combined.sort=sort;combined.ascending=ascending
+                var actual:[UUID]=[],expected:[UUID]=[]
+                repeat {let page=try await library.page(combined);actual += page.games.map(\.id);combined.cursor=page.next} while combined.cursor != nil
+                combined.cursor=nil
+                repeat {let page=try catalog.sqliteOraclePage(combined);expected += page.games.map(\.id);combined.cursor=page.next} while combined.cursor != nil
+                try check("native/local merge matches SQLite for \(sort), ascending=\(ascending), all pages") {actual==expected && Set(actual).count==actual.count}
+            }
+        }
+        let generationBefore=try InteractiveCatalogService.state(catalog).generation
+        unrelated.root.comment += " Incremental saved-game update"
+        try catalog.save([unrelated])
+        try check("autosave never invalidates imported metadata preparation") {try InteractiveCatalogService.state(catalog).generation==generationBefore}
+        var hidden=CatalogRequest();hidden.search=pgnFolder.uuidString
+        try check("global search does not match hidden folder UUIDs") {try InteractiveCatalogService.page(catalog:catalog,request:hidden).count==0}
+        var contradiction=transposed;contradiction.unfiled=true
+        try check("contradictory collection scopes return no games") {try InteractiveCatalogService.page(catalog:catalog,request:contradiction).count==0}
+
+        let overlayGeneration=try InteractiveCatalogService.state(catalog).generation
+        let movedFolder=UUID(),originalFolder=rated.folderID
+        try catalog.move(rated.id,folder:movedFolder)
+        var movedQuery=CatalogRequest();movedQuery.folder=movedFolder.uuidString;movedQuery.filter.boardFEN=try catalog.load(rated.id).root.positionFEN
+        let movedPage=try await library.page(movedQuery)
+        try check("an imported game moves into a new board-search scope without rebuilding metadata") {try movedPage.games.map(\.id)==[rated.id] && InteractiveCatalogService.state(catalog).generation==overlayGeneration}
+        try catalog.move(rated.id,folder:originalFolder)
+        let movedBack=try await library.page(movedQuery)
+        try check("the move overlay removes a game from its previous search scope") {movedBack.count==0}
+        let integrityState=try InteractiveCatalogService.state(catalog)
+        let integrityDirectory=try InteractiveCatalogService.prepareMetadata(catalog:catalog,state:integrityState,progress:{_ in})
+        let dictionaryOrder=integrityDirectory.appendingPathComponent("name-order.bin")
+        var corrupt=try Data(contentsOf:dictionaryOrder);corrupt[0]^=1;try corrupt.write(to:dictionaryOrder)
+        let repaired=try await library.page(CatalogRequest())
+        try check("damaged derived metadata is rebuilt before it can return incorrect results") {try repaired.count==catalog.counts().values.reduce(0,+)}
+        let broken=ChessStudy(white:"Recoverable bad payload");try catalog.save([broken])
+        let brokenDB=try SQLConnection(catalog.url),damage=try brokenDB.prepare("UPDATE games SET payload=x'7b',elo_indexed=0 WHERE id=?")
+        try damage.bind([.text(broken.id.uuidString)]);try damage.run()
+        var brokenQuery=CatalogRequest();brokenQuery.filter.white="Recoverable bad"
+        let brokenPage=try await library.page(brokenQuery)
+        try check("one malformed saved payload does not block library browsing") {brokenPage.games.map(\.id)==[broken.id]}
+        try catalog.delete(broken.id)
+        var invalidCursor=CatalogRequest();invalidCursor.localOnly=true;invalidCursor.cursor=CatalogCursor(value:"not a number",id:UUID().uuidString)
+        var cursorRejected=false
+        do {_ = try InteractiveCatalogService.page(catalog:catalog,request:invalidCursor)}catch{cursorRejected=true}
+        try check("invalid numeric cursors fail rather than silently repeating pages") {cursorRejected}
+        final class WorkCount:@unchecked Sendable {
+            let lock=NSLock();var value=0
+            func increment(){lock.withLock {value+=1}}
+        }
+        let starts=DispatchSemaphore(value:0),workCount=WorkCount(),preparationKey=UUID().uuidString
+        let waiting=Task.detached {
+            try InteractiveCatalogService.singleFlight(preparationKey,progress:{_ in}) {_ in
+                workCount.increment();starts.signal();Thread.sleep(forTimeInterval:0.2)
+            }
+        }
+        starts.wait();waiting.cancel()
+        try InteractiveCatalogService.singleFlight(preparationKey,progress:{_ in}) {_ in workCount.increment()}
+        var waitingCancelled=false
+        do {try await waiting.value}catch is CancellationError {waitingCancelled=true}
+        try check("cancelling a board request preserves its shared background preparation") {waitingCancelled && workCount.value==1}
+
         if CommandLine.arguments.count > 2 {
             let real = URL(fileURLWithPath:CommandLine.arguments[2])
             let timer = Date()
@@ -393,7 +503,7 @@ struct CatalogChecks {
                 let reset = try db.prepare("UPDATE games SET white_elo=NULL,black_elo=NULL,elo_indexed=0 WHERE folder=?")
                 try reset.bind([.text(realRequest.folder!)]); try reset.run()
             }
-            let recovered = try catalog.page(realRequest)
+            let recovered = try catalog.sqliteOraclePage(realRequest)
             try check("older ChessBase catalogs recover ratings directly from header records") {
                 zip(recovered.games,realPage.games).allSatisfy { $0.whiteElo == $1.whiteElo && $0.blackElo == $1.blackElo }
             }

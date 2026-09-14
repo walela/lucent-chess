@@ -299,7 +299,7 @@ simpleMoveT PositionStack::doCapture(byte number, byte offs) {
 	pieceT capturedPiece = lookup.pos.GetPiece(epSquare);
 
 	if (capturedPiece == EMPTY) { // Chessbase can write corrupt games with empty e.p. squares
-		printf("Illegal move: No piece on en passant square\n");
+		fprintf(stderr,"Illegal move: No piece on en passant square\n");
 		return simpleMoveT::empty();
 	}
 
@@ -319,7 +319,7 @@ simpleMoveT PositionStack::doCaptureLeft(byte number) {
 simpleMoveT PositionStack::doMove(byte from, byte to, byte promoted) {
 	Position& pos = stack_.top().pos;
 	if (from == NULL_SQUARE || to == NULL_SQUARE) {
-		printf("Illegal move: from or to are null squares\n");
+		fprintf(stderr,"Illegal move: from or to are null squares\n");
 		return simpleMoveT::empty();
 	}
 	simpleMoveT sm;

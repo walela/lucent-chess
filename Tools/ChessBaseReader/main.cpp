@@ -13,6 +13,8 @@
 #include <algorithm>
 #include "catalog_index.h"
 #include "cbh_decode_game.h"
+#include "position_index.h"
+#include "interactive_catalog.h"
 
 // CBH text uses Windows-1252. Escape it into ASCII JSON for the Swift reader.
 static std::string jsonQuoted(const std::string& text) {
@@ -89,6 +91,34 @@ static void writeGame(std::ostream& out, const GameReturnValue& game) {
 }
 
 int main(int argc, char** argv) {
+    if (argc == 3 && std::string(argv[1]) == "--verify-catalog-metadata") {
+        try { lucent_catalog::verifyMetadata(argv[2]); return 0; }
+        catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
+    if (argc == 5 && std::string(argv[1]) == "--catalog-source-scope") {
+        try { lucent_catalog::sourceScope(argv[2], argv[3], argv[4]); return 0; }
+        catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
+    if (argc == 5 && std::string(argv[1]) == "--query-catalog-metadata") {
+        try { lucent_catalog::queryMetadata(argv[2], argv[3], argv[4]); return 0; }
+        catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
+    if (argc == 5 && std::string(argv[1]) == "--prepare-catalog-metadata") {
+        try { lucent_catalog::buildMetadata(argv[2], argv[3], argv[4]); return 0; }
+        catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
+    if (argc == 6 && std::string(argv[1]) == "--prepare-pgn-positions") {
+        try { lucent_positions::buildPGN(argv[2], argv[3], argv[4], argv[5]); return 0; }
+        catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
+    if (argc == 5 && std::string(argv[1]) == "--prepare-cbh-positions") {
+        try { lucent_positions::buildCBH(argv[2], argv[3], uint32_t(std::stoull(argv[4]))); return 0; }
+        catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
+    if (argc == 5 && std::string(argv[1]) == "--query-position-index") {
+        try { lucent_positions::query(argv[2], argv[3], argv[4]); return 0; }
+        catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
     if (argc != 5) return 2;
     if (std::string(argv[1]) == "--index-pgn") {
         try { return indexPGN(argv[2], argv[3], argv[4]); }

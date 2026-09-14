@@ -16,7 +16,7 @@ clang++ -std=c++20 -O2 -DNDEBUG -target arm64-apple-macosx14.0 \
   -isysroot "$SDK_DIR" \
   -I"$READER_DIR/libcbh/include" -I"$READER_DIR/libcbh/src" \
   "$READER_DIR/main.cpp" "$READER_DIR"/libcbh/src/*.cpp \
-  -lsqlite3 -o "$BIN_DIR/LucentChessCBH"
+  -lsqlite3 -lcompression -lz -framework CoreFoundation -o "$BIN_DIR/LucentChessCBH"
 cp "$BIN_DIR/LucentChessCBH" "$APP_DIR/Contents/MacOS/LucentChessCBH"
 codesign --force --sign - "$APP_DIR/Contents/MacOS/LucentChessCBH"
 
@@ -50,6 +50,7 @@ fi
 cp "$PROJECT_DIR/Sources/LucentChess/Resources/UNCBV-GPL-3.0.txt" "$APP_DIR/Contents/Resources/"
 cp "$PROJECT_DIR/Sources/LucentChess/Resources/LICHESS-COPYING.md" "$APP_DIR/Contents/Resources/"
 cp "$PROJECT_DIR/Sources/LucentChess/Resources/LICHESS-AGPL-3.0.txt" "$APP_DIR/Contents/Resources/"
+cp "$READER_DIR/chess-library/LICENSE" "$APP_DIR/Contents/Resources/CHESS-LIBRARY-MIT.txt"
 
 codesign --force --deep --sign - "$APP_DIR"
 echo "$APP_DIR"

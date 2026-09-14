@@ -12,7 +12,7 @@ clang++ -std=c++20 -O2 -DNDEBUG -target arm64-apple-macosx14.0 \
   -isysroot "$SDK_DIR" \
   -I"$READER_DIR/libcbh/include" -I"$READER_DIR/libcbh/src" \
   "$READER_DIR/main.cpp" "$READER_DIR"/libcbh/src/*.cpp \
-  -lsqlite3 -o "$CHECK_DIR/LucentChessCBH"
+  -lsqlite3 -lcompression -lz -framework CoreFoundation -o "$CHECK_DIR/LucentChessCBH"
 
 python3 "$PROJECT_DIR/scripts/check_chessbase_comments.py" "$PROJECT_DIR/Tests/Fixtures/ChessBase" "$CHECK_DIR/LucentChessCBH"
 
@@ -25,7 +25,7 @@ CLANG_MODULE_CACHE_PATH="$PROJECT_DIR/.build-local/clang" swiftc \
   "$PROJECT_DIR/Sources/LucentChess/Services/PGNService.swift" \
   "$PROJECT_DIR/Sources/LucentChess/Services/CanonicalGameImportService.swift" \
   "$PROJECT_DIR/Sources/LucentChess/Services/LibraryStore.swift" \
-  "$PROJECT_DIR/Sources/LucentChess/Services/DatabaseCatalog.swift" "$PROJECT_DIR/Sources/LucentChess/Services/CatalogFilter.swift" "$PROJECT_DIR/Sources/LucentChess/Services/PositionSearchService.swift" "$PROJECT_DIR/Sources/LucentChess/Services/PGNPositionScanner.swift" \
+  "$PROJECT_DIR/Sources/LucentChess/Services/DatabaseCatalog.swift" "$PROJECT_DIR/Sources/LucentChess/Services/LocalCatalog.swift" "$PROJECT_DIR/Sources/LucentChess/Services/InteractiveCatalogService.swift" "$PROJECT_DIR/Sources/LucentChess/Services/CatalogFilter.swift" "$PROJECT_DIR/Sources/LucentChess/Services/PositionSearchService.swift" "$PROJECT_DIR/Sources/LucentChess/Services/PGNPositionScanner.swift" \
   "$PROJECT_DIR/Sources/LucentChess/Services/IndexedDatabaseImport.swift" \
   "$PROJECT_DIR/Sources/LucentChess/Services/CBVArchive.swift" \
   "$PROJECT_DIR/Sources/LucentChess/Services/ChessBaseImportService.swift" \

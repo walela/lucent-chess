@@ -26,3 +26,10 @@ CBVArchive.swift adapts the CBV decompression algorithms from uncbv,
 Copyright (C) 2016 Antoni Boucher, GPL-3.0-or-later.
 https://github.com/antoyo/uncbv
 See UNCBV-GPL-3.0.txt.
+
+Native PGN position indexing
+
+LucentChessCBH includes the unmodified MIT-licensed chess-library by Disservin.
+Pinned revision and upstream source are documented in
+Tools/ChessBaseReader/chess-library/UPSTREAM.md; see CHESS-LIBRARY-MIT.txt.
+https://github.com/Disservin/chess-library

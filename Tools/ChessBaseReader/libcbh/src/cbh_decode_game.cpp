@@ -133,6 +133,39 @@ bool CbhGameDecoder::targetStillReachable() const {
     }
     return std::count(board,board+64,WP)>=targetWhitePawns_ && std::count(board,board+64,BP)>=targetBlackPawns_;
 }
+int CbhGameDecoder::visitMainline(uint32_t offset, const std::function<void(const Position&, uint32_t)>& visitor) {
+    scanning_ = false;
+    stream_.pubseekpos(offset);
+    std::string fen;
+    if (startDecoding(fen) != OK) return -2;
+    uint32_t ply = 0, moveNumber = 0, tokens = 0;
+    visitor(position_.pos(), ply);
+    while (bytes_read_ < bytes_total_) {
+        if (++tokens > 65536) return -2;
+        char c;
+        if (stream_.sgetn(&c, 1) != 1) return -2;
+        ++bytes_read_;
+        const auto code = translate_byte(static_cast<byte>(c), moveNumber);
+        if (code == 0xeb && bytes_read_ + 2 > bytes_total_) return -2;
+        simpleMoveT sm;
+        switch (decodeMove(sm, code, moveNumber)) {
+        case Token_Move:
+            if (sm.isEmpty() || ply >= 4096) return -2;
+            ++moveNumber;
+            visitor(position_.pos(), ++ply);
+            break;
+        case Token_Push:
+            if (position_.variationLevel() > 128) return -2;
+            break;
+        // A push precedes the first-child continuation. Its pop ends the
+        // main line, even at nested depth; following bytes are alternatives.
+        case Token_Pop: return int(ply);
+        case Token_Skip: break;
+        }
+    }
+    return int(ply);
+}
+
 int CbhGameDecoder::matchRecord(uint32_t offset) {
     scanning_=true;found_=-1;mainPly_=0;
     stream_.pubseekpos(offset);std::string fen;
@@ -175,7 +208,7 @@ errorT CbhGameDecoder::decode_record(GameReturnValue& game,
 
 	auto res = decodeMoves(game.annotatedMoves);
 	if (res == -1)
-		printf("Game at offset %d contains illegal moves\n", offsets[0]);
+		fprintf(stderr,"Game at offset %d contains illegal moves\n", offsets[0]);
 	return res == uint32_t(-1) ? ERROR_Decode : OK;
 }
 
@@ -242,7 +275,7 @@ uint32_t CbhGameDecoder::decodeMoves(std::vector<AnnotatedMove>& moves,
 		switch (decodeMove(sm, move_code, move_number)) {
 		case Token_Move:
 			if (sm.isEmpty()) {
-				printf("Aborting on move number %d\n", move_number);
+				fprintf(stderr,"Aborting on move number %d\n", move_number);
 				return -1;
             }
             if(scanning_) {

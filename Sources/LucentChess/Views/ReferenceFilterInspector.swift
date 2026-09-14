@@ -145,7 +145,7 @@ private struct ReferencePositionResults: View {
                             .disabled(nextCursor == nil).accessibilityLabel("Next matching games")
                     }
                 }
-                if !loading && error == nil && !cancelled && message.contains("skipped") {
+                if !loading && error == nil && !cancelled && message.contains("coverage") {
                     Text(message).font(.caption).foregroundStyle(.secondary)
                 }
                 Text("Exact board + side to move · main line").font(.caption2).foregroundStyle(.secondary)
@@ -177,11 +177,11 @@ private struct ReferencePositionResults: View {
         activeSearch = token
         games = []; count = 0; nextCursor = nil
         loading = true; error = nil; cancelled = false
-        message = "First searches can take time; completed results are cached."
+        message = "Preparing the selected database, then finding this position."
         let work = Task { @MainActor in
             do {
                 // Scrubbing notation searches the position where the user pauses.
-                try await Task.sleep(for: .milliseconds(250))
+                try await Task.sleep(for: .milliseconds(100))
                 let page = try await library.page(captured) { progress in
                     Task { @MainActor in if activeSearch == token { message = progress } }
                 }

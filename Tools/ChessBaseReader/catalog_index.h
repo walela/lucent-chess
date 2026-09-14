@@ -1,3 +1,4 @@
+#include <CoreFoundation/CoreFoundation.h>
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 #include <sys/statvfs.h>
@@ -150,6 +151,12 @@ static int indexDatabase(const char* sourcePath, const char* catalogPath, const 
 
 #include <map>
 // Stream PGN headers and byte ranges. SAN parsing and move-tree construction happen only on open.
+// PGN headers may be UTF-8 or the Windows-1252 encoding used by older exports.
+// Store valid UTF-8 metadata while byte ranges continue to address the original.
+static std::string pgnHeaderUTF8(const std::string& text) {
+    auto string=CFStringCreateWithBytes(nullptr,reinterpret_cast<const UInt8*>(text.data()),CFIndex(text.size()),kCFStringEncodingUTF8,false);
+    if(string){CFRelease(string);return text;}return catalogUTF8(text);
+}
 static int indexPGN(const char* sourcePath,const char* catalogPath,const char* sourceID) {
     std::ifstream input(sourcePath,std::ios::binary);
     if(!input)throw std::runtime_error("Could not read the PGN database.");
@@ -208,7 +215,7 @@ static int indexPGN(const char* sourcePath,const char* catalogPath,const char* s
                 std::string value;bool escape=false,closed=false;
                 for(size_t i=quote+1;i<line.size();++i){char c=line[i];if(escape){value+=c;escape=false;}else if(c=='\\')escape=true;else if(c=='"'){closed=true;break;}else value+=c;}
                 if(!closed)throw std::runtime_error("Unclosed PGN tag string.");
-                tags[line.substr(begin+1,split-begin-1)]=value;continue;
+                tags[line.substr(begin+1,split-begin-1)]=pgnHeaderUTF8(value);continue;
             }
             if(line[begin]=='%')continue;
             if(ended && braces==0 && line[begin]!='{' && line[begin]!=';')flush(offset);

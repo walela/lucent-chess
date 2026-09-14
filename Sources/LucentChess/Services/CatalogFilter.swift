@@ -31,3 +31,18 @@ struct CatalogFilter: Codable, Hashable, Sendable {
         return position.fen.split(separator: " ").prefix(2).joined(separator: " ")
     }
 }
+
+// A cursor is an internal exact sort key; malformed values must fail instead of
+// restarting from zero and repeating pages indefinitely.
+extension CatalogRequest {
+    func validateCursor() throws {
+        guard let cursor else {return}
+        guard UUID(uuidString:cursor.id) != nil else {throw CatalogError.message("Invalid page cursor.")}
+        let value=cursor.rawValue.flatMap {String(data:$0,encoding:.utf8)} ?? cursor.value
+        if ["whiteElo","blackElo","moves"].contains(sort) {
+            guard Int64(value) != nil else {throw CatalogError.message("Invalid numeric page cursor.")}
+        }else if !["players","event","result","round"].contains(sort) {
+            guard let number=Double(value),number.isFinite else {throw CatalogError.message("Invalid date page cursor.")}
+        }
+    }
+}
