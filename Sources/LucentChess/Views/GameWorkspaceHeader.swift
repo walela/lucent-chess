@@ -34,9 +34,8 @@ struct GameWorkspaceHeader: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Game actions")
 
-            actionIcon("Search reference database from this position",label:"Reference",symbol:"books.vertical.fill") {
-                library.requestReferencePosition(study.currentPosition.fen)
-                openWindow(id:AppWindowID.reference)
+            actionIcon("Show games matching this position", label: "Filter", symbol: "line.3.horizontal.decrease.circle", active: inspectorTab == .filter) {
+                inspectorTab = .filter
             }
             Spacer(minLength: 24)
 

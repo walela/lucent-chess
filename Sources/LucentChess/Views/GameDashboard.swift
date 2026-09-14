@@ -215,6 +215,11 @@ struct GameDashboard: View {
             .padding(.horizontal, 11)
             .frame(width: 320, height: 34)
             .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 9))
+            Button { showingFilters = true } label: {
+                Label("Filters", systemImage: filter.isActive || resultFilter != .all ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+            }
+            .help("Filter by player, Elo, tournament, year, result or board")
+            .accessibilityLabel("Filter games")
             appearanceSwitcher
             if !referenceMode {
                 Menu {
@@ -562,7 +567,6 @@ struct GameDashboard: View {
 
     private func libraryControls(shownCount: Int) -> some View {
         HStack(spacing: 10) {
-            Button { showingFilters=true } label: { Label(filter.isActive ? "Edit filters" : "Filter games…",systemImage:"line.3.horizontal.decrease.circle") }
             if filter.isActive { Button("Clear filters") { filter=CatalogFilter();resultFilter = .all;pageCursors=[nil] } }
             Menu {
                 ForEach(GameResultFilter.allCases) { option in

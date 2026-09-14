@@ -72,22 +72,27 @@ The game table shows **White Elo**, **Black Elo**, **Result**, and **Tournament*
 
 ## Reference database and filters
 
-In a game window, open the **Filter** inspector tab, choose a collection as the
-reference database, then **Search current position**. **Edit filters…** combines
-player names, separate White/Black Elo bands, tournament, year, result and an
-optional board. Results open in the Reference Database window; opening a result
-previews it separately at the matching position. **Open for analysis** explicitly
-creates a working copy. The toolbar's **Reference** button is another entry point.
+In a game window, open the **Filter** inspector tab (or the toolbar's **Filter**
+button) and choose a reference collection. Matching games appear directly in the
+inspector and follow the board as you play or navigate the notation. The panel
+shows players, ratings, result, tournament and year, with 200 games per page.
+Selecting a result previews it separately at the matching position; **Open for
+analysis** explicitly selects it as a working game.
 
-From the main library or a collection window, use **Filter games…** for the same
-search without opening a game. Paste FEN or choose **Set up board…**. Names match
-word prefixes. Unknown Elo does not satisfy a numeric range. All table columns
-remain sortable, and results load in pages of 200.
+From the main library or a collection window, use **Filters** in the top toolbar
+to combine player names, separate White/Black Elo bands, tournament, year, result
+and an optional board. Paste FEN or choose **Set up board…**. These filters are
+independent of the game inspector's current-board results. Names match word
+prefixes; unknown Elo does not satisfy a numeric range. All table columns remain
+sortable, and results load in pages of 200.
 
 Header filters use the catalog indexes. The first board search still scans the
 main lines of header-matching games; narrowing the header criteria first helps.
 The scanner handles both indexed ChessBase and PGN sources, reports progress,
-supports cancellation, and caches completed results. Board matches compare exact
+supports cancellation, and caches completed results. The game inspector waits
+briefly when scrubbing notation, cancels searches for previous positions, and
+clears stale rows. This UI uses the existing scanner; it does not yet have a
+persistent index of every position. Board matches compare exact
 piece placement and side to move, including transpositions, but ignore castling
 rights, en passant and clocks. Variations and chess variants are excluded.
 
