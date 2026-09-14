@@ -507,9 +507,12 @@ private struct StyleInspector: View {
                         ForEach(BoardThemeOption.all) { theme in
                             Button { appearance.boardTheme = theme } label: {
                                 VStack(alignment: .leading, spacing: 5) {
+                                    // scaledToFill overflows the tile; clipping is visual only, so the
+                                    // overflow must not take hits meant for neighbouring tiles.
                                     BoardThemePreview(theme: theme)
                                         .frame(height: 32)
                                         .clipped()
+                                        .allowsHitTesting(false)
                                     HStack {
                                         Text(theme.name)
                                             .font(.caption2.weight(.medium))
@@ -526,6 +529,7 @@ private struct StyleInspector: View {
                                 .padding(4)
                                 .background(.background.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(appearance.boardTheme.id == theme.id ? LucentTheme.accent : Color.clear, lineWidth: 2))
+                                .contentShape(RoundedRectangle(cornerRadius: 8))
                             }
                             .buttonStyle(.plain)
                         }
