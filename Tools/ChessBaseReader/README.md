@@ -27,7 +27,7 @@ The app requests batches of up to 256 records using the helper arguments
 `database.cbh output.json start count`. Each JSON response includes `next` and
 `total` record offsets. There is no total record-count limit. Per batch, the helper
 allows 500,000 move tokens, 60 CPU seconds and 90 wall-clock seconds. Database
-files are limited to 256 MiB per import.
+files are streamed or mapped; indexed imports have no 256 MiB total-file limit.
 Classic unencrypted CBV/CBH only. Null-move and Chess960 games are rejected.
 Guiding text records are counted as skipped. Multimedia, training overlays,
 extra ChessBase tags and proprietary annotations are not imported.
@@ -40,3 +40,16 @@ streams PGN headers and records byte ranges. Both store metadata in an existing
 SQLite catalog transaction and report progress; interruption rolls back that
 source's index. The normal bounded reader invocation remains the path for opening
 an individual CBH game. Catalog-owned source files are copied before indexing.
+
+Position search uses `--match-position database.cbh "<placement> <turn>" stream`.
+The process accepts record numbers on stdin and emits one integer per record:
+matching main-line ply, -1 for no match, or -2 for unreadable/unsupported content.
+This mode does not construct SAN, annotations or variation trees. Local changes
+in `cbh_decode_game.{h,cpp}` add main-line matching, a 128-level nesting bound,
+and safe rejection when required pawns can no longer reach the target position.
+Per-record alarms bound malformed move streams. Normal game opening retains the
+full decoder and fidelity tests.
+
+Both indexing paths periodically check free space against pending main-database
+checkpoint growth, plus a 512 MiB reserve, before committing. Failed uncommitted
+imports roll back. A completed index is retained if later bookkeeping fails.

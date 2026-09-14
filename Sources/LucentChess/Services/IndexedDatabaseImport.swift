@@ -45,7 +45,7 @@ enum IndexedDatabaseImport {
         let directory = catalog.sourcesURL.appendingPathComponent(sourceID, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         var succeeded = false
-        defer { if !succeeded { try? catalog.removeSource(sourceID); try? FileManager.default.removeItem(at: directory) } }
+        defer { if !succeeded { try? cleanupFailedImport(catalog:catalog,sourceID:sourceID,directory:directory) } }
         let databases: [URL]
         let isPGN = url.pathExtension.lowercased() == "pgn"
         if isPGN {
@@ -80,6 +80,11 @@ enum IndexedDatabaseImport {
         }
         guard databases.count == 1 else { throw CatalogError.message("This archive contains multiple databases. Open its CBH databases separately.") }
         let normalized = parent.appendingPathComponent(stem + (isPGN ? ".pgn" : ".cbh"))
+        if !isPGN {
+            let size=(try FileManager.default.attributesOfItem(atPath:normalized.path)[.size] as? NSNumber)?.int64Value ?? 0
+            let available=(try FileManager.default.attributesOfFileSystem(forPath:catalog.url.deletingLastPathComponent().path)[.systemFreeSize] as? NSNumber)?.int64Value ?? 0
+            try validateIndexSpace(gameCount:max(0,size/46-1),availableBytes:available)
+        }
         try catalog.addSource(id: sourceID, path: normalized.path, kind: isPGN ? "pgn" : "cbh", name: folder.name, original: url.absoluteString, hash: hash, folder: folder.id)
         let log = directory.appendingPathComponent("index.log")
         FileManager.default.createFile(atPath: log.path, contents: nil)
@@ -108,8 +113,27 @@ enum IndexedDatabaseImport {
             let message = String(decoding: (try? Data(contentsOf: log)) ?? Data(), as: UTF8.self).split(separator: "\n").last.map(String.init)
             throw CatalogError.message(message ?? "The database indexer stopped unexpectedly.")
         }
-        guard let source = try catalog.source(id: sourceID), source.count > 0 else { throw CatalogError.message("No readable game headers were found.") }
+        // The native transaction has committed. A later metadata/disk error must
+        // never delete its move files or attempt to undo a successful import.
         succeeded = true
+        guard let source = try catalog.source(id: sourceID), source.count > 0 else { throw CatalogError.message("No readable game headers were found.") }
         return IndexedImportResult(folder: folder, count: source.count, existing: false)
     }
+    static func validateIndexSpace(gameCount: Int64, availableBytes: Int64) throws {
+        // Conservative estimate from real large-library indexing, including WAL
+        // checkpoint headroom. The native readers also monitor space while indexing.
+        let required=Double(gameCount)*3072 + Double(512*1024*1024)
+        guard Double(availableBytes)>=required else {
+            let gib=1024.0*1024*1024
+            throw CatalogError.message("This database contains \(gameCount.formatted()) records. Allow about \(Int(ceil(required/gib))) GB free for its index and temporary log; only \(String(format: "%.1f",Double(availableBytes)/gib)) GB is available. Free space and try again.")
+        }
+    }
+
+    static func cleanupFailedImport(catalog: DatabaseCatalog, sourceID: String, directory: URL) throws {
+        // Keep committed imports and retain move files if index cleanup fails.
+        if let source=try catalog.source(id:sourceID), source.count>0 {return}
+        try catalog.removeSource(sourceID)
+        if FileManager.default.fileExists(atPath:directory.path) {try FileManager.default.removeItem(at:directory)}
+    }
+
 }

@@ -22,6 +22,8 @@
 
 #include "cbh_decode_game.h"
 #include "mapping.h"
+#include <algorithm>
+#include <cstring>
 
 constexpr auto GAME_HEADER_SIZE = 26;
 
@@ -101,6 +103,46 @@ CbhGameDecoder::CbhGameDecoder(const char* gameFilename,
                                const char* annotationFilename)
     : CbhDecoder(gameFilename),
       annotationDecoder(CbhAnnotationDecoder(annotationFilename)) {}
+
+bool CbhGameDecoder::configureMatch(const std::string& fen) {
+    std::fill(target_,target_+64,EMPTY);
+    int rank=7,file=0; size_t i=0;
+    for(;i<fen.size() && fen[i]!=' ';++i) {
+        char c=fen[i];
+        if(c=='/') { if(file!=8 || --rank<0)return false;file=0;continue; }
+        if(c>='1'&&c<='8') {file+=c-'0';if(file>8)return false;continue;}
+        const char* piece=std::strchr(PIECE_CHAR,c);
+        if(!piece || file>=8)return false;
+        target_[rank*8+file++]=piece-PIECE_CHAR;
+    }
+    if(rank!=0 || file!=8 || i+1>=fen.size())return false;
+    targetSide_=fen[i+1]=='w'?WHITE:BLACK;
+    targetWhitePawns_=std::count(target_,target_+64,WP);
+    targetBlackPawns_=std::count(target_,target_+64,BP);
+    return true;
+}
+bool CbhGameDecoder::matchesPosition() const {
+    const auto& pos=position_.pos();
+    return pos.GetToMove()==targetSide_ && std::equal(target_,target_+64,pos.GetBoard());
+}
+bool CbhGameDecoder::targetStillReachable() const {
+    const auto* board=position_.pos().GetBoard();
+    for(int file=0;file<8;++file) {
+        if(target_[8+file]==WP && board[8+file]!=WP)return false;
+        if(target_[48+file]==BP && board[48+file]!=BP)return false;
+    }
+    return std::count(board,board+64,WP)>=targetWhitePawns_ && std::count(board,board+64,BP)>=targetBlackPawns_;
+}
+int CbhGameDecoder::matchRecord(uint32_t offset) {
+    scanning_=true;found_=-1;mainPly_=0;
+    stream_.pubseekpos(offset);std::string fen;
+    if(startDecoding(fen)!=OK)return -2;
+    if(matchesPosition())return 0;
+    if(!targetStillReachable())return -1;
+    std::vector<AnnotatedMove> ignored;
+    auto result=decodeMoves(ignored);
+    return result==uint32_t(-1)?-2:found_;
+}
 
 errorT CbhGameDecoder::open() {
 	if (auto err = CbhDecoder::open(); err != OK)
@@ -182,7 +224,8 @@ errorT CbhGameDecoder::startDecoding(std::string& startFen) {
 }
 
 uint32_t CbhGameDecoder::decodeMoves(std::vector<AnnotatedMove>& moves,
-                                     uint32_t move_number) {
+                                     uint32_t move_number, unsigned depth) {
+    if(depth>128)return uint32_t(-1);
 	simpleMoveT sm;
 
 	// We can't blindly assume that the game ends in a pop
@@ -202,6 +245,10 @@ uint32_t CbhGameDecoder::decodeMoves(std::vector<AnnotatedMove>& moves,
 				printf("Aborting on move number %d\n", move_number);
 				return -1;
 			}
+            if(scanning_) {
+                if(depth==0) { ++mainPly_; if(matchesPosition()) {found_=mainPly_;return move_number+1;} if(!targetStillReachable())return move_number+1; }
+                ++move_number;break;
+            }
 			if (sm.castling == 1) { // decode castling via sm.promote = KING
 				sm.promote = KING;
 			}
@@ -212,17 +259,17 @@ uint32_t CbhGameDecoder::decodeMoves(std::vector<AnnotatedMove>& moves,
 			move_number++;
 			break;
 		case Token_Push: {
-			moves.emplace_back(MovePush);
-			move_number = decodeMoves(moves, move_number);
+			if(!scanning_)moves.emplace_back(MovePush);
+			move_number = decodeMoves(moves, move_number, depth+1);
 			if (move_number == -1)
 				return -1;
 			break;
 		}
 		case Token_Pop:
-			moves.emplace_back(MovePop);
+			if(!scanning_)moves.emplace_back(MovePop);
 			return move_number;
 		case Token_Skip:
-			moves.emplace_back(MoveSkip);
+			if(!scanning_)moves.emplace_back(MoveSkip);
 			break;
 		}
 	}

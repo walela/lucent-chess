@@ -25,7 +25,7 @@ CLANG_MODULE_CACHE_PATH="$PROJECT_DIR/.build-local/clang" swiftc \
   "$PROJECT_DIR/Sources/LucentChess/Services/PGNService.swift" \
   "$PROJECT_DIR/Sources/LucentChess/Services/CanonicalGameImportService.swift" \
   "$PROJECT_DIR/Sources/LucentChess/Services/LibraryStore.swift" \
-  "$PROJECT_DIR/Sources/LucentChess/Services/DatabaseCatalog.swift" \
+  "$PROJECT_DIR/Sources/LucentChess/Services/DatabaseCatalog.swift" "$PROJECT_DIR/Sources/LucentChess/Services/CatalogFilter.swift" "$PROJECT_DIR/Sources/LucentChess/Services/PositionSearchService.swift" "$PROJECT_DIR/Sources/LucentChess/Services/PGNPositionScanner.swift" \
   "$PROJECT_DIR/Sources/LucentChess/Services/IndexedDatabaseImport.swift" \
   "$PROJECT_DIR/Sources/LucentChess/Services/CBVArchive.swift" \
   "$PROJECT_DIR/Sources/LucentChess/Services/ChessBaseImportService.swift" \

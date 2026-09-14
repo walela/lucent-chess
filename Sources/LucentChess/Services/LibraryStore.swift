@@ -23,13 +23,31 @@ final class LibraryStore: ObservableObject {
     @Published var fileImportProgress = "Importing games…"
     @Published var searchText = ""
 
+    @Published var referencePositionFEN = ""
+    @Published var referenceFilter = CatalogFilter()
+    @Published var referenceResult = "all"
+    @Published var referenceSearchRevision = 0
+    func requestReferencePosition(_ fen: String) {
+        var filter = referenceFilter
+        filter.boardFEN = fen
+        requestReferenceSearch(filter, result: referenceResult)
+    }
+    func requestReferenceSearch(_ filter: CatalogFilter, result: String) {
+        referenceFilter = filter
+        referenceResult = result
+        referencePositionFEN = filter.boardFEN
+        referenceSearchRevision += 1
+    }
+    @Published var referencePreviewFEN = ""
     @Published var catalogRevision = 0
+    @Published var collectionVersions: [String:String] = [:]
     @Published var recentGameCount = 0
     @Published var folderCounts: [String: Int] = [:]
     @Published var lastImportedFolderID: UUID?
     @Published var isOpeningGame = false
     private(set) var catalog: DatabaseCatalog?
     private var importTask: Task<IndexedImportResult, Error>?
+    private var openingGeneration = 0
     var totalGameCount: Int { folderCounts.values.reduce(0,+) }
     var unfiledGameCount: Int { folderCounts[""] ?? 0 }
 
@@ -100,9 +118,33 @@ final class LibraryStore: ObservableObject {
         } catch { lastError = error.localizedDescription }
     }
 
-    func page(_ request: CatalogRequest) async throws -> CatalogPage {
+    func openGame(_ preview: ChessStudy) async -> Bool {
+        openingGeneration += 1
+        let generation=openingGeneration
+        isOpeningGame=true
+        defer { if openingGeneration==generation {isOpeningGame=false} }
+        do {
+            let game: ChessStudy
+            if let cached=studyByID[preview.id] {game=cached}
+            else if let catalog, preview.indexedPlyCount != nil {
+                game=try await Task.detached(priority:.userInitiated) {try catalog.load(preview.id)}.value
+            } else {game=preview}
+            guard openingGeneration==generation else {return false}
+            select(game);return true
+        } catch { if openingGeneration==generation {lastError=error.localizedDescription};return false }
+    }
+
+    func page(_ request: CatalogRequest, progress: @escaping @Sendable (String) -> Void = { _ in }) async throws -> CatalogPage {
         guard let catalog else { throw CatalogError.message("The library index is unavailable.") }
-        let worker = Task.detached(priority: .userInitiated) { try catalog.page(request) }
+        let worker = Task.detached(priority: .userInitiated) {
+            var resolved = request
+            if !request.filter.boardFEN.isEmpty {
+                let search = try PositionSearchService.search(catalog:catalog,request:request,progress:progress)
+                resolved.positionSearchKey = search.key
+                progress(search.skipped > 0 ? "\(search.skipped.formatted()) unreadable games were skipped." : (search.cached ? "Cached board search" : "Board search complete"))
+            }
+            return try catalog.page(resolved)
+        }
         return try await withTaskCancellationHandler {
             let result = try await worker.value
             try Task.checkCancellation()
@@ -112,7 +154,9 @@ final class LibraryStore: ObservableObject {
 
     func refreshCatalog() {
         do {
-            folderCounts = try catalog?.counts() ?? [:]; catalogRevision += 1
+            folderCounts = try catalog?.counts() ?? [:]
+            collectionVersions = try catalog?.collectionVersions() ?? [:]
+            catalogRevision += 1
             if let catalog {
                 Task {
                     let count = try? await Task.detached { try catalog.recentCount() }.value
@@ -487,6 +531,10 @@ final class LibraryStore: ObservableObject {
         do {
             if let state = try catalog.metadata("state", as: CatalogLibraryState.self) {
                 folders = state.folders; installedSeedVersion = state.seedVersion
+                // A crash or disk error can happen after indexing commits but before
+                // the window's collection metadata is saved. Recover that collection.
+                let known=Set(folders.map(\.id))
+                folders += try catalog.committedSourceFolders().filter { !known.contains($0.id) }
                 if let id = state.selectedStudyID, let game = try? catalog.load(id) { studies = [game]; selectedStudyID = id }
                 refreshCatalog()
                 return

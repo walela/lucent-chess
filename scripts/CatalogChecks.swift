@@ -167,6 +167,183 @@ struct CatalogChecks {
                 }
             }
         }
+        var ratingFilter=CatalogRequest();ratingFilter.folder=ratingFolder.uuidString
+        ratingFilter.filter.whiteMin=1000;ratingFilter.filter.blackMin=1000
+        let expectedRated=Set(ratingGames.filter { (Int($0.whiteElo ?? "") ?? 0)>=1000 && (Int($0.blackElo ?? "") ?? 0)>=1000 }.map(\.id))
+        var filteredIDs=Set<UUID>()
+        repeat {
+            let page=try catalog.page(ratingFilter)
+            try check("covering Elo counts stay exact across pages") {page.count==expectedRated.count}
+            filteredIDs.formUnion(page.games.map(\.id));ratingFilter.cursor=page.next
+        } while ratingFilter.cursor != nil
+        try check("combined Elo filters paginate all and only matching games") {filteredIDs==expectedRated}
+        ratingFilter.filter.boardFEN=ChessPosition.startFEN
+        let ratedPositions=try await library.page(ratingFilter)
+        try check("board candidate selection shares the covering Elo predicate") {
+            ratedPositions.count==expectedRated.count && Set(ratedPositions.games.map(\.id)).isSubset(of:expectedRated)
+        }
+        let evictionDB=try SQLConnection(root.appendingPathComponent("CacheEviction.sqlite"))
+        try evictionDB.exec("CREATE TABLE searches(id INTEGER PRIMARY KEY,complete INTEGER,created REAL); CREATE TABLE matches(search_id INTEGER,game_rowid INTEGER)")
+        let cacheNow=Date()
+        try evictionDB.exec("INSERT INTO searches VALUES(1,1,\(cacheNow.timeIntervalSince1970-120)),(2,1,\(cacheNow.timeIntervalSince1970)),(3,0,\(cacheNow.timeIntervalSince1970-120)); INSERT INTO matches VALUES(1,10),(2,20),(3,30)")
+        try PositionSearchService.pruneCompletedResults(evictionDB,budgetPages:0,now:cacheNow)
+        let survivors=try evictionDB.prepare("SELECT search_id FROM matches ORDER BY search_id")
+        var remainingCacheIDs:[Int]=[]
+        while try survivors.next() {remainingCacheIDs.append(survivors.int(0))}
+        try check("cache pressure evicts old completed results but preserves recent and in-flight searches") {remainingCacheIDs==[2,3]}
+        // Shared header predicates combine independently and apply before board scanning.
+        let filterFolder = UUID()
+        var utc = Calendar(identifier:.gregorian);utc.timeZone=TimeZone(secondsFromGMT:0)!
+        let alpha=ChessStudy(white:"Álpha, Anna",black:"Beta, Ben",event:"City Masters",whiteElo:"2700",blackElo:"900",date:utc.date(from:DateComponents(year:2021,month:12,day:31))!,result:"1-0")
+        let beta=ChessStudy(white:"Beta, Ben",black:"Alpha, Anna",event:"Open Masters",whiteElo:"900",blackElo:"2700",date:utc.date(from:DateComponents(year:2022,month:1,day:1))!,result:"1/2-1/2")
+        let unknown=ChessStudy(white:"Unknown",black:"Alpha, Anna",event:"City Masters",date:alpha.date,result:"*")
+        for game in [alpha,beta,unknown] {game.folderID=filterFolder}
+        try catalog.save([alpha,beta,unknown])
+        var filters=CatalogRequest();filters.folder=filterFolder.uuidString;filters.filter.player="Alpha"
+        try check("player search matches either color with accent normalization") {try catalog.page(filters).count==3}
+        filters.filter.white="Alpha";filters.filter.black="Beta";filters.filter.tournament="City";filters.filter.whiteMin=2600;filters.filter.whiteMax=2800;filters.filter.blackMax=1000;filters.filter.yearMin=2021;filters.filter.yearMax=2021;filters.result="whiteWin"
+        try check("player colors, Elo bands, tournament, year endpoints and result combine correctly") {try catalog.page(filters).games.map(\.id)==[alpha.id]}
+        filters.filter=CatalogFilter();filters.result="all";filters.filter.blackMax=3000
+        try check("Elo bounds exclude unrated players") {try catalog.page(filters).count==2}
+        filters.filter=CatalogFilter();filters.filter.yearMin=2022
+        try check("year lower bound includes January first and excludes prior December") {try catalog.page(filters).games.map(\.id)==[beta.id]}
+        filters.filter.player="Alpha' OR 1=1 --"
+        try check("filter values remain data, never SQL") {try catalog.page(filters).count==0}
+
+        var localCalendar=Calendar(identifier:.gregorian);localCalendar.timeZone = .current
+        let januaryFirst=ChessStudy(white:"Local New Year",date:localCalendar.date(from:DateComponents(year:2024,month:1,day:1))!)
+        januaryFirst.folderID=filterFolder;try catalog.save([januaryFirst])
+        var localYear=CatalogRequest();localYear.folder=filterFolder.uuidString;localYear.filter.yearMin=2024;localYear.filter.yearMax=2024
+        try check("year filters include January first in the table's local calendar") {try catalog.page(localYear).games.map(\.id)==[januaryFirst.id]}
+
+        var rejectedSpace=false
+        do {try IndexedDatabaseImport.validateIndexSpace(gameCount:10_000_000,availableBytes:2_000_000_000)} catch {rejectedSpace=true}
+        try check("large ChessBase imports reject insufficient checkpoint space before indexing") {rejectedSpace}
+        try IndexedDatabaseImport.validateIndexSpace(gameCount:10_000,availableBytes:1_000_000_000)
+
+        // A successful commit must survive failures during later import bookkeeping.
+        let preservedSource=try catalog.source(url:input.absoluteString)!
+        let preservedDirectory=catalog.sourcesURL.appendingPathComponent(preservedSource.id)
+        try IndexedDatabaseImport.cleanupFailedImport(catalog:catalog,sourceID:preservedSource.id,directory:preservedDirectory)
+        try check("post-commit import errors preserve indexed games and managed source files") {
+            try FileManager.default.fileExists(atPath:preservedDirectory.path) && catalog.source(id:preservedSource.id)?.count==4
+        }
+        let blockedID=UUID().uuidString,blockedDirectory=catalog.sourcesURL.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at:blockedDirectory,withIntermediateDirectories:true)
+        try Data("keep me".utf8).write(to:blockedDirectory.appendingPathComponent("source"))
+        try catalog.addSource(id:blockedID,path:"",kind:"cbh",name:"Cleanup test",original:"test:cleanup",hash:nil,folder:filterFolder)
+        let blockedDB=try SQLConnection(catalog.url)
+        try blockedDB.exec("CREATE TRIGGER block_source_cleanup BEFORE DELETE ON sources BEGIN SELECT RAISE(FAIL,'Simulated disk error'); END")
+        do {try IndexedDatabaseImport.cleanupFailedImport(catalog:catalog,sourceID:blockedID,directory:blockedDirectory)} catch { }
+        try check("failed index cleanup never deletes its recovery source files") {FileManager.default.fileExists(atPath:blockedDirectory.appendingPathComponent("source").path)}
+        try blockedDB.exec("DROP TRIGGER block_source_cleanup")
+        try IndexedDatabaseImport.cleanupFailedImport(catalog:catalog,sourceID:blockedID,directory:blockedDirectory)
+        try check("uncommitted imports are removed after successful index cleanup") {!FileManager.default.fileExists(atPath:blockedDirectory.path)}
+
+        // Compare the native board scanner to fully decoded games, including custom starts.
+        for targetGame in expected.games {
+            var target=targetGame.root
+            for _ in 0..<4 {if let child=target.children.first {target=child}}
+            let board=try CatalogFilter.boardKey(target.positionFEN)
+            let expectedIDs=Set(expected.games.filter { game in
+                var node:MoveNode?=game.root
+                while let current=node {if current.positionFEN.split(separator:" ").prefix(2).joined(separator:" ")==board{return true};node=current.children.first}
+                return false
+            }.map(\.black))
+            var boardRequest=CatalogRequest();boardRequest.folder=folder.id.uuidString;boardRequest.filter.boardFEN=target.positionFEN
+            let result=try await library.page(boardRequest)
+            try check("native main-line board matching agrees with decoded fixture \(targetGame.black)") {Set(result.games.map(\.black))==expectedIDs}
+            let cached=try PositionSearchService.search(catalog:catalog,request:boardRequest,progress:{_ in})
+            try check("identical completed board search reuses its cached result") {cached.cached && cached.skipped==0}
+        }
+        let specialLines:[(String,String)] = [
+            ("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1","1. O-O O-O-O *"),
+            ("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1","1. exd6 Kd7 *"),
+            ("4k3/P7/8/8/8/8/8/4K3 w - - 0 1","1. a8=N Kd7 *"),
+            ("4k3/8/8/8/8/8/8/1N2KN2 w - - 0 1","1. Nbd2 Kd7 *"),
+            ("4k3/8/8/8/8/R7/8/R3K3 w - - 0 1","1. R1a2 Kd7 *"),
+            (ChessPosition.startFEN,"1.e4 {Comment (ignored)} e5$1 2.Qh5 Nc6 (2... Nf6) 3.Bc4 Nf6 4.Qxf7# 1-0")
+        ]
+        for (start,moves) in specialLines {
+            let text="[Event \"Scanner fidelity\"]\n[FEN \"\(start)\"]\n[Result \"*\"]\n\n\(moves)"
+            let file=root.appendingPathComponent("Scanner.pgn")
+            try text.write(to:file,atomically:true,encoding:.utf8)
+            let decoded=try PGNService.parse(text.replacingOccurrences(of:"e5$1",with:"e5 $1"))[0]
+            var node:MoveNode?=decoded.root,ply=0
+            while let current=node {
+                let scanner=try PGNPositionScanner(path:file.path,board:CatalogFilter.boardKey(current.positionFEN))
+                let match=try scanner.match(offset:0,length:text.utf8.count)
+                try check("streaming PGN matches full decoder for special-move line at ply \(ply)") {match==ply}
+                node=current.children.first;ply+=1
+            }
+        }
+
+        let transposePGN="""
+        [Event "Transposition test"]
+        [White "First"]
+        [Black "Transposition"]
+        [Result "*"]
+
+        1. Nf3 d5 2. d4 Nf6 *
+
+        [Event "Transposition test"]
+        [White "Second"]
+        [Black "Transposition"]
+        [Result "*"]
+
+        1. d4 Nf6 2. Nf3 d5 *
+
+        [Event "Transposition test"]
+        [White "Variation only"]
+        [Black "Excluded"]
+        [Result "*"]
+
+        1. e4 (1. Nf3 d5 2. d4 Nf6) e5 *
+        """
+        let transposeFile=root.appendingPathComponent("Transpositions.pgn");try transposePGN.write(to:transposeFile,atomically:true,encoding:.utf8)
+        _ = await library.importFiles(from:[transposeFile])
+        let transposeGames=try PGNService.parse(transposePGN)
+        transposeGames[0].goToEnd()
+        var transposed=CatalogRequest();transposed.folder=library.lastImportedFolderID!.uuidString;transposed.filter.boardFEN=transposeGames[0].currentPosition.fen
+        let matches=try await library.page(transposed)
+        try check("board search finds transpositions in PGN main lines and excludes variation-only positions") {Set(matches.games.map(\.white))==Set(["First","Second"])}
+        let cachedBeforeEdit=try PositionSearchService.search(catalog:catalog,request:transposed,progress:{_ in})
+        let unrelated=ChessStudy(white:"Working game",black:"Outside reference collection")
+        try catalog.save([unrelated])
+        let cachedAfterEdit=try PositionSearchService.search(catalog:catalog,request:transposed,progress:{_ in})
+        try check("working games outside the reference collection preserve its cached board results") {cachedBeforeEdit.key==cachedAfterEdit.key && cachedAfterEdit.cached}
+        let unchangedVersion=try catalog.contentVersion()
+        try catalog.save([unrelated])
+        try check("saving an unchanged payload preserves content versions and caches") {try catalog.contentVersion()==unchangedVersion}
+        let localFolder=UUID()
+        for game in transposeGames {game.folderID=localFolder}
+        try catalog.save(transposeGames)
+        var localRequest=transposed;localRequest.folder=localFolder.uuidString
+        let localMatches=try await library.page(localRequest)
+        try check("saved move-tree board search follows only the main line") {localMatches.count==2}
+        var renamed=localRequest;renamed.filter.white="Renamed"
+        let beforeRename=try await library.page(renamed)
+        transposeGames[0].white="Renamed"
+        try catalog.save([transposeGames[0]])
+        let afterRename=try await library.page(renamed)
+        try check("header edits invalidate board caches even when collection counts are unchanged") {beforeRename.count==0 && afterRename.count==1}
+        try catalog.move(transposeGames[0].id,folder:nil)
+        let afterMove=try await library.page(localRequest)
+        try check("moving a game out of a collection invalidates its board cache") {afterMove.count==1}
+        try catalog.move(transposeGames[0].id,folder:localFolder)
+        let afterReturn=try await library.page(localRequest)
+        try check("moving a game back restores the exact board results") {afterReturn.count==2}
+        let removed=matches.games[0];library.delete(removed);library.saveNow()
+        let changed=try await library.page(transposed)
+        try check("deleting a game invalidates cached board results") {changed.count==1 && changed.games[0].id != removed.id}
+        let cancelBoard=Task {try await library.page(transposed)};cancelBoard.cancel()
+        var searchCancelled=false
+        do {_ = try await cancelBoard.value} catch is CancellationError {searchCancelled=true}
+        try check("cancelled board queries do not publish stale results") {searchCancelled}
+        let recoveredFolder=UUID()
+        try catalog.addSource(id:UUID().uuidString,path:"",kind:"legacy",name:"Recovered committed collection",original:"test:committed",hash:nil,folder:recoveredFolder,count:1)
+        let recoveryLibrary=LibraryStore(archiveURL:archive)
+        try check("restart recovers a collection committed before its window metadata was saved") {recoveryLibrary.folders.contains {$0.id==recoveredFolder && $0.name=="Recovered committed collection"}}
         if CommandLine.arguments.count > 2 {
             let real = URL(fileURLWithPath:CommandLine.arguments[2])
             let timer = Date()
@@ -206,8 +383,8 @@ struct CatalogChecks {
         }
         print("Catalog checks passed in \(String(format:"%.2f",Date().timeIntervalSince(began))) seconds.")
     }
-    private static func check(_ name:String,_ test:()->Bool) throws {
-        guard test() else { throw NSError(domain:"CatalogChecks",code:1,userInfo:[NSLocalizedDescriptionKey:name]) }
+    private static func check(_ name:String,_ test:() throws ->Bool) throws {
+        guard try test() else { throw NSError(domain:"CatalogChecks",code:1,userInfo:[NSLocalizedDescriptionKey:name]) }
         print("Passed: \(name)")
     }
 }

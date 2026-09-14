@@ -41,6 +41,8 @@ class CbhGameDecoder final : public CbhDecoder {
 public:
 	CbhGameDecoder(const char* gameFilename, const char* annotationFilename);
 
+	bool configureMatch(const std::string& fen);
+	int matchRecord(uint32_t offset);
 	errorT open() override;
 	errorT flush() override;
 
@@ -53,6 +55,13 @@ private:
 
 	CbhAnnotationDecoder annotationDecoder;
 	decoder::PositionStack position_;
+	bool scanning_ = false;
+	pieceT target_[64];
+	colorT targetSide_;
+	int found_ = -1, mainPly_ = 0;
+	bool matchesPosition() const;
+	bool targetStillReachable() const;
+	int targetWhitePawns_ = 0, targetBlackPawns_ = 0;
 	bool is_chess960;
 	const byte* lookup;
 	uint32_t bytes_read_;  // number of bytes read from the current game
@@ -61,7 +70,7 @@ private:
 	errorT startDecoding(std::string& startFen);
 
 	uint32_t decodeMoves(std::vector<AnnotatedMove>& moves,
-	                     uint32_t move_number = 0);
+	                     uint32_t move_number = 0, unsigned depth = 0);
 	byte translate_byte(byte b, int count);
 
 	uint32_t decodeMove(simpleMoveT& sm, byte move_code, uint32_t move_number); 

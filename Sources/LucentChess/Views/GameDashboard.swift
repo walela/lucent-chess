@@ -10,6 +10,12 @@ struct GameDashboard: View {
     @EnvironmentObject private var appearance: AppearanceSettings
     @Environment(\.openWindow) private var openWindow
     let collectionID: UUID?
+    let referenceMode: Bool
+    @AppStorage("referenceCollectionID") private var referenceCollectionID = ""
+    @State private var filter = CatalogFilter()
+    @State private var showingFilters = false
+    @State private var searchProgress = ""
+    @State private var searchTask: Task<Void,Never>?
     let openGame: (ChessStudy) -> Void
     let newGame: (UUID?) -> Void
     let importPGN: (UUID?) -> Void
@@ -23,8 +29,8 @@ struct GameDashboard: View {
 
     @State private var searchText = ""
 
-    init(collectionID: UUID? = nil, openGame: @escaping (ChessStudy) -> Void, newGame: @escaping (UUID?) -> Void, importPGN: @escaping (UUID?) -> Void, importSource: @escaping (UUID?) -> Void) {
-        self.collectionID = collectionID
+    init(collectionID: UUID? = nil, referenceMode: Bool = false, openGame: @escaping (ChessStudy) -> Void, newGame: @escaping (UUID?) -> Void, importPGN: @escaping (UUID?) -> Void, importSource: @escaping (UUID?) -> Void) {
+        self.collectionID = collectionID;self.referenceMode=referenceMode
         self.openGame = openGame; self.newGame = newGame
         self.importPGN = importPGN; self.importSource = importSource
         _selection = State(initialValue: collectionID.map(Selection.folder) ?? .all)
@@ -35,14 +41,17 @@ struct GameDashboard: View {
     @State private var pageCursors: [CatalogCursor?] = [nil]
     @State private var nextCursor: CatalogCursor?
     @State private var loadingPage = false
+    @State private var searchAttempt = 0
 
     private var request: CatalogRequest {
         var value = CatalogRequest()
-        value.revision = library.catalogRevision
+        value.revision = (selectedFolderID == nil ? library.catalogRevision : 0) &+ searchAttempt
+        value.contentRevision = selectedFolderID.flatMap {library.collectionVersions[$0.uuidString]} ?? ""
         value.folder = selectedFolderID?.uuidString
         value.unfiled = selection == .unfiled
         value.recent = selection == .recent
         value.search = searchText
+        value.filter = filter
         value.result = resultFilter.rawValue; value.file = fileFilter.rawValue
         value.sort = sortField.rawValue; value.ascending = sortAscending
         value.cursor = pageCursors.last ?? nil
@@ -70,8 +79,9 @@ struct GameDashboard: View {
     var body: some View {
         VStack(spacing: 0) {
             dashboardToolbar
+            if library.isOpeningGame { ProgressView("Opening game…").controlSize(.small).padding(6) }
             Divider()
-            if collectionID != nil {
+            if collectionID != nil || referenceMode {
                 librarySection(displayedGames).padding(20)
             } else {
                 HSplitView {
@@ -94,23 +104,56 @@ struct GameDashboard: View {
             }
         )
         .task(id: request) {
-            loadingPage = true
-            do {
-                if !request.search.isEmpty { try await Task.sleep(for: .milliseconds(180)) }
-                let page = try await library.page(request)
-                displayedGames = page.games; displayedCount = page.count; nextCursor = page.next
-                loadingPage = false
-            } catch is CancellationError { }
-            catch { library.lastError = error.localizedDescription; loadingPage = false }
+            searchTask?.cancel()
+            if referenceMode && selectedFolderID == nil { displayedGames=[];displayedCount=0;loadingPage=false;nextCursor=nil;searchProgress="Choose a reference collection to begin.";return }
+            let captured=request
+            let task = Task { @MainActor in
+                loadingPage=true;searchProgress="";displayedGames=[];displayedCount=0;nextCursor=nil
+                do {
+                    if !captured.search.isEmpty { try await Task.sleep(for:.milliseconds(180)) }
+                    let page=try await library.page(captured) { message in
+                        Task { @MainActor in if request == captured { searchProgress=message } }
+                    }
+                    try Task.checkCancellation()
+                    displayedGames=page.games;displayedCount=page.count;nextCursor=page.next;loadingPage=false
+                } catch is CancellationError { }
+                catch { library.lastError=error.localizedDescription;loadingPage=false }
+            }
+            searchTask=task
+            await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
+        }
+        .onAppear {
+            if referenceMode {
+                selection=UUID(uuidString:referenceCollectionID).map(Selection.folder) ?? .all
+                filter=library.referenceFilter
+                resultFilter=GameResultFilter(rawValue:library.referenceResult) ?? .all
+            }
+        }
+        .onChange(of: referenceCollectionID) { _, value in
+            if referenceMode { selection=UUID(uuidString:value).map(Selection.folder) ?? .all;pageCursors=[nil] }
+        }
+        .onChange(of: library.referenceSearchRevision) { _, _ in
+            if referenceMode { filter=library.referenceFilter;resultFilter=GameResultFilter(rawValue:library.referenceResult) ?? .all;pageCursors=[nil];searchAttempt &+= 1 }
+        }
+        .sheet(isPresented:$showingFilters) {
+            DatabaseFilterView(filter:filter,result:resultFilter.rawValue) { value,result in
+                filter=value;resultFilter=GameResultFilter(rawValue:result) ?? .all;pageCursors=[nil]
+            }
         }
         .onChange(of: selection) { _, _ in pageCursors = [nil] }
         .onChange(of: searchText) { _, _ in pageCursors = [nil] }
-        .onChange(of: resultFilter) { _, _ in pageCursors = [nil] }
+        .onChange(of: resultFilter) { _, _ in
+            pageCursors = [nil]
+            if referenceMode { library.referenceResult=resultFilter.rawValue }
+        }
+        .onChange(of: filter) { _, value in
+            if referenceMode { library.referenceFilter=value;library.referencePositionFEN=value.boardFEN }
+        }
         .onChange(of: fileFilter) { _, _ in pageCursors = [nil] }
         .onChange(of: sortField) { _, _ in pageCursors = [nil] }
         .onChange(of: sortAscending) { _, _ in pageCursors = [nil] }
         .onChange(of: library.lastImportedFolderID) { _, id in
-            guard collectionID == nil else { return }
+            guard collectionID == nil && !referenceMode else { return }
             if let id { selectCollection(.folder(id)); pageCursors = [nil] }
         }
         .sheet(item: $folderEditor) { editor in
@@ -149,7 +192,7 @@ struct GameDashboard: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            if collectionID != nil {
+            if collectionID != nil || referenceMode {
                 Button { openWindow(id: AppWindowID.library) } label: {
                     Label("Library", systemImage: "square.grid.2x2")
                 }.help("Return to the library")
@@ -173,6 +216,17 @@ struct GameDashboard: View {
             .frame(width: 320, height: 34)
             .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 9))
             appearanceSwitcher
+            if !referenceMode {
+                Menu {
+                    Button("Open Reference Database") {library.requestReferencePosition("");openWindow(id:AppWindowID.reference)}
+                    Divider()
+                    ForEach(library.folders) { folder in
+                        Button { referenceCollectionID=folder.id.uuidString;library.requestReferencePosition("");openWindow(id:AppWindowID.reference) } label: {
+                            Label(folder.name,systemImage:referenceCollectionID==folder.id.uuidString ? "checkmark" : "folder")
+                        }
+                    }
+                } label: {Label("Reference",systemImage:"books.vertical")}
+            }
             Menu {
                 Button { importSource(selectedFolderID) } label: {
                     Label("TWIC or Lichess…", systemImage: "network")
@@ -365,6 +419,10 @@ struct GameDashboard: View {
 
     @ViewBuilder
     private func collectionActions(_ folder: GameFolder) -> some View {
+        Button(referenceCollectionID == folder.id.uuidString ? "Reference database ✓" : "Use as Reference Database") {
+            referenceCollectionID=folder.id.uuidString
+        }
+        Divider()
         Button("Rename Collection…") { folderEditor = FolderEditor(folder: folder) }
         Button("Remove Collection", role: .destructive) {
             library.deleteFolder(folder)
@@ -386,6 +444,16 @@ struct GameDashboard: View {
 
     private func librarySection(_ games: [ChessStudy]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
+            if referenceMode {
+                HStack {
+                    Picker("Reference database",selection:$referenceCollectionID) {
+                        Text("Choose a collection…").tag("")
+                        ForEach(library.folders) { folder in Text("\(folder.name) (\(library.gameCount(in:folder).formatted()))").tag(folder.id.uuidString) }
+                    }
+                    Button("Use current board") { filter.boardFEN=library.selectedStudy?.currentPosition.fen ?? "";pageCursors=[nil] }.disabled(library.selectedStudy==nil)
+                }
+                Text("Reference results open in a separate preview. Your working game stays open.").font(.caption).foregroundStyle(.secondary)
+            }
             HStack {
                 ZStack {
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
@@ -417,7 +485,11 @@ struct GameDashboard: View {
 
             libraryControls(shownCount: displayedCount)
             HStack {
-                if loadingPage { ProgressView().controlSize(.small); Text("Loading games…") }
+                if loadingPage {
+                    ProgressView().controlSize(.small)
+                    Text(searchProgress.isEmpty ? "Loading games…" : searchProgress).lineLimit(2)
+                    Button("Cancel") { searchTask?.cancel();loadingPage=false;searchProgress="Search cancelled." }
+                }
                 else if displayedCount > 0 {
                     Text("\(((pageCursors.count-1)*DatabaseCatalog.pageSize+1).formatted())–\(min(pageCursors.count*DatabaseCatalog.pageSize,displayedCount).formatted()) of \(displayedCount.formatted())")
                 }
@@ -426,6 +498,13 @@ struct GameDashboard: View {
                 Button("Next") { if let nextCursor { pageCursors.append(nextCursor) } }.disabled(nextCursor == nil || loadingPage)
             }.font(.caption).foregroundStyle(.secondary)
 
+            if !loadingPage && !searchProgress.isEmpty {
+                HStack {
+                    Text(searchProgress).font(.caption).foregroundStyle(.secondary)
+                    if searchProgress == "Search cancelled." { Button("Retry search") { searchAttempt += 1 } }
+                }
+            }
+            if !filter.boardFEN.isEmpty { Text("Board filter: exact pieces and side to move · main line only").font(.caption).foregroundStyle(.secondary) }
             let tableShape = RoundedRectangle(cornerRadius: 12, style: .continuous)
             GeometryReader { geometry in
                 ScrollView(.horizontal) {
@@ -434,7 +513,7 @@ struct GameDashboard: View {
                     Divider()
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            if games.isEmpty {
+                            if games.isEmpty && !loadingPage {
                                 ContentUnavailableView(
                                     hasActiveFilters ? "No matching games" : "No games here",
                                     systemImage: "doc.text.magnifyingglass",
@@ -446,16 +525,18 @@ struct GameDashboard: View {
                                     GameLibraryRow(
                                         game: game,
                                         folderName: selectedFolderID == game.folderID ? nil : folderName(for: game)
-                                    ) { openGame(game) }
+                                    ) { openResult(game) }
                                         .draggable(game.id.uuidString)
                                         .contextMenu {
-                                            Button("Open") { openGame(game) }
-                                            Button("Save PGN") { library.select(game); library.saveSelected() }
-                                            Button("Export PGN…") { library.select(game); library.saveSelectedAs() }
+                                            Button("Open") { openResult(game) }
+                                            if !referenceMode {
+                                            Button("Save PGN") { Task { if await library.openGame(game) { library.saveSelected() } } }
+                                            Button("Export PGN…") { Task { if await library.openGame(game) { library.saveSelectedAs() } } }
                                             moveToFolderMenu(for: game).disabled(library.isImportingFiles)
                                             Divider()
-                                            Button("Duplicate") { library.select(game); library.duplicateSelected() }.disabled(library.isImportingFiles)
+                                            Button("Duplicate") { Task { if await library.openGame(game) { library.duplicateSelected() } } }.disabled(library.isImportingFiles)
                                             Button("Delete from Library", role: .destructive) { library.delete(game) }.disabled(library.isImportingFiles)
+                                            }
                                         }
                                     if game.id != games.last?.id { Divider().padding(.leading, 20) }
                                 }
@@ -474,8 +555,15 @@ struct GameDashboard: View {
         }
     }
 
+    private func openResult(_ game: ChessStudy) {
+        if referenceMode { library.referencePreviewFEN=filter.boardFEN }
+        openGame(game)
+    }
+
     private func libraryControls(shownCount: Int) -> some View {
         HStack(spacing: 10) {
+            Button { showingFilters=true } label: { Label(filter.isActive ? "Edit filters" : "Filter games…",systemImage:"line.3.horizontal.decrease.circle") }
+            if filter.isActive { Button("Clear filters") { filter=CatalogFilter();resultFilter = .all;pageCursors=[nil] } }
             Menu {
                 ForEach(GameResultFilter.allCases) { option in
                     Button {
@@ -542,7 +630,7 @@ struct GameDashboard: View {
     }
 
     private var hasActiveFilters: Bool {
-        query.isFiltered || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        filter.isActive || query.isFiltered || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func clearFilters() {

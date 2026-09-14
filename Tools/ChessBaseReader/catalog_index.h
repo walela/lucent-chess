@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
+#include <sys/statvfs.h>
 
 static std::string catalogUTF8(const std::string& text) {
     static const unsigned cp[32] = {0x20ac,0x81,0x201a,0x192,0x201e,0x2026,0x2020,0x2021,0x2c6,0x2030,0x160,0x2039,0x152,0x8d,0x17d,0x8f,0x90,0x2018,0x2019,0x201c,0x201d,0x2022,0x2013,0x2014,0x2dc,0x2122,0x161,0x203a,0x153,0x9d,0x17e,0x178};
@@ -61,6 +62,22 @@ struct CatalogMappedFile {
         return std::string(reinterpret_cast<const char*>(bytes+offset),count);
     }
 };
+// Keep enough free space to checkpoint the growing transaction. This applies to
+// both CBH and PGN, whose final header count is not known before streaming it.
+static void checkImportSpace(CatalogDB& db, const char* catalogPath) {
+    struct statvfs volume{};struct stat file{};
+    if(statvfs(catalogPath,&volume)!=0 || stat(catalogPath,&file)!=0)
+        throw std::runtime_error("Could not check free space for the database import.");
+    CatalogStatement pages(db,"PRAGMA page_count"),size(db,"PRAGMA page_size");
+    if(sqlite3_step(pages.stmt)!=SQLITE_ROW || sqlite3_step(size.stmt)!=SQLITE_ROW)
+        throw std::runtime_error("Could not estimate the database index size.");
+    const uint64_t bytes=uint64_t(sqlite3_column_int64(pages.stmt,0))*uint64_t(sqlite3_column_int64(size.stmt,0));
+    const uint64_t current=uint64_t(file.st_size),growth=bytes>current?bytes-current:0;
+    const uint64_t available=uint64_t(volume.f_bavail)*uint64_t(volume.f_frsize);
+    if(available<growth+512ULL*1024*1024)
+        throw std::runtime_error("Not enough free disk space to finish this import and its temporary database log. Free more space and try again.");
+}
+
 struct CatalogHeaders {
     CatalogMappedFile index,players,tournaments;
     size_t playerHeader,tournamentHeader;
@@ -100,7 +117,10 @@ static int indexDatabase(const char* sourcePath, const char* catalogPath, const 
     std::cout << "0 " << codec.numGames() << std::endl;
     try {
         for(size_t index=0;index<codec.numGames();++index) {
-            if(index%10000==0 && getppid()!=parent) throw std::runtime_error("Import cancelled because Lucent Chess closed.");
+            if(index%10000==0) {
+                if(getppid()!=parent) throw std::runtime_error("Import cancelled because Lucent Chess closed.");
+                checkImportSpace(db,catalogPath);
+            }
             GameReturnValue game{};
             if(!headers.read(index,game)) { ++skipped; continue; }
             std::ostringstream suffix; suffix << std::uppercase << std::hex << std::setw(12) << std::setfill('0') << index;
@@ -121,6 +141,7 @@ static int indexDatabase(const char* sourcePath, const char* catalogPath, const 
             if(index%10000==0) std::cout << index+1 << ' ' << codec.numGames() << std::endl;
         }
         CatalogStatement update(db,"UPDATE sources SET count=? WHERE id=?");update.integer(1,accepted);update.text(2,sourceID);update.run();
+        checkImportSpace(db,catalogPath);
         db.exec("COMMIT");
         std::cout << codec.numGames() << ' ' << codec.numGames() << ' ' << accepted << ' ' << skipped << std::endl;
         return 0;
@@ -145,7 +166,10 @@ static int indexPGN(const char* sourcePath,const char* catalogPath,const char* s
     const auto parent = getppid();
     auto flush=[&](uint64_t end) {
         if(!active)return;
-        if(accepted%10000==0 && getppid()!=parent) throw std::runtime_error("Import cancelled because Lucent Chess closed.");
+        if(accepted%10000==0) {
+            if(getppid()!=parent) throw std::runtime_error("Import cancelled because Lucent Chess closed.");
+            checkImportSpace(db,catalogPath);
+        }
         std::ostringstream suffix;suffix<<std::uppercase<<std::hex<<std::setw(12)<<std::setfill('0')<<accepted;
         const auto id=std::string(sourceID).substr(0,24)+suffix.str();
         auto white=tags["White"],black=tags["Black"],event=tags["Event"],round=tags["Round"];
@@ -202,6 +226,7 @@ static int indexPGN(const char* sourcePath,const char* catalogPath,const char* s
         }
         flush(total);
         CatalogStatement update(db,"UPDATE sources SET count=? WHERE id=?");update.integer(1,accepted);update.text(2,sourceID);update.run();
+        checkImportSpace(db,catalogPath);
         db.exec("COMMIT");std::cout<<total<<' '<<total<<' '<<accepted<<" 0"<<std::endl;return 0;
     }catch(...){try{db.exec("ROLLBACK");}catch(...){}throw;}
 }

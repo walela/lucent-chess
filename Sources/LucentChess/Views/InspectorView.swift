@@ -9,6 +9,7 @@ struct InspectorView: View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 inspectorTab("Engine", value: .analysis)
+                inspectorTab("Filter", value: .filter)
                 inspectorTab("Details", value: .notes)
                 inspectorTab("Appearance", value: .style)
             }
@@ -20,6 +21,7 @@ struct InspectorView: View {
             Group {
                 switch tab {
                 case .analysis: AnalysisInspector(study: study)
+                case .filter: ReferenceFilterInspector(study: study)
                 case .notes: NotesInspector(study: study)
                 case .style: StyleInspector()
                 }

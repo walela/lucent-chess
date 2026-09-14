@@ -33,6 +33,21 @@ struct LucentChessApp: App {
         .defaultSize(width: 1_320, height: 820)
         .windowStyle(.hiddenTitleBar)
 
+        Window("Reference Database",id:AppWindowID.reference) {
+            RootView(referenceMode:true)
+                .environmentObject(library).environmentObject(appearance)
+                .preferredColorScheme(appearance.interfaceAppearance.colorScheme)
+                .frame(minWidth:1_180,minHeight:720)
+        }.defaultSize(width:1_320,height:820).windowStyle(.hiddenTitleBar)
+
+        WindowGroup("Reference Game",id:AppWindowID.referenceGame,for:ReferenceGameSelection.self) { $selection in
+            if let selection {
+                ReferenceGamePreview(selection:selection)
+                    .environmentObject(library).environmentObject(appearance)
+                    .preferredColorScheme(appearance.interfaceAppearance.colorScheme)
+            }
+        }.defaultSize(width:1_000,height:700)
+
         Window("Lucent Chess — Game", id: AppWindowID.game) {
             GameWindowRoot()
                 .environmentObject(library)

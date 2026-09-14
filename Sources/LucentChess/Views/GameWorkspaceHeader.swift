@@ -34,6 +34,10 @@ struct GameWorkspaceHeader: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Game actions")
 
+            actionIcon("Search reference database from this position",label:"Reference",symbol:"books.vertical.fill") {
+                library.requestReferencePosition(study.currentPosition.fen)
+                openWindow(id:AppWindowID.reference)
+            }
             Spacer(minLength: 24)
 
             HStack(spacing: 4) {

@@ -2,6 +2,9 @@ import AppKit
 import SwiftUI
 
 struct PositionSetupView: View {
+    var initialPosition: ChessPosition? = nil
+    var usePosition: ((ChessPosition) -> Void)? = nil
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var appearance: AppearanceSettings
     @Environment(\.openWindow) private var openWindow
@@ -21,7 +24,7 @@ struct PositionSetupView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 5) {
-                Text("Set up position").font(LucentTheme.Fonts.sectionTitle)
+                Text(usePosition == nil ? "Set up position" : "Filter by board position").font(LucentTheme.Fonts.sectionTitle)
                 Text("Choose a piece, then click squares to place it. Click the same piece again to remove it.")
                     .font(.callout).foregroundStyle(.secondary)
             }
@@ -56,17 +59,17 @@ struct PositionSetupView: View {
                     .font(.system(.callout, design: .monospaced)).textFieldStyle(.roundedBorder)
                     .accessibilityLabel("FEN position")
                     .onChange(of: fenText) { _, _ in importError = nil }
-                Text(importError ?? setup.validationError ?? (hasPendingFEN ? "Click Load FEN to apply your pasted position." : "Ready to open as a new game."))
+                Text(importError ?? setup.validationError ?? (hasPendingFEN ? "Click Load FEN to apply your pasted position." : (usePosition == nil ? "Ready to open as a new game." : "Ready to use as a board filter.")))
                     .font(.caption)
                     .foregroundStyle(importError != nil || setup.validationError != nil ? Color.red : Color.secondary)
                     .frame(minHeight: 16, alignment: .leading)
             }
             Divider()
             HStack {
-                Text("Creates a new game in your library.").font(.caption).foregroundStyle(.secondary)
+                Text(usePosition == nil ? "Creates a new game in your library." : "Uses this board to search existing games.").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Cancel", action: close).keyboardShortcut(.cancelAction)
-                Button("Create game", action: createGame)
+                Button(usePosition == nil ? "Create game" : "Use position", action: createGame)
                     .buttonStyle(.borderedProminent).tint(LucentTheme.accent)
                     .disabled(setup.validationError != nil || hasPendingFEN)
                     .keyboardShortcut(.defaultAction)
@@ -75,7 +78,7 @@ struct PositionSetupView: View {
         .padding(24)
         .background(colorScheme == .light ? LucentTheme.Surface.panel : Color(nsColor: .windowBackgroundColor))
         .onAppear {
-            replacePosition(library.selectedStudy?.currentPosition ?? .starting)
+            replacePosition(initialPosition ?? library.selectedStudy?.currentPosition ?? .starting)
             flipped = appearance.boardFlipped
         }
         .onChange(of: setup.position) { _, position in
@@ -216,10 +219,11 @@ struct PositionSetupView: View {
 
     private func createGame() {
         guard setup.validationError == nil, !hasPendingFEN else { return }
+        if let usePosition { usePosition(setup.position);dismiss();return }
         library.newStudy(title: "Custom position", startFEN: setup.position.fen)
         openWindow(id: AppWindowID.game)
         close()
     }
 
-    private func close() { dismissWindow(id: AppWindowID.positionSetup) }
+    private func close() { if usePosition != nil { dismiss() } else { dismissWindow(id: AppWindowID.positionSetup) } }
 }

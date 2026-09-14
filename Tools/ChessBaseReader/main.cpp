@@ -12,6 +12,7 @@
 #include <ctime>
 #include <algorithm>
 #include "catalog_index.h"
+#include "cbh_decode_game.h"
 
 // CBH text uses Windows-1252. Escape it into ASCII JSON for the Swift reader.
 static std::string jsonQuoted(const std::string& text) {
@@ -96,6 +97,25 @@ int main(int argc, char** argv) {
     if (std::string(argv[1]) == "--index") {
         try { return indexDatabase(argv[2], argv[3], argv[4]); }
         catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
+    if (std::string(argv[1]) == "--match-position") {
+        try {
+            const std::string path=argv[2], stem=path.substr(0,path.size()-4);
+            CatalogMappedFile index(path);
+            const auto gamePath=stem+".cbg",annotationPath=stem+".cba";
+            CbhGameDecoder decoder(gamePath.c_str(),annotationPath.c_str());
+            if(decoder.decode_header()!=OK || !decoder.configureMatch(argv[3]))throw std::runtime_error("Could not prepare board search.");
+            FILE* output=fdopen(dup(STDOUT_FILENO),"w");
+            dup2(STDERR_FILENO,STDOUT_FILENO);
+            uint64_t record;
+            while(std::cin>>record) {
+                alarm(10);
+                int result=-2;
+                try { if(record<(index.size-46)/46)result=decoder.matchRecord(index.number(46+record*46+1,4)); } catch(...){}
+                alarm(0);fprintf(output,"%d\n",result);fflush(output);
+            }
+            fclose(output);return 0;
+        } catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}
     }
     rlimit cpu{60, 60}, memory{1024ULL * 1024 * 1024, 1024ULL * 1024 * 1024};
     rlimit output{256ULL * 1024 * 1024, 256ULL * 1024 * 1024};

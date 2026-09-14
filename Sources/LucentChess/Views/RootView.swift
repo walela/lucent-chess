@@ -5,6 +5,8 @@ enum AppWindowID {
     static let library = "library"
     static let game = "game"
     static let collection = "collection"
+    static let reference = "reference"
+    static let referenceGame = "reference-game"
     static let training = "training"
     static let positionSetup = "position-setup"
     static let saveToCollection = "save-to-collection"
@@ -25,13 +27,15 @@ extension Notification.Name {
 struct RootView: View {
     enum InspectorTab: String, CaseIterable, Identifiable {
         case analysis = "Engine"
+        case filter = "Filter"
         case notes = "Game"
         case style = "Style"
         var id: String { rawValue }
     }
 
     let collectionID: UUID?
-    init(collectionID: UUID? = nil) { self.collectionID = collectionID }
+    let referenceMode: Bool
+    init(collectionID: UUID? = nil, referenceMode: Bool = false) { self.collectionID = collectionID;self.referenceMode=referenceMode }
     @Environment(\.controlActiveState) private var activeState
     @EnvironmentObject private var library: LibraryStore
     @Environment(\.openWindow) private var openWindow
@@ -43,6 +47,7 @@ struct RootView: View {
     var body: some View {
         GameDashboard(
             collectionID: collectionID,
+            referenceMode: referenceMode,
             openGame: open,
             newGame: createGame,
             importPGN: { folderID in
@@ -54,7 +59,7 @@ struct RootView: View {
                 showingSourceImport = true
             }
         )
-        .navigationTitle(collectionID.flatMap { id in library.folders.first { $0.id == id }?.name } ?? "Lucent Chess")
+        .navigationTitle(referenceMode ? "Reference Database" : collectionID.flatMap { id in library.folders.first { $0.id == id }?.name } ?? "Lucent Chess")
         .overlay(alignment: .bottomTrailing) {
             if library.isImportingFiles {
                 VStack(spacing: 14) {
@@ -96,24 +101,24 @@ struct RootView: View {
             Text(library.lastError ?? library.importNotice ?? "Something went wrong.")
         }
         .onReceive(NotificationCenter.default.publisher(for: .importPGN)) { _ in
-            guard collectionID == nil, !library.isImportingFiles else { return }
+            guard !referenceMode && collectionID == nil, !library.isImportingFiles else { return }
             openWindow(id: AppWindowID.library)
             importDestinationFolderID = nil
             importing = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .importSource)) { _ in
-            guard collectionID == nil else { return }
+            guard !referenceMode && collectionID == nil else { return }
             openWindow(id: AppWindowID.library)
             sourceImportDestinationFolderID = nil
             showingSourceImport = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .showDashboard)) { _ in
-            guard collectionID == nil else { return }
+            guard !referenceMode && collectionID == nil else { return }
             openWindow(id: AppWindowID.library)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .openSelectedGame)) { _ in if collectionID == nil { openSelectedGame() } }
+        .onReceive(NotificationCenter.default.publisher(for: .openSelectedGame)) { _ in if !referenceMode && collectionID == nil { openSelectedGame() } }
         .onOpenURL { url in
-            guard collectionID == nil else { return }
+            guard !referenceMode && collectionID == nil else { return }
             guard ChessBaseImportService.fileExtensions.contains(url.pathExtension.lowercased()) else { return }
             Task {
                 _ = await library.importFiles(from: [url])
@@ -127,8 +132,8 @@ struct RootView: View {
     }
 
     private func open(_ study: ChessStudy) {
-        library.select(study)
-        openWindow(id: AppWindowID.game)
+        if referenceMode { openWindow(id:AppWindowID.referenceGame,value:ReferenceGameSelection(gameID:study.id,boardFEN:library.referencePreviewFEN));return }
+        Task { if await library.openGame(study) {openWindow(id:AppWindowID.game)} }
     }
 
     private func openSelectedGame() {
