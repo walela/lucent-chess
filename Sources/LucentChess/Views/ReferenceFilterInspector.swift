@@ -111,14 +111,17 @@ private struct ReferencePositionQuery: Hashable {
     let ascending: Bool
 }
 
-/// One listed game as a table row. Names carry their rating so four columns fit
-/// a narrow inspector; rating sorts remain available from the sort menu.
+/// One listed game as a table row, laid out like a database list: player, rating,
+/// player, rating, result, event, year.
 private struct ReferenceGameRow: Identifiable {
     let game: ChessStudy
     var id: UUID { game.id }
     var white: String { game.white.isEmpty ? "Unknown" : game.white }
     var black: String { game.black.isEmpty ? "Unknown" : game.black }
+    var whiteElo: Int { Int(game.whiteElo ?? "") ?? 0 }
+    var blackElo: Int { Int(game.blackElo ?? "") ?? 0 }
     var result: String { game.result == "1/2-1/2" ? "½" : game.result == "*" ? "∗" : game.result.replacingOccurrences(of: "-", with: "–") }
+    var event: String { game.event.trimmingCharacters(in: .whitespaces) }
     var year: Int { Calendar(identifier: .gregorian).component(.year, from: game.date) }
     var moves: Int { (game.mainLinePlyCount + 1) / 2 }
 }
@@ -308,15 +311,21 @@ private struct ReferencePositionResults: View {
     private var gamesTable: some View {
         Table(rows, selection: $selectedGameID, sortOrder: $tableSort) {
             TableColumn("White", value: \.white) { row in
-                PlayerCell(name: row.white, elo: row.game.whiteElo)
+                PlayerCell(name: row.white)
                     // Rows are created lazily; reaching one of the last rows fetches the next page.
                     .onAppear { if games.suffix(40).contains(where: { $0.id == row.id }) { loadMore() } }
             }
-            .width(min: 96)
+            .width(min: 90, ideal: 150)
+            TableColumn("Elo", value: \.whiteElo) { row in EloCell(rating: row.whiteElo) }
+                .width(min: 38, ideal: 44, max: 52)
+                .alignment(.trailing)
             TableColumn("Black", value: \.black) { row in
-                PlayerCell(name: row.black, elo: row.game.blackElo)
+                PlayerCell(name: row.black)
             }
-            .width(min: 96)
+            .width(min: 90, ideal: 150)
+            TableColumn("Elo", value: \.blackElo) { row in EloCell(rating: row.blackElo) }
+                .width(min: 38, ideal: 44, max: 52)
+                .alignment(.trailing)
             TableColumn("Res", value: \.result) { row in
                 Text(row.result)
                     .font(.system(size: 11, weight: .medium).monospacedDigit())
@@ -325,6 +334,14 @@ private struct ReferencePositionResults: View {
             }
             .width(min: 34, ideal: 38, max: 44)
             .alignment(.center)
+            TableColumn("Event", value: \.event) { row in
+                Text(row.event.isEmpty ? "—" : row.event)
+                    .font(.system(size: 11))
+                    .foregroundStyle(row.event.isEmpty ? .tertiary : .secondary)
+                    .lineLimit(1).truncationMode(.tail)
+                    .help(row.event)
+            }
+            .width(min: 80, ideal: 140)
             TableColumn("Year", value: \.year) { row in
                 Text(row.year > 1 ? String(row.year) : "—")
                     .font(.system(size: 11).monospacedDigit())
@@ -413,7 +430,10 @@ private struct ReferencePositionResults: View {
         let order: SortOrder = ascending ? .forward : .reverse
         switch field {
         case .players: return [KeyPathComparator(\.white, order: order)]
+        case .whiteElo: return [KeyPathComparator(\.whiteElo, order: order)]
+        case .blackElo: return [KeyPathComparator(\.blackElo, order: order)]
         case .result: return [KeyPathComparator(\.result, order: order)]
+        case .event: return [KeyPathComparator(\.event, order: order)]
         case .date: return [KeyPathComparator(\.year, order: order)]
         default: return []
         }
@@ -422,7 +442,10 @@ private struct ReferencePositionResults: View {
     private static func field(for comparator: KeyPathComparator<ReferenceGameRow>) -> GameSortField? {
         let keyPath: AnyKeyPath = comparator.keyPath
         if keyPath == \ReferenceGameRow.white || keyPath == \ReferenceGameRow.black { return .players }
+        if keyPath == \ReferenceGameRow.whiteElo { return .whiteElo }
+        if keyPath == \ReferenceGameRow.blackElo { return .blackElo }
         if keyPath == \ReferenceGameRow.result { return .result }
+        if keyPath == \ReferenceGameRow.event { return .event }
         if keyPath == \ReferenceGameRow.year { return .date }
         return nil
     }
@@ -557,21 +580,24 @@ private struct ReferencePositionResults: View {
 
 private struct PlayerCell: View {
     let name: String
-    let elo: String?
 
     var body: some View {
-        HStack(spacing: 5) {
-            Text(name)
-                .font(.system(size: 12, weight: .medium))
-                .lineLimit(1).truncationMode(.tail)
-            if let elo {
-                Text(elo)
-                    .font(.system(size: 10).monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .layoutPriority(1)
-            }
-        }
-        .help(elo.map { "\(name) · \($0)" } ?? name)
+        Text(name)
+            .font(.system(size: 12, weight: .medium))
+            .lineLimit(1).truncationMode(.tail)
+            .help(name)
+    }
+}
+
+private struct EloCell: View {
+    let rating: Int
+
+    var body: some View {
+        Text(rating > 0 ? String(rating) : "")
+            .font(.system(size: 11).monospacedDigit())
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .accessibilityLabel(rating > 0 ? "Rating \(rating)" : "Unrated")
     }
 }
 
