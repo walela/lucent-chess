@@ -57,7 +57,12 @@ enum OpeningTreeService {
     static func buildFull(catalog: DatabaseCatalog, request: CatalogRequest) throws -> OpeningTree {
         let candidates = continuations(boardFEN: request.filter.boardFEN)
         guard !candidates.isEmpty else { return OpeningTree() }
-        let children = try candidates.map { (uci: $0.move.uci, board: try CatalogFilter.boardKey($0.position.applyingUnchecked($0.move).fen)) }
+        // Keys ignore castling rights and en passant; strip them before validation,
+        // which would otherwise reject the assumed rights once a king has moved.
+        let children = try candidates.map { candidate in
+            let fields = candidate.position.applyingUnchecked(candidate.move).fen.split(separator: " ")
+            return (uci: candidate.move.uci, board: try CatalogFilter.boardKey("\(fields[0]) \(fields[1]) - - 0 1"))
+        }
         let sans = Dictionary(candidates.map { ($0.move.uci, $0.position.san(for: $0.move)) }, uniquingKeysWith: { first, _ in first })
         let native = try InteractiveCatalogService.positionTree(catalog: catalog, request: request, children: children)
         var tree = OpeningTree()
