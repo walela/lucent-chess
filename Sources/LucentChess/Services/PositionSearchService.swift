@@ -19,7 +19,8 @@ enum PositionSearchService {
         let version = try catalog.contentVersion(for: request)
         var filter = request.filter; filter.boardFEN = board
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
-        let signature = "lucent-position-v1|" + catalog.url.path + "|" + String(decoding: try encoder.encode(filter), as: UTF8.self) + "|\(request.folder ?? "all")|\(request.unfiled)|\(request.recent)|\(request.search)|\(request.result)|\(request.file)|\(version)|\(request.recent ? Int(Date().timeIntervalSince1970/30) : 0)"
+        // v2 invalidates incomplete results from the old CBH branch traversal.
+        let signature = "lucent-position-v2|" + catalog.url.path + "|" + String(decoding: try encoder.encode(filter), as: UTF8.self) + "|\(request.folder ?? "all")|\(request.unfiled)|\(request.recent)|\(request.search)|\(request.result)|\(request.file)|\(version)|\(request.recent ? Int(Date().timeIntervalSince1970/30) : 0)"
         let key = SHA256.hash(data: Data(signature.utf8)).map { String(format: "%02x", $0) }.joined()
         condition.lock()
         while running.contains(key) {

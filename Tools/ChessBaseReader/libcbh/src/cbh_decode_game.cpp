@@ -244,9 +244,11 @@ uint32_t CbhGameDecoder::decodeMoves(std::vector<AnnotatedMove>& moves,
 			if (sm.isEmpty()) {
 				printf("Aborting on move number %d\n", move_number);
 				return -1;
-			}
+            }
             if(scanning_) {
-                if(depth==0) { ++mainPly_; if(matchesPosition()) {found_=mainPly_;return move_number+1;} if(!targetStillReachable())return move_number+1; }
+                ++mainPly_;
+                if(matchesPosition()) {found_=mainPly_;return move_number+1;}
+                if(!targetStillReachable())return move_number+1;
                 ++move_number;break;
             }
 			if (sm.castling == 1) { // decode castling via sm.promote = KING
@@ -263,6 +265,11 @@ uint32_t CbhGameDecoder::decodeMoves(std::vector<AnnotatedMove>& moves,
 			move_number = decodeMoves(moves, move_number, depth+1);
 			if (move_number == -1)
 				return -1;
+			// CBH pushes the branch point BEFORE its main continuation. The
+			// first serialized path is the main line, including nested pushes.
+			// Once it ends (or matches/rejects), stop: bytes after its pop are
+			// alternatives, not a continuation of the main line.
+			if(scanning_)return move_number;
 			break;
 		}
 		case Token_Pop:

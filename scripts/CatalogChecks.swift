@@ -256,6 +256,38 @@ struct CatalogChecks {
             let cached=try PositionSearchService.search(catalog:catalog,request:boardRequest,progress:{_ in})
             try check("identical completed board search reuses its cached result") {cached.cached && cached.skipped==0}
         }
+        // CBH serializes the main continuation inside push/pop blocks before
+        // returning to the branch point for alternatives. Exercise positions
+        // beyond those blocks, not just the first few opening moves.
+        let variationInput = fixtures.appendingPathComponent("variations/WithVariations.cbh")
+        let annotated = try ChessBaseImportService.read(variationInput)
+        try check("annotated board-search fixture decodes completely") { annotated.skipped == 0 && annotated.games.count == 28 }
+        _ = await library.importFiles(from: [variationInput])
+        let annotatedFolder = library.lastImportedFolderID!.uuidString
+        var mainlineRecords: [String: Set<Int>] = [:]
+        var branchTargets = Set<String>()
+        for (record, game) in annotated.games.enumerated() {
+            var node = game.root
+            while true {
+                let board = try CatalogFilter.boardKey(node.positionFEN)
+                mainlineRecords[board, default: []].insert(record)
+                if node.children.count > 1 {
+                    for child in node.children { branchTargets.insert(try CatalogFilter.boardKey(child.positionFEN)) }
+                }
+                guard let next = node.children.first else { branchTargets.insert(board); break }
+                node = next
+            }
+        }
+        for board in branchTargets.sorted() {
+            var query = CatalogRequest(); query.folder = annotatedFolder
+            query.filter.boardFEN = board + " - - 0 1"
+            let result = try await library.page(query)
+            let actual = Set(result.games.compactMap { $0.databaseReference?.record })
+            let expected = mainlineRecords[board] ?? []
+            try check("CBH branches preserve main-line matches for \(board) (expected \(expected.sorted()), got \(actual.sorted()))") { actual == expected }
+        }
+        print("Verified \(branchTargets.count) main-line and variation positions across 28 annotated ChessBase games.")
+
         let specialLines:[(String,String)] = [
             ("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1","1. O-O O-O-O *"),
             ("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1","1. exd6 Kd7 *"),
