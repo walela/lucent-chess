@@ -31,8 +31,9 @@ struct ReferenceFilterInspector: View {
             .padding(.horizontal, 14).padding(.vertical, 11)
             Divider()
             if let query {
-                // A new position owns fresh paging state and cancels the old task.
-                ReferencePositionResults(query: query, study: study, sortField: $sortField, ascending: $ascending).id(query)
+                // One results view outlives position changes: the previous table stays
+                // on screen, dimmed, until the next position's data replaces it.
+                ReferencePositionResults(query: query, study: study, sortField: $sortField, ascending: $ascending)
             } else {
                 VStack(spacing: 10) {
                     Image(systemName: "books.vertical").font(.title2)
@@ -137,9 +138,14 @@ private struct ReferencePositionResults: View {
     @State private var games: [ChessStudy] = []
     @State private var count = 0
     @State private var nextCursor: CatalogCursor?
+    /// Nothing has been shown yet for any position.
     @State private var loading = true
+    /// A newer position is being searched while the previous results stay visible.
+    @State private var refreshing = false
+    /// The running search has taken long enough that its progress is worth showing.
+    @State private var slow = false
     @State private var loadingMore = false
-    @State private var message = "Searching this position…"
+    @State private var message = ""
     @State private var error: String?
     @State private var cancelled = false
     @State private var retry = 0
@@ -150,6 +156,11 @@ private struct ReferencePositionResults: View {
     @State private var treeTasks: [Task<Void, Never>] = []
     @State private var treeError: String?
     @State private var tableSort: [KeyPathComparator<ReferenceGameRow>]
+    /// Recently visited positions, so stepping back and forth is instant.
+    @State private var cache: [ReferencePositionQuery: CachedResults] = [:]
+    @State private var cacheOrder: [ReferencePositionQuery] = []
+
+    private struct CachedResults { var games: [ChessStudy] = []; var count = 0; var next: CatalogCursor?; var tree: OpeningTree?; var loaded = false }
 
     init(query: ReferencePositionQuery, study: ChessStudy, sortField: Binding<GameSortField>, ascending: Binding<Bool>) {
         self.query = query
@@ -187,6 +198,11 @@ private struct ReferencePositionResults: View {
         }
         .task(id: request) { await search() }
         .onDisappear { activeSearch = nil; searchTask?.cancel(); treeTasks.forEach { $0.cancel() } }
+        .onChange(of: query) { _, query in
+            // The sort menu and the table header must agree; the view now outlives sort changes.
+            let order = Self.comparators(for: query.sort, ascending: query.ascending)
+            if !order.isEmpty, order != tableSort { tableSort = order }
+        }
         .onChange(of: tableSort) { _, order in
             guard let first = order.first, let field = Self.field(for: first) else { return }
             if sortField != field || ascending != (first.order == .forward) {
@@ -205,25 +221,29 @@ private struct ReferencePositionResults: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 7) {
                 Text("Moves").font(.system(size: 12, weight: .semibold))
-                if let tree, !loading {
+                if let tree, !treeLoading {
                     Text("\(tree.analysed.formatted()) games")
                         .font(.system(size: 10).monospacedDigit()).foregroundStyle(.secondary)
                         .help(treeSummary(tree))
-                } else if treeLoading, !loading {
-                    Text("across the whole database…").font(.system(size: 10)).foregroundStyle(.tertiary)
+                        .contentTransition(.numericText())
                 }
                 Spacer(minLength: 2)
                 if let treeError {
                     Image(systemName: "exclamationmark.triangle").font(.system(size: 10)).foregroundStyle(.orange).help(treeError)
                         .accessibilityLabel("Moves could not be computed: \(treeError)")
                 }
-                if treeLoading { ProgressView().controlSize(.mini) }
+                if treeLoading { ProgressView().controlSize(.mini).transition(.opacity) }
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
-            if loading || error != nil || cancelled {
+            if loading && (error != nil || cancelled) {
                 Color.clear
             } else {
-                OpeningTreeTable(tree: tree, loading: treeLoading, position: study.currentPosition, play: play)
+                // The previous position's table stays put, dimmed, until its
+                // replacement lands; clicks are ignored so a stale row is never played.
+                OpeningTreeTable(tree: tree, loading: treeLoading && tree == nil, position: study.currentPosition, play: play)
+                    .opacity(treeLoading ? 0.45 : 1)
+                    .allowsHitTesting(!treeLoading)
+                    .animation(.easeOut(duration: 0.15), value: treeLoading)
             }
         }
         .accessibilityElement(children: .contain)
@@ -239,23 +259,20 @@ private struct ReferencePositionResults: View {
                         .padding(.horizontal, 6).padding(.vertical, 3)
                         .background(.primary.opacity(0.055), in: Capsule())
                         .foregroundStyle(.secondary)
+                        .opacity(refreshing ? 0.45 : 1)
+                        .contentTransition(.numericText())
                         .accessibilityLabel("\(count.formatted()) matching games")
                 }
                 Spacer(minLength: 2)
+                if refreshing { ProgressView().controlSize(.mini).transition(.opacity) }
                 sortMenu
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
 
             if loading {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        ProgressView().controlSize(.small)
-                        Text("Searching this position…").font(.callout)
-                        Spacer(minLength: 0)
-                    }
-                    Text(message).font(.caption).foregroundStyle(.secondary)
-                    Button("Cancel search", action: cancel)
-                }.padding(.horizontal, 14)
+                // Only the very first search has nothing to show. Later positions keep
+                // the previous list visible, dimmed, until the new one arrives.
+                ProgressView().controlSize(.small).frame(maxWidth: .infinity).padding(.top, 24)
                 Spacer()
             } else if let error {
                 status(error, retry: true)
@@ -265,9 +282,12 @@ private struct ReferencePositionResults: View {
                 status("No games match this board position.", retry: false)
             } else {
                 gamesTable
+                    .opacity(refreshing ? 0.45 : 1)
+                    .allowsHitTesting(!refreshing)
+                    .animation(.easeOut(duration: 0.15), value: refreshing)
             }
 
-            if !loading && error == nil && !cancelled && games.count < count {
+            if !loading && !refreshing && error == nil && !cancelled && games.count < count {
                 Divider()
                 HStack(spacing: 6) {
                     if loadingMore { ProgressView().controlSize(.mini) }
@@ -344,7 +364,18 @@ private struct ReferencePositionResults: View {
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if !loading && error == nil && !cancelled && message.contains("coverage") {
+            if slow && (loading || refreshing) {
+                // Preparation of a database is the only search worth narrating; a
+                // routine position lookup finishes before this line would appear.
+                HStack(spacing: 6) {
+                    Text(message.isEmpty ? "Still searching…" : message)
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    Button("Cancel", action: cancel).buttonStyle(.borderless).font(.system(size: 10))
+                }
+                .transition(.opacity)
+            } else if !loading && error == nil && !cancelled && message.contains("coverage") {
                 Label(message, systemImage: "exclamationmark.circle")
                     .font(.system(size: 10)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -354,16 +385,17 @@ private struct ReferencePositionResults: View {
                 Text("Exact position · Main line")
                 Spacer(minLength: 0)
                 Image(systemName: "info.circle")
-                    .help("Matches pieces and side to move, including transpositions. Castling rights, en passant and move clocks are ignored; variations are excluded. The Moves table summarises the games currently listed.")
-                    .accessibilityLabel("Position matching includes transpositions; castling rights, en passant, move clocks and variations are excluded. The moves table summarises the listed games.")
+                    .help("Matches pieces and side to move, including transpositions. Castling rights, en passant and move clocks are ignored; variations are excluded. The Moves table counts every game in the database that continues from this position.")
+                    .accessibilityLabel("Position matching includes transpositions; castling rights, en passant, move clocks and variations are excluded. The moves table counts every database game continuing from this position.")
             }.font(.system(size: 10)).foregroundStyle(.secondary)
         }.padding(.horizontal, 14).padding(.vertical, 9)
+        .animation(.easeOut(duration: 0.2), value: slow)
     }
 
     private func status(_ text: String, retry canRetry: Bool) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(text).font(.callout).foregroundStyle(.secondary)
-            if canRetry { Button("Retry search") { retry &+= 1 } }
+            if canRetry { Button("Retry search") { cache.removeValue(forKey: query); cacheOrder.removeAll { $0 == query }; retry &+= 1 } }
             Spacer()
         }.padding(.horizontal, 14).frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -407,36 +439,62 @@ private struct ReferencePositionResults: View {
         activeSearch = nil
         searchTask?.cancel()
         treeTasks.forEach { $0.cancel() }; treeTasks = []
-        loading = false; loadingMore = false
+        loading = false; refreshing = false; slow = false; loadingMore = false; treeLoading = false
         cancelled = true
+    }
+
+    private func remember(_ key: ReferencePositionQuery, _ update: (inout CachedResults) -> Void) {
+        var entry = cache[key] ?? CachedResults()
+        update(&entry)
+        if cache.updateValue(entry, forKey: key) == nil {
+            cacheOrder.append(key)
+            if cacheOrder.count > 64 { cache.removeValue(forKey: cacheOrder.removeFirst()) }
+        }
     }
 
     @MainActor private func search() async {
         searchTask?.cancel()
         treeTasks.forEach { $0.cancel() }; treeTasks = []
         let captured = request
+        let key = query
         let token = UUID()
         activeSearch = token
-        games = []; count = 0; nextCursor = nil; tree = nil; treeLoading = false; loadingMore = false; treeError = nil
-        loading = true; error = nil; cancelled = false
-        message = "Preparing the selected database, then finding this position."
+        error = nil; cancelled = false; loadingMore = false; treeError = nil; slow = false; message = ""
+        let hit = cache[key]
+        if let hit, hit.loaded {
+            // A position seen moments ago comes straight back; the tree may still be pending.
+            games = hit.games; count = hit.count; nextCursor = hit.next; tree = hit.tree
+            loading = false; refreshing = false
+            treeLoading = hit.tree == nil
+            if hit.tree == nil { loadTree(request: captured, key: key, token: token) }
+            return
+        }
+        if loading { games = []; count = 0; nextCursor = nil; tree = nil } else { refreshing = true }
+        if let cached = hit?.tree { tree = cached; treeLoading = false } else { treeLoading = true }
         let work = Task { @MainActor in
             do {
                 // Scrubbing notation searches the position where the user pauses.
-                try await Task.sleep(for: .milliseconds(100))
+                try await Task.sleep(for: .milliseconds(90))
+                let slowTimer = Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(1500))
+                    if !Task.isCancelled, activeSearch == token { slow = true }
+                }
+                defer { slowTimer.cancel() }
+                if hit?.tree == nil { loadTree(request: captured, key: key, token: token) }
                 let page = try await library.page(captured) { progress in
                     Task { @MainActor in if activeSearch == token { message = progress } }
                 }
                 try Task.checkCancellation()
                 guard activeSearch == token else { return }
                 games = page.games; count = page.count; nextCursor = page.next
-                loading = false
-                loadTree(request: captured, token: token)
+                remember(key) { $0.games = page.games; $0.count = page.count; $0.next = page.next; $0.loaded = true }
+                loading = false; refreshing = false; slow = false
             } catch is CancellationError { }
             catch {
                 guard activeSearch == token else { return }
                 self.error = error.localizedDescription
-                loading = false
+                loading = false; refreshing = false; slow = false
+                treeTasks.forEach { $0.cancel() }; treeTasks = []; treeLoading = false
             }
         }
         searchTask = work
@@ -445,10 +503,11 @@ private struct ReferencePositionResults: View {
 
     /// Appends the next page in the same order; the list scrolls continuously.
     @MainActor private func loadMore() {
-        guard !loading, !loadingMore, error == nil, !cancelled, let cursor = nextCursor, let token = activeSearch else { return }
+        guard !loading, !refreshing, !loadingMore, error == nil, !cancelled, let cursor = nextCursor, let token = activeSearch else { return }
         loadingMore = true
         var captured = request
         captured.cursor = cursor
+        let key = query
         Task { @MainActor in
             do {
                 let page = try await library.page(captured)
@@ -456,6 +515,7 @@ private struct ReferencePositionResults: View {
                 let known = Set(games.map(\.id))
                 let fresh = page.games.filter { !known.contains($0.id) }
                 games += fresh; nextCursor = page.next
+                remember(key) { $0.games = games; $0.next = page.next }
                 loadingMore = false
             } catch is CancellationError { }
             catch {
@@ -470,8 +530,8 @@ private struct ReferencePositionResults: View {
     /// Builds the Moves table over every game in scope, off the main thread. The
     /// imported part is a handful of exact position-index lookups, so it does not
     /// depend on how far the games list has been scrolled.
-    @MainActor private func loadTree(request: CatalogRequest, token: UUID) {
-        guard let catalog = library.catalog else { tree = OpeningTree(); return }
+    @MainActor private func loadTree(request: CatalogRequest, key: ReferencePositionQuery, token: UUID) {
+        guard let catalog = library.catalog else { tree = OpeningTree(); treeLoading = false; return }
         treeLoading = true
         let task = Task { @MainActor in
             let worker = Task.detached(priority: .userInitiated) {
@@ -481,6 +541,7 @@ private struct ReferencePositionResults: View {
                 let loaded = try await withTaskCancellationHandler { try await worker.value } onCancel: { worker.cancel() }
                 guard activeSearch == token else { return }
                 tree = loaded.tree
+                remember(key) { $0.tree = loaded.tree }
             } catch is CancellationError { }
             catch {
                 guard activeSearch == token else { return }

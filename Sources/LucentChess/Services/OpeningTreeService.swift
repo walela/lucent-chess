@@ -55,10 +55,10 @@ enum OpeningTreeService {
     /// come from the native exact position index (no decoding), saved and edited
     /// games are replayed directly. `request` carries the board and scope.
     static func buildFull(catalog: DatabaseCatalog, request: CatalogRequest) throws -> OpeningTree {
-        guard let position = ChessPosition(fen: request.filter.boardFEN) else { return OpeningTree() }
-        let moves = position.legalMoves()
-        let children = try moves.map { move in (uci: move.uci, board: try CatalogFilter.boardKey(position.applyingUnchecked(move).fen)) }
-        let sans = Dictionary(moves.map { ($0.uci, position.san(for: $0)) }, uniquingKeysWith: { first, _ in first })
+        let candidates = continuations(boardFEN: request.filter.boardFEN)
+        guard !candidates.isEmpty else { return OpeningTree() }
+        let children = try candidates.map { (uci: $0.move.uci, board: try CatalogFilter.boardKey($0.position.applyingUnchecked($0.move).fen)) }
+        let sans = Dictionary(candidates.map { ($0.move.uci, $0.position.san(for: $0.move)) }, uniquingKeysWith: { first, _ in first })
         let native = try InteractiveCatalogService.positionTree(catalog: catalog, request: request, children: children)
         var tree = OpeningTree()
         tree.analysed = native.games
@@ -77,6 +77,30 @@ enum OpeningTreeService {
         let page = try catalog.page(local)
         if !page.games.isEmpty { tree.merge(try build(catalog: catalog, games: page.games, boardFEN: request.filter.boardFEN)) }
         return tree
+    }
+
+    /// Every move that could have been played from this board in some game. The
+    /// reference board carries no castling rights or en passant square (matching
+    /// ignores them), so castling is offered whenever king and rook stand on their
+    /// home squares, and every en passant capture that a preceding double push
+    /// could have allowed is tried against its own position.
+    static func continuations(boardFEN: String) -> [(move: ChessMove, position: ChessPosition)] {
+        let fields = boardFEN.split(separator: " ")
+        guard fields.count >= 2, let position = ChessPosition(fen: "\(fields[0]) \(fields[1]) KQkq - 0 1") else { return [] }
+        var result = position.legalMoves().map { (move: $0, position: position) }
+        let us = position.sideToMove
+        let rank = us == .white ? 4 : 3, behind = us == .white ? 5 : 2, origin = us == .white ? 6 : 1
+        for file in 0..<8 {
+            guard position[Square(file: file, rank: rank)] == ChessPiece(color: us.opposite, kind: .pawn),
+                  position[Square(file: file, rank: behind)] == nil, position[Square(file: file, rank: origin)] == nil,
+                  [file - 1, file + 1].contains(where: { position[Square(file: $0, rank: rank)] == ChessPiece(color: us, kind: .pawn) }) else { continue }
+            var withCapture = position
+            withCapture.enPassantSquare = Square(file: file, rank: behind)
+            for move in withCapture.legalMoves() where move.to == withCapture.enPassantSquare && withCapture[move.from]?.kind == .pawn {
+                if !result.contains(where: { $0.move.uci == move.uci }) { result.append((move, withCapture)) }
+            }
+        }
+        return result
     }
 
     static func build(catalog: DatabaseCatalog, games: [ChessStudy], boardFEN: String) throws -> OpeningTree {
