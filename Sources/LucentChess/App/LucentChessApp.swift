@@ -43,10 +43,10 @@ struct LucentChessApp: App {
         WindowGroup("Reference Game",id:AppWindowID.referenceGame,for:ReferenceGameSelection.self) { $selection in
             if let selection {
                 ReferenceGamePreview(selection:selection)
-                    .environmentObject(library).environmentObject(appearance)
+                    .environmentObject(library).environmentObject(appearance).environmentObject(engine)
                     .preferredColorScheme(appearance.interfaceAppearance.colorScheme)
             }
-        }.defaultSize(width:1_000,height:700)
+        }.defaultSize(width:1_080,height:740)
 
         Window("Lucent Chess — Game", id: AppWindowID.game) {
             GameWindowRoot()
@@ -100,6 +100,7 @@ struct LucentChessApp: App {
 private struct LucentCommands: Commands {
     @Environment(\.openWindow) private var openWindow
     @FocusedValue(\.isTrainingWindow) private var isTrainingWindow
+    @FocusedValue(\.referencePreviewActions) private var referencePreviewActions
     @ObservedObject var library: LibraryStore
     @ObservedObject var appearance: AppearanceSettings
 
@@ -140,25 +141,40 @@ private struct LucentCommands: Commands {
             Button("Game Library") { NotificationCenter.default.post(name: .showDashboard, object: nil) }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
             Divider()
-            Button("First Move") { NotificationCenter.default.post(name: .firstMove, object: nil) }
+            Button("First Move") {
+                if let preview = referencePreviewActions { preview.first() }
+                else { NotificationCenter.default.post(name: .firstMove, object: nil) }
+            }
                 .keyboardShortcut(.leftArrow, modifiers: [.command])
                 .disabled(isTrainingWindow == true || library.isImportingFiles)
-            Button("Previous Move") { NotificationCenter.default.post(name: .previousMove, object: nil) }
+            Button("Previous Move") {
+                if let preview = referencePreviewActions { preview.previous() }
+                else { NotificationCenter.default.post(name: .previousMove, object: nil) }
+            }
                 .keyboardShortcut(.leftArrow, modifiers: [])
                 .disabled(isTrainingWindow == true || library.isImportingFiles)
-            Button("Next Move") { NotificationCenter.default.post(name: .nextMove, object: nil) }
+            Button("Next Move") {
+                if let preview = referencePreviewActions { preview.next() }
+                else { NotificationCenter.default.post(name: .nextMove, object: nil) }
+            }
                 .keyboardShortcut(.rightArrow, modifiers: [])
                 .disabled(isTrainingWindow == true || library.isImportingFiles)
-            Button("Last Move") { NotificationCenter.default.post(name: .lastMove, object: nil) }
+            Button("Last Move") {
+                if let preview = referencePreviewActions { preview.last() }
+                else { NotificationCenter.default.post(name: .lastMove, object: nil) }
+            }
                 .keyboardShortcut(.rightArrow, modifiers: [.command])
                 .disabled(isTrainingWindow == true || library.isImportingFiles)
             Divider()
-            Button("Flip Board") { appearance.boardFlipped.toggle() }
+            Button("Flip Board") {
+                if let preview = referencePreviewActions { preview.flip() }
+                else { appearance.boardFlipped.toggle() }
+            }
                 .keyboardShortcut("f")
                 .disabled(isTrainingWindow == true || library.isImportingFiles)
             Button("Toggle Engine") { NotificationCenter.default.post(name: .toggleEngine, object: nil) }
                 .keyboardShortcut("e")
-                .disabled(isTrainingWindow == true || library.isImportingFiles)
+                .disabled(isTrainingWindow == true || referencePreviewActions != nil || library.isImportingFiles)
         }
     }
 }

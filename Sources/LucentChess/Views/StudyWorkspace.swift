@@ -441,7 +441,7 @@ private struct NavigatorBar: View {
     }
 }
 
-private struct NavigationButtonStyle: ButtonStyle {
+struct NavigationButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     var emphasized: Bool
 
@@ -474,6 +474,7 @@ struct MoveTreeView: NSViewRepresentable {
     @EnvironmentObject private var engine: StockfishService
     @EnvironmentObject private var appearance: AppearanceSettings
     @ObservedObject var study: ChessStudy
+    var isReadOnly = false
 
     private var styleSignature: String {
         "\(appearance.figurineSetRaw)|\(appearance.figurineTinted)|\(appearance.notationFontDesignRaw)|\(appearance.notationFontSize)"
@@ -529,6 +530,7 @@ struct MoveTreeView: NSViewRepresentable {
 
     private func select(_ node: MoveNode) {
         study.select(node)
+        if isReadOnly { study.markSelectionChanged(); return }
         library.selectionChanged()
         engine.updatePosition(study.currentPosition)
     }
@@ -537,7 +539,7 @@ struct MoveTreeView: NSViewRepresentable {
         if study.root.children.isEmpty {
             return RenderedNotation(
                 text: NSAttributedString(
-                    string: "Make a move on the board to begin.",
+                    string: isReadOnly ? "This game has no moves." : "Make a move on the board to begin.",
                     attributes: [
                         .font: NSFont.systemFont(ofSize: 13),
                         .foregroundColor: NSColor.secondaryLabelColor
@@ -615,6 +617,7 @@ struct MoveTreeView: NSViewRepresentable {
                    set: appearance.figurineSet,
                    tinted: appearance.figurineTinted
                ) {
+                if previous == "=" { pending.append("\u{2060}") }
                 if !pending.isEmpty {
                     output.append(NSAttributedString(string: pending, attributes: attributes))
                     pending = ""
@@ -622,6 +625,9 @@ struct MoveTreeView: NSViewRepresentable {
                 let run = NSMutableAttributedString(attachment: attachment)
                 run.addAttributes(attributes, range: NSRange(location: 0, length: run.length))
                 output.append(run)
+                // TextKit otherwise allows a line break after an image attachment,
+                // splitting a figurine from its SAN destination (for example, B / b4).
+                output.append(NSAttributedString(string: "\u{2060}", attributes: attributes))
             } else {
                 pending.append(character)
             }
@@ -740,12 +746,14 @@ struct MoveTreeView: NSViewRepresentable {
                 menu.addItem(item)
             }
             if let nodeID, let node = parent.study.node(withID: nodeID) {
-                add("Promote variation", action: #selector(promoteVariation(_:)), node: node,
-                    enabled: parent.study.path(to: node).contains { candidate in
-                        parent.study.parent(of: candidate.id)?.children.first?.id != candidate.id
-                    })
-                add("Delete variation", action: #selector(deleteFromMove(_:)), node: node)
-                menu.addItem(.separator())
+                if !parent.isReadOnly {
+                    add("Promote variation", action: #selector(promoteVariation(_:)), node: node,
+                        enabled: parent.study.path(to: node).contains { candidate in
+                            parent.study.parent(of: candidate.id)?.children.first?.id != candidate.id
+                        })
+                    add("Delete variation", action: #selector(deleteFromMove(_:)), node: node)
+                    menu.addItem(.separator())
+                }
                 add("Copy position (FEN)", action: #selector(copyPosition(_:)), node: node)
             }
             add("Copy game (PGN)", action: #selector(copyGame(_:)))
@@ -764,7 +772,7 @@ struct MoveTreeView: NSViewRepresentable {
         }
 
         @objc private func promoteVariation(_ item: NSMenuItem) {
-            guard let node = menuNode(item) else { return }
+            guard !parent.isReadOnly, let node = menuNode(item) else { return }
             parent.study.select(node)
             parent.study.promoteCurrentVariation()
             parent.library.changed(notation: true)
@@ -772,7 +780,7 @@ struct MoveTreeView: NSViewRepresentable {
         }
 
         @objc private func deleteFromMove(_ item: NSMenuItem) {
-            guard let node = menuNode(item), let window = textView?.window else { return }
+            guard !parent.isReadOnly, let node = menuNode(item), let window = textView?.window else { return }
             let studyID = parent.study.id
             let nodeID = node.id
             let alert = NSAlert()
