@@ -103,6 +103,10 @@ int main(int argc, char** argv) {
         try { lucent_catalog::queryMetadata(argv[2], argv[3], argv[4]); return 0; }
         catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
     }
+    if (argc == 5 && std::string(argv[1]) == "--query-position-tree") {
+        try { lucent_catalog::queryPositionTree(argv[2], argv[3], argv[4]); return 0; }
+        catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
+    }
     if (argc == 5 && std::string(argv[1]) == "--prepare-catalog-metadata") {
         try { lucent_catalog::buildMetadata(argv[2], argv[3], argv[4]); return 0; }
         catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }

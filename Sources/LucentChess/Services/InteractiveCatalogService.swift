@@ -246,6 +246,37 @@ enum InteractiveCatalogService {
         }
     }
 
+    struct NativeTreeRow: Decodable { let uci: String; let games, whiteWins, draws, blackWins: Int; let eloSum: Int64; let eloCount: Int; let latestYear: Int }
+    struct NativeTree: Decodable { let games: Int; let skipped: Int; let rows: [NativeTreeRow]; let ended: Int }
+
+    /// Next-move statistics for the board in `request` over every imported game
+    /// in scope, computed natively from the exact position index: one lookup per
+    /// legal continuation, intersected with the parent position's games.
+    static func positionTree(catalog: DatabaseCatalog, request: CatalogRequest, children: [(uci: String, board: String)],
+                             progress: @escaping @Sendable (String) -> Void = { _ in }) throws -> NativeTree {
+        try request.filter.validate()
+        let initial=try state(catalog)
+        guard !initial.sources.isEmpty, !request.filter.boardFEN.isEmpty else {return NativeTree(games:0,skipped:0,rows:[],ended:0)}
+        let activePath=root(catalog).appendingPathComponent("Metadata/"+initial.generation).path
+        gate.lock();active[activePath,default:0]+=1;gate.unlock()
+        defer {gate.lock();active[activePath,default:0]-=1;gate.unlock()}
+        let metadata=try prepareMetadata(catalog:catalog,state:initial,progress:progress)
+        let temp=FileManager.default.temporaryDirectory.appendingPathComponent("lucent-tree-\(UUID().uuidString)",isDirectory:true)
+        try FileManager.default.createDirectory(at:temp,withIntermediateDirectories:true)
+        defer {try? FileManager.default.removeItem(at:temp)}
+        var parameters=try object(request,positionRoot:root(catalog).appendingPathComponent("Positions"))
+        parameters["overrides"]=try catalog.importedOverrides()
+        parameters["children"]=children.map {["uci":$0.uci,"board":$0.board]}
+        let query=try requestFile(parameters,in:temp)
+        let output=temp.appendingPathComponent("result.json")
+        try run(["--catalog-source-scope",metadata.path,query.path,output.path])
+        let scope=try JSONDecoder().decode([String].self,from:Data(contentsOf:output))
+        for source in initial.sources where scope.contains(source.id) {try preparePositions(catalog:catalog,source:source,progress:progress)}
+        try Task.checkCancellation()
+        try run(["--query-position-tree",metadata.path,query.path,output.path])
+        return try JSONDecoder().decode(NativeTree.self,from:Data(contentsOf:output))
+    }
+
     static func page(catalog: DatabaseCatalog, request: CatalogRequest, progress: @escaping @Sendable (String) -> Void = { _ in }) throws -> CatalogPage {
         try request.filter.validate();try request.validateCursor()
         try singleFlight(catalog.url.path+":local",progress:progress) { update in

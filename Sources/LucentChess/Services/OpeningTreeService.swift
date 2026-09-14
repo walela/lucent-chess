@@ -51,6 +51,34 @@ enum OpeningTreeService {
     private struct Reference { let id: UUID; let source: String?; let record: Int; let length: Int; let hasPayload: Bool }
     private struct Outcome { let result: String; let whiteElo: Int; let blackElo: Int; let year: Int }
 
+    /// The continuation table over the whole database in scope: imported games
+    /// come from the native exact position index (no decoding), saved and edited
+    /// games are replayed directly. `request` carries the board and scope.
+    static func buildFull(catalog: DatabaseCatalog, request: CatalogRequest) throws -> OpeningTree {
+        guard let position = ChessPosition(fen: request.filter.boardFEN) else { return OpeningTree() }
+        let moves = position.legalMoves()
+        let children = try moves.map { move in (uci: move.uci, board: try CatalogFilter.boardKey(position.applyingUnchecked(move).fen)) }
+        let sans = Dictionary(moves.map { ($0.uci, position.san(for: $0)) }, uniquingKeysWith: { first, _ in first })
+        let native = try InteractiveCatalogService.positionTree(catalog: catalog, request: request, children: children)
+        var tree = OpeningTree()
+        tree.analysed = native.games
+        tree.ended = native.ended
+        tree.rows = native.rows.compactMap { row in
+            guard let san = sans[row.uci] else { return nil }
+            var result = OpeningTreeRow(uci: row.uci, san: san)
+            result.games = row.games; result.whiteWins = row.whiteWins; result.draws = row.draws; result.blackWins = row.blackWins
+            result.eloSum = Int(clamping: row.eloSum); result.eloCount = row.eloCount; result.latestYear = row.latestYear
+            return result
+        }.sorted { $0.games != $1.games ? $0.games > $1.games : $0.san < $1.san }
+        try Task.checkCancellation()
+        // Saved and edited games live in SQLite, not the immutable snapshot; there
+        // are few of them, so replaying the first page of matches is exact enough.
+        var local = request; local.localOnly = true; local.cursor = nil; local.positionSearchKey = nil
+        let page = try catalog.page(local)
+        if !page.games.isEmpty { tree.merge(try build(catalog: catalog, games: page.games, boardFEN: request.filter.boardFEN)) }
+        return tree
+    }
+
     static func build(catalog: DatabaseCatalog, games: [ChessStudy], boardFEN: String) throws -> OpeningTree {
         var tree = OpeningTree()
         guard !games.isEmpty else { return tree }

@@ -63,11 +63,11 @@ struct OpeningTreeTable: View {
             VStack(spacing: 6) {
                 if loading {
                     ProgressView().controlSize(.small)
-                    Text("Reading the listed games…")
-                } else if let tree, tree.ended > 0 {
-                    Text("Every listed game ends at this position.")
-                } else if tree != nil {
-                    Text("No continuations in the listed games.")
+                    Text("Counting continuations across the database…")
+                        } else if let tree, tree.ended > 0 {
+                            Text("Every game that reaches this position ends here.")
+                        } else if tree != nil {
+                            Text("No games continue from this position.")
                 }
             }
             .font(.system(size: 11))

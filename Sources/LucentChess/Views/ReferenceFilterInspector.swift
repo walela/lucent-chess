@@ -148,7 +148,7 @@ private struct ReferencePositionResults: View {
     @State private var tree: OpeningTree?
     @State private var treeLoading = false
     @State private var treeTasks: [Task<Void, Never>] = []
-    @State private var pendingTreePages = 0
+    @State private var treeError: String?
     @State private var tableSort: [KeyPathComparator<ReferenceGameRow>]
 
     init(query: ReferencePositionQuery, study: ChessStudy, sortField: Binding<GameSortField>, ascending: Binding<Bool>) {
@@ -206,11 +206,17 @@ private struct ReferencePositionResults: View {
             HStack(spacing: 7) {
                 Text("Moves").font(.system(size: 12, weight: .semibold))
                 if let tree, !loading {
-                    Text(tree.analysed >= count ? "all \(count.formatted()) games" : "\(tree.analysed.formatted()) of \(count.formatted()) games")
+                    Text("\(tree.analysed.formatted()) games")
                         .font(.system(size: 10).monospacedDigit()).foregroundStyle(.secondary)
-                        .help(treeSummary(tree) + (tree.analysed < count ? " · Scroll the games list to include more." : ""))
+                        .help(treeSummary(tree))
+                } else if treeLoading, !loading {
+                    Text("across the whole database…").font(.system(size: 10)).foregroundStyle(.tertiary)
                 }
                 Spacer(minLength: 2)
+                if let treeError {
+                    Image(systemName: "exclamationmark.triangle").font(.system(size: 10)).foregroundStyle(.orange).help(treeError)
+                        .accessibilityLabel("Moves could not be computed: \(treeError)")
+                }
                 if treeLoading { ProgressView().controlSize(.mini) }
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
@@ -411,7 +417,7 @@ private struct ReferencePositionResults: View {
         let captured = request
         let token = UUID()
         activeSearch = token
-        games = []; count = 0; nextCursor = nil; tree = nil; treeLoading = false; loadingMore = false; pendingTreePages = 0
+        games = []; count = 0; nextCursor = nil; tree = nil; treeLoading = false; loadingMore = false; treeError = nil
         loading = true; error = nil; cancelled = false
         message = "Preparing the selected database, then finding this position."
         let work = Task { @MainActor in
@@ -425,7 +431,7 @@ private struct ReferencePositionResults: View {
                 guard activeSearch == token else { return }
                 games = page.games; count = page.count; nextCursor = page.next
                 loading = false
-                extendTree(with: page.games, token: token)
+                loadTree(request: captured, token: token)
             } catch is CancellationError { }
             catch {
                 guard activeSearch == token else { return }
@@ -451,7 +457,6 @@ private struct ReferencePositionResults: View {
                 let fresh = page.games.filter { !known.contains($0.id) }
                 games += fresh; nextCursor = page.next
                 loadingMore = false
-                extendTree(with: fresh, token: token)
             } catch is CancellationError { }
             catch {
                 guard activeSearch == token else { return }
@@ -462,28 +467,28 @@ private struct ReferencePositionResults: View {
         }
     }
 
-    /// Folds one page of games into the Moves table off the main thread.
-    @MainActor private func extendTree(with listed: [ChessStudy], token: UUID) {
-        guard let catalog = library.catalog else { tree = tree ?? OpeningTree(); return }
-        guard !listed.isEmpty else { if tree == nil { tree = OpeningTree() }; return }
-        pendingTreePages += 1; treeLoading = true
-        let fen = query.fen
+    /// Builds the Moves table over every game in scope, off the main thread. The
+    /// imported part is a handful of exact position-index lookups, so it does not
+    /// depend on how far the games list has been scrolled.
+    @MainActor private func loadTree(request: CatalogRequest, token: UUID) {
+        guard let catalog = library.catalog else { tree = OpeningTree(); return }
+        treeLoading = true
         let task = Task { @MainActor in
             let worker = Task.detached(priority: .userInitiated) {
-                try LoadedTree(tree: OpeningTreeService.build(catalog: catalog, games: listed, boardFEN: fen))
+                try LoadedTree(tree: OpeningTreeService.buildFull(catalog: catalog, request: request))
             }
             do {
                 let loaded = try await withTaskCancellationHandler { try await worker.value } onCancel: { worker.cancel() }
                 guard activeSearch == token else { return }
-                if var current = tree { current.merge(loaded.tree); tree = current } else { tree = loaded.tree }
+                tree = loaded.tree
             } catch is CancellationError { }
             catch {
                 guard activeSearch == token else { return }
-                if tree == nil { tree = OpeningTree() }
+                tree = OpeningTree()
+                treeError = error.localizedDescription
             }
             guard activeSearch == token else { return }
-            pendingTreePages = max(0, pendingTreePages - 1)
-            treeLoading = pendingTreePages > 0
+            treeLoading = false
         }
         treeTasks.append(task)
     }

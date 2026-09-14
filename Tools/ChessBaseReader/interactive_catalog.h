@@ -5,6 +5,8 @@
 #include <numeric>
 #include <cmath>
 #include <thread>
+#include <atomic>
+#include <ctime>
 #include "position_index.h"
 
 namespace lucent_catalog {
@@ -455,7 +457,7 @@ inline void sourceScope(const fs::path& dir,const fs::path& requestPath,const fs
     writeResult(output,result+"]");
 }
 
-inline std::vector<uint64_t> positionMatches(const fs::path& dir,const Snapshot& snapshot,const JSONValues& request,uint32_t& skipped){
+inline std::vector<uint64_t> positionMatches(const fs::path& dir,const Snapshot& snapshot,const JSONValues& request,const Key& key,uint32_t& skipped){
     std::vector<uint64_t> bits((uint64_t(snapshot.count)+63)/64);
     auto groupText=readText(dir/"groups.bin");if(groupText.size()%16)throw std::runtime_error("Invalid source groups.");
     JSONValues sources(readText(dir/"sources.json"));
@@ -463,7 +465,7 @@ inline std::vector<uint64_t> positionMatches(const fs::path& dir,const Snapshot&
     for(const auto& [_,value]:sources.values){JSONValues source(value);sourceMap.emplace(source.get("id"),std::move(source));}
     bool scoped=request.has("folder") || request.get("unfiled")=="1";
     uint32_t folder=request.has("folder")?snapshot.names.find(request.get("folder")):0;
-    Key key=fromFEN(request.get("board"));auto overrides=readOverrides(request);
+    auto overrides=readOverrides(request);
     for(size_t g=0;g<groupText.size();g+=16){
         auto p=reinterpret_cast<const uint8_t*>(groupText.data()+g);
         uint32_t source=uint32_t(number(p,4)),begin=uint32_t(number(p+4,4)),end=uint32_t(number(p+8,4)),uniform=uint32_t(number(p+12,4));
@@ -495,6 +497,53 @@ inline std::vector<uint64_t> positionMatches(const fs::path& dir,const Snapshot&
         }
     }
     return bits;
+}
+inline std::vector<uint64_t> positionMatches(const fs::path& dir,const Snapshot& snapshot,const JSONValues& request,uint32_t& skipped){
+    return positionMatches(dir,snapshot,request,fromFEN(request.get("board")),skipped);
+}
+
+// The continuation table for one board over every imported game in scope. A
+// game "plays" a child move when its main line contains both the parent and
+// the child position, so each row is an intersection of two exact position
+// bitmaps: no game decoding at query time. Transpositions that visit both
+// positions by another route are counted, as in other database tools.
+inline void queryPositionTree(const fs::path& dir,const fs::path& requestPath,const fs::path& output){
+    auto started=std::chrono::steady_clock::now();JSONValues request(readText(requestPath));Snapshot snapshot(dir);
+    uint32_t skipped=0;auto parent=positionMatches(dir,snapshot,request,skipped);
+    auto additions=applyOverrides(dir,snapshot,request,parent);
+    bool scoped=request.has("folder")||request.get("unfiled")=="1";uint32_t folder=request.has("folder")?snapshot.names.find(request.get("folder")):0;
+    if(request.has("folder")&&request.get("unfiled")=="1")std::fill(parent.begin(),parent.end(),0);
+    if(scoped){for(size_t w=0;w<parent.size();++w){auto word=parent[w];while(word){unsigned bit=std::countr_zero(word);word&=word-1;uint32_t row=uint32_t(w*64+bit);
+        if(snapshot.u32(Folder)[row]!=folder&&!member(additions,row))parent[w]&=~(uint64_t(1)<<bit);}}}
+    struct Child {std::string uci;Key key;};std::vector<Child> children;
+    JSONValues list(request.get("children","[]"));
+    for(const auto& [_,text]:list.values){JSONValues child(text);children.push_back({child.get("uci"),fromFEN(child.get("board"))});}
+    if(children.size()>256)throw std::runtime_error("Too many continuations requested.");
+    struct Row {uint64_t games=0,whiteWins=0,draws=0,blackWins=0,eloCount=0;int64_t eloSum=0;double latest=-INFINITY;};
+    std::vector<Row> rows(children.size());std::vector<std::exception_ptr> failures(children.size());
+    uint32_t win=snapshot.names.find("1-0"),loss=snapshot.names.find("0-1"),draw=snapshot.names.find("1/2-1/2");
+    std::atomic<size_t> next{0};
+    auto worker=[&]{
+        for(size_t i;(i=next.fetch_add(1))<children.size();){
+            try{
+                uint32_t childSkipped=0;auto bits=positionMatches(dir,snapshot,request,children[i].key,childSkipped);
+                Row& row=rows[i];
+                for(size_t w=0;w<bits.size()&&w<parent.size();++w){auto word=bits[w]&parent[w];while(word){unsigned bit=std::countr_zero(word);word&=word-1;uint32_t at=uint32_t(w*64+bit);
+                    ++row.games;auto r=snapshot.u32(Result)[at];if(r==win)++row.whiteWins;else if(r==loss)++row.blackWins;else if(r==draw)++row.draws;
+                    for(auto elo:{snapshot.integer(WhiteElo)[at],snapshot.integer(BlackElo)[at]})if(elo>0){row.eloSum+=elo;++row.eloCount;}
+                    row.latest=std::max(row.latest,snapshot.real(Date)[at]);}}
+            }catch(...){failures[i]=std::current_exception();}
+        }
+    };
+    {size_t threads=std::min<size_t>(children.size(),std::max(1u,std::min(8u,std::thread::hardware_concurrency())));std::vector<std::jthread> pool;for(size_t t=0;t<threads;++t)pool.emplace_back(worker);}
+    for(auto failure:failures)if(failure)std::rethrow_exception(failure);
+    uint64_t total=0;for(auto word:parent)total+=std::popcount(word);
+    uint64_t continued=0;std::ostringstream out;out<<"{\"games\":"<<total<<",\"skipped\":"<<skipped<<",\"rows\":[";bool first=true;
+    for(size_t i=0;i<children.size();++i){const auto& row=rows[i];if(!row.games)continue;continued+=row.games;
+        int year=0;if(row.latest>-INFINITY){time_t seconds=time_t(row.latest);tm parts{};gmtime_r(&seconds,&parts);year=parts.tm_year+1900;}
+        out<<(first?"":",")<<"{\"uci\":"<<json(children[i].uci)<<",\"games\":"<<row.games<<",\"whiteWins\":"<<row.whiteWins<<",\"draws\":"<<row.draws<<",\"blackWins\":"<<row.blackWins<<",\"eloSum\":"<<row.eloSum<<",\"eloCount\":"<<row.eloCount<<",\"latestYear\":"<<year<<'}';first=false;}
+    out<<"],\"ended\":"<<(continued>total?0:total-continued)<<",\"seconds\":"<<std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count()<<'}';
+    writeResult(output,out.str());
 }
 
 inline void queryMetadata(const fs::path& dir,const fs::path& requestPath,const fs::path& output){
