@@ -27,7 +27,7 @@ extension Notification.Name {
 struct RootView: View {
     enum InspectorTab: String, CaseIterable, Identifiable {
         case analysis = "Engine"
-        case filter = "Filter"
+        case filter = "Reference"
         case notes = "Game"
         case style = "Style"
         var id: String { rawValue }

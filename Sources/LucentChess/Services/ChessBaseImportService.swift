@@ -79,6 +79,39 @@ enum ChessBaseImportService {
         return try game.makeStudy()
     }
 
+    /// Decodes a sparse set of records in one reader invocation. Records that
+    /// cannot be decoded are absent from the result rather than failing the batch.
+    static func readRecords(_ database: URL, records: [Int]) throws -> [Int: DecodedChessBaseGame] {
+        guard !records.isEmpty else { return [:] }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("LucentGames-\(UUID())")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let output = directory.appendingPathComponent("games.json")
+        let log = directory.appendingPathComponent("reader.log")
+        FileManager.default.createFile(atPath: log.path, contents: nil)
+        let errors = try FileHandle(forWritingTo: log)
+        defer { try? errors.close() }
+        let input = Pipe()
+        let process = Process()
+        process.executableURL = try bundledReader()
+        process.arguments = ["--decode-records", database.path, output.path]
+        process.standardInput = input
+        process.standardOutput = errors
+        process.standardError = errors
+        try process.run()
+        let text = records.map(String.init).joined(separator: "\n") + "\n"
+        input.fileHandleForWriting.write(Data(text.utf8))
+        try input.fileHandleForWriting.close()
+        process.waitUntilExit()
+        guard process.terminationReason == .exit, process.terminationStatus == 0 else {
+            let detail = (try? String(contentsOf: log, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            throw ChessBaseImportError.readerFailed(detail.isEmpty ? "The reader stopped while decoding reference games." : detail)
+        }
+        struct Batch: Decodable { let games: [DecodedRecordedGame] }
+        let batch = try JSONDecoder().decode(Batch.self, from: Data(contentsOf: output))
+        return Dictionary(batch.games.map { ($0.record, $0.game) }, uniquingKeysWith: { first, _ in first })
+    }
+
     static func bundledReader() throws -> URL {
         if let url = Bundle.main.url(forAuxiliaryExecutable: "LucentChessCBH") { return url }
         if let executable = Bundle.main.executableURL {
@@ -212,6 +245,50 @@ struct DecodedChessBaseGame: Decodable {
         study.rebuildNodeIndex()
         study.dirtyState = false
         return study
+    }
+}
+
+struct DecodedRecordedGame: Decodable {
+    let record: Int
+    let game: DecodedChessBaseGame
+
+    private enum Keys: String, CodingKey { case record }
+
+    init(from decoder: Decoder) throws {
+        record = try decoder.container(keyedBy: Keys.self).decode(Int.self, forKey: .record)
+        game = try DecodedChessBaseGame(from: decoder)
+    }
+}
+
+extension DecodedChessBaseGame {
+    /// The main line as legal moves, without building the annotation tree.
+    /// CBH writes the main line first; the first pop ends it.
+    func mainLine(limit: Int = 600) -> (start: ChessPosition, moves: [ChessMove])? {
+        guard var position = ChessPosition(fen: fen) else { return nil }
+        let start = position
+        var line: [ChessMove] = []
+        for encoded in moves {
+            switch encoded.promote {
+            case 255, 253: continue
+            case 254: return (start, line)
+            default:
+                guard (0..<64).contains(encoded.from), (0..<64).contains(encoded.to), line.count < limit else { return (start, line) }
+                let promotion: String
+                switch encoded.promote {
+                case 1, 7: promotion = ""
+                case 2: promotion = "q"
+                case 3: promotion = "r"
+                case 4: promotion = "b"
+                case 5: promotion = "n"
+                default: return (start, line)
+                }
+                func square(_ value: Int) -> String { "\(String(UnicodeScalar(97 + value % 8)!))\(value / 8 + 1)" }
+                guard let move = position.legalMove(uci: square(encoded.from) + square(encoded.to) + promotion) else { return (start, line) }
+                line.append(move)
+                position = position.applyingUnchecked(move)
+            }
+        }
+        return (start, line)
     }
 }
 

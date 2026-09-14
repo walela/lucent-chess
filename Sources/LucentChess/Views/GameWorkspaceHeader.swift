@@ -34,7 +34,7 @@ struct GameWorkspaceHeader: View {
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Game actions")
 
-            actionIcon("Show games matching this position", label: "Filter", symbol: "line.3.horizontal.decrease.circle", active: inspectorTab == .filter) {
+            actionIcon("Show reference games and moves for this position", label: "Reference", symbol: "books.vertical", active: inspectorTab == .filter) {
                 inspectorTab = .filter
             }
             Spacer(minLength: 24)

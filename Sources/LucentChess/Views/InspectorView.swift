@@ -9,7 +9,7 @@ struct InspectorView: View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 inspectorTab("Engine", value: .analysis)
-                inspectorTab("Filter", value: .filter)
+                inspectorTab("Reference", value: .filter)
                 inspectorTab("Details", value: .notes)
                 inspectorTab("Appearance", value: .style)
             }

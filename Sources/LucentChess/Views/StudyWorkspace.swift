@@ -18,7 +18,7 @@ struct StudyWorkspace: View {
             Divider()
             WorkspaceSplitView(
                 board: AnyView(inject(BoardPane(study: study))),
-                notation: AnyView(inject(NotationPane(study: study))),
+                notation: AnyView(inject(NotationPane(study: study, inspectorTab: $inspectorTab))),
                 inspector: AnyView(inject(InspectorView(study: study, tab: $inspectorTab)))
             )
         }
@@ -170,10 +170,11 @@ private struct NotationPane: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var library: LibraryStore
     @ObservedObject var study: ChessStudy
+    @Binding var inspectorTab: RootView.InspectorTab
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 9) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Label("Notation", systemImage: "list.number")
                         .font(LucentTheme.Fonts.panelTitle)
@@ -185,50 +186,9 @@ private struct NotationPane: View {
                         .padding(.vertical, 4)
                         .background(.quaternary.opacity(0.7), in: Capsule())
                 }
-
-                VStack(spacing: 0) {
-                    playerRow(
-                        "White",
-                        isWhite: true,
-                        name: binding(\.white),
-                        rating: optionalBinding(\.whiteElo)
-                    )
-                    Divider().padding(.leading, 42)
-                    playerRow(
-                        "Black",
-                        isWhite: false,
-                        name: binding(\.black),
-                        rating: optionalBinding(\.blackElo)
-                    )
-                }
-                .background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(.primary.opacity(0.09), lineWidth: 0.75)
-                }
-
-                HStack(spacing: 7) {
-                    HStack(spacing: 7) {
-                        Image(systemName: "trophy.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        TextField("Event", text: binding(\.event))
-                            .textFieldStyle(.plain)
-                            .font(.callout.weight(.medium))
-                    }
-                    .padding(.horizontal, 9)
-                    .frame(height: 30)
-                    .background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .stroke(.primary.opacity(0.09), lineWidth: 0.75)
-                    }
-                    Picker("Result", selection: binding(\.result, notation: true)) {
-                        ForEach(["*", "1-0", "0-1", "1/2-1/2"], id: \.self, content: Text.init)
-                    }
-                    .labelsHidden()
-                    .frame(width: 94)
-                }
+                // Identity is read here and edited in Details, so the header
+                // cannot accidentally capture keystrokes meant for the board.
+                GameHeaderCard(study: study) { inspectorTab = .notes }
             }
             .padding(12)
 
@@ -276,56 +236,6 @@ private struct NotationPane: View {
         .background(colorScheme == .light ? AnyShapeStyle(LucentTheme.Surface.panel) : AnyShapeStyle(.background.opacity(0.48)))
     }
 
-    private func playerRow(
-        _ label: String,
-        isWhite: Bool,
-        name: Binding<String>,
-        rating: Binding<String>
-    ) -> some View {
-        HStack(spacing: 9) {
-            Circle()
-                .fill(isWhite ? Color.white : Color(nsColor: .labelColor).opacity(0.88))
-                .frame(width: 13, height: 13)
-                .overlay {
-                    Circle().stroke(.primary.opacity(isWhite ? 0.38 : 0.16), lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(isWhite ? 0.08 : 0), radius: 1, y: 0.5)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(label.uppercased())
-                    .font(LucentTheme.Fonts.microLabel)
-                    .tracking(0.65)
-                    .foregroundStyle(.secondary)
-                TextField("Player", text: name)
-                    .textFieldStyle(.plain)
-                    .font(.callout.weight(.semibold))
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 5)
-
-            VStack(alignment: .trailing, spacing: 1) {
-                Text("ELO")
-                    .font(.system(size: 8, weight: .bold, design: .rounded))
-                    .tracking(0.55)
-                    .foregroundStyle(.tertiary)
-                TextField("—", text: rating)
-                    .textFieldStyle(.plain)
-                    .font(.system(.callout, design: .rounded, weight: .semibold).monospacedDigit())
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 52)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(.primary.opacity(rating.wrappedValue.isEmpty ? 0.03 : 0.055), in: Capsule())
-                    .overlay {
-                        Capsule().stroke(.primary.opacity(rating.wrappedValue.isEmpty ? 0.08 : 0.14), lineWidth: 0.75)
-                    }
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-    }
-
     private var commentEditorTitle: String {
         study.currentNode.id == study.root.id
             ? "PGN position comment"
@@ -342,27 +252,110 @@ private struct NotationPane: View {
         )
     }
 
-    private func binding(
-        _ keyPath: ReferenceWritableKeyPath<ChessStudy, String>,
-        notation: Bool = false
-    ) -> Binding<String> {
-        Binding(
-            get: { study[keyPath: keyPath] },
-            set: { study[keyPath: keyPath] = $0; library.changed(notation: notation) }
-        )
+}
+
+/// The game's identity, laid out like a database header: white on the left,
+/// result in the middle, black on the right, the event beneath. Read-only;
+/// clicking opens Details, where every field is editable.
+struct GameHeaderCard: View {
+    @ObservedObject var study: ChessStudy
+    var editable = true
+    var openDetails: () -> Void = {}
+    @State private var hovering = false
+
+    private var result: String {
+        switch study.result {
+        case "1/2-1/2": return "½–½"
+        case "1-0": return "1–0"
+        case "0-1": return "0–1"
+        default: return "∗"
+        }
     }
 
-    private func optionalBinding(
-        _ keyPath: ReferenceWritableKeyPath<ChessStudy, String?>
-    ) -> Binding<String> {
-        Binding(
-            get: { study[keyPath: keyPath] ?? "" },
-            set: {
-                let cleaned = $0.trimmingCharacters(in: .whitespacesAndNewlines)
-                study[keyPath: keyPath] = cleaned.isEmpty ? nil : cleaned
-                library.changed()
+    private var eventLine: String {
+        var parts: [String] = []
+        if !study.event.trimmingCharacters(in: .whitespaces).isEmpty { parts.append(study.event) }
+        if let site = study.site, !site.isEmpty, site != study.event { parts.append(site) }
+        if let round = study.round, !round.isEmpty { parts.append("Round \(round)") }
+        let year = Calendar(identifier: .gregorian).component(.year, from: study.date)
+        if year > 1 { parts.append(String(year)) }
+        return parts.joined(separator: " · ")
+    }
+
+    var body: some View {
+        Button(action: openDetails) {
+            VStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 10) {
+                    player(study.white, elo: study.whiteElo, white: true, alignment: .leading)
+                    Text(result)
+                        .font(.system(size: 17, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(study.result == "*" ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+                        .frame(minWidth: 52)
+                        .padding(.top, 1)
+                        .accessibilityLabel("Result \(study.result)")
+                    player(study.black, elo: study.blackElo, white: false, alignment: .trailing)
+                }
+                if !eventLine.isEmpty {
+                    Text(eventLine)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity)
+                        .help(eventLine)
+                }
             }
-        )
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(.primary.opacity(hovering && editable ? 0.055 : 0.035), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(.primary.opacity(0.09), lineWidth: 0.75)
+            }
+            .overlay(alignment: .topTrailing) {
+                if editable && hovering {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .padding(5)
+                        .accessibilityHidden(true)
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(!editable)
+        .onHover { hovering = $0 }
+        .help(editable ? "Edit players, event and result in Details" : "")
+        .accessibilityLabel("Game header: \(study.playerDescription), \(study.result)")
+        .accessibilityHint(editable ? "Opens game details for editing" : "")
+    }
+
+    private func player(_ name: String, elo: String?, white: Bool, alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 3) {
+            HStack(spacing: 6) {
+                if white { colorDot(white: true) }
+                Text(name.isEmpty ? "White" : name)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(name.isEmpty ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.primary))
+                    .lineLimit(2)
+                    .multilineTextAlignment(alignment == .leading ? .leading : .trailing)
+                if !white { colorDot(white: false) }
+            }
+            Text(elo ?? "—")
+                .font(.system(size: 11, weight: .medium, design: .rounded).monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : .trailing)
+    }
+
+    private func colorDot(white: Bool) -> some View {
+        Circle()
+            .fill(white ? Color.white : Color(nsColor: .labelColor).opacity(0.88))
+            .frame(width: 9, height: 9)
+            .overlay { Circle().stroke(.primary.opacity(white ? 0.38 : 0.16), lineWidth: 1) }
+            .accessibilityHidden(true)
     }
 }
 

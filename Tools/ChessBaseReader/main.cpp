@@ -119,6 +119,42 @@ int main(int argc, char** argv) {
         try { lucent_positions::query(argv[2], argv[3], argv[4]); return 0; }
         catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
     }
+    // Decode a sparse list of records (one index per stdin line) into one JSON
+    // file. Reference trees need the main lines of a page of matching games.
+    if (argc == 4 && std::string(argv[1]) == "--decode-records") {
+        rlimit cpu{60, 60}, memory{1024ULL * 1024 * 1024, 1024ULL * 1024 * 1024};
+        setrlimit(RLIMIT_CPU, &cpu);
+        setrlimit(RLIMIT_AS, &memory);
+        alarm(90);
+        dup2(STDERR_FILENO, STDOUT_FILENO);
+        try {
+            CbhCodec codec;
+            if (codec.open(argv[2]) != OK) throw std::runtime_error("Could not read this CBH database and its companion files.");
+            std::ofstream out(argv[3]);
+            out.exceptions(std::ios::failbit | std::ios::badbit);
+            out << "{\"games\":[";
+            size_t accepted = 0, skipped = 0, moves = 0, requested = 0;
+            uint64_t record;
+            while (std::cin >> record) {
+                if (++requested > 1024) throw std::runtime_error("Too many records requested.");
+                if (record >= codec.numGames() || codec.setGameIndex(static_cast<uint32_t>(record)) != OK) { ++skipped; continue; }
+                GameReturnValue game{};
+                if (codec.parseNext(game) != OK) { ++skipped; continue; }
+                if (game.annotatedMoves.size() > 500000 - moves)
+                    throw std::runtime_error("These games contain unusually large annotations.");
+                moves += game.annotatedMoves.size();
+                std::ostringstream encoded;
+                writeGame(encoded, game);
+                if (accepted++) out << ',';
+                out << "{\"record\":" << record << ',' << encoded.str().substr(1);
+            }
+            out << "],\"skipped\":" << skipped << '}';
+            return 0;
+        } catch (const std::exception& error) {
+            std::cerr << error.what() << '\n';
+            return 1;
+        }
+    }
     if (argc != 5) return 2;
     if (std::string(argv[1]) == "--index-pgn") {
         try { return indexPGN(argv[2], argv[3], argv[4]); }

@@ -40,8 +40,9 @@ struct WorkspaceSplitView: NSViewRepresentable {
     }
 
     final class Coordinator: NSObject, NSSplitViewDelegate {
-        static let widthsKey = "StudyWorkspaceSplit.paneWidths"
-        static let minimumWidths: [CGFloat] = [420, 270, 300]
+        // v2: the inspector hosts reference tables and needs a wider default.
+        static let widthsKey = "StudyWorkspaceSplit.paneWidths.v2"
+        static let minimumWidths: [CGFloat] = [400, 270, 360]
         private var isLayingOut = false
         private var hasLaidOut = false
 
@@ -56,7 +57,7 @@ struct WorkspaceSplitView: NSViewRepresentable {
                       saved.count == 3, saved.allSatisfy({ $0.isFinite && $0 > 0 }) {
                 widths = saved.map { CGFloat($0) }
             } else {
-                widths = [available * 0.55, available * 0.25, available * 0.20]
+                widths = [available * 0.48, available * 0.23, available * 0.29]
             }
             widths = Self.fittedWidths(widths, available: available)
             isLayingOut = true
