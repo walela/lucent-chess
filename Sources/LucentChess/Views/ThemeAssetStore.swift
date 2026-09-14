@@ -22,6 +22,12 @@ enum ThemeAssetStore {
         let key = "\(set.id)/\(baseName)" as NSString
         if let cached = pieceCache.object(forKey: key) { return cached }
         for fileExtension in ["svg", "webp", "png"] {
+            // User-installed sets live in Application Support and shadow bundled ids.
+            let installed = PieceSetOption.installDirectory.appendingPathComponent("\(set.id)/\(baseName).\(fileExtension)")
+            if FileManager.default.fileExists(atPath: installed.path), let image = NSImage(contentsOf: installed) {
+                pieceCache.setObject(image, forKey: key)
+                return image
+            }
             if let url = resourceURL(
                 name: baseName,
                 extension: fileExtension,

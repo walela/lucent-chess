@@ -50,7 +50,7 @@ The complete feature list. For the short version, see the [README](README.md).
 - Provides a separate position editor with piece placement and erasing, FEN import/copy, board reset/flip, side to move, castling rights, en passant, and move counters. Invalid setups are explained before a new game can be created.
 - Supports click-to-move, drag-to-move, promotion, castling, en passant, board flipping, coordinates, move hints, and keyboard navigation.
 - Applies moves and navigation jumps immediately, without an automatic piece transition getting between the board and the score.
-- Includes 42 bundled piece sets—including an original Fritz-inspired ivory/charcoal set—and all 25 current Lichess board themes, plus custom square colors and piece scaling.
+- Includes 41 bundled piece sets and all 25 current Lichess board themes, plus custom square colors, piece scaling, and your own piece sets dropped into `Application Support/Lucent Chess/Pieces`.
 - Sizes pieces explicitly within each square, caps oversized shadows, and supplies high-resolution fallbacks for filtered sets so both inline and maximized boards stay crisp.
 - Uses a resizable board / notation / engine workspace with persistent pane widths and labeled game actions on the left and Analyze/Practice controls on the right, plus Engine, Details, and Appearance inspector tabs. Light mode has warm off-white surfaces.
 - Centers a compact five-button game transport directly below the board for start, previous, flip, next, and end navigation.

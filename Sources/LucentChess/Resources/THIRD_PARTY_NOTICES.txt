@@ -1,7 +1,6 @@
 Lucent Chess — Third-Party Visual Assets
 
-Except for Lucent's locally generated Fritz-inspired set, the bundled chess
-piece sets and board themes come from the official Lichess
+The bundled chess piece sets and board themes come from the official Lichess
 source repository:
 https://github.com/lichess-org/lila/tree/master/public/piece
 https://github.com/lichess-org/lila/tree/master/public/images/board

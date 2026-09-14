@@ -41,8 +41,8 @@ struct PieceSetOption: Identifiable, Hashable {
         self.monochrome = monochrome
     }
 
-    static let all: [PieceSetOption] = [
-        .init("cburnett", "Cburnett"), .init("fritz-inspired", "Fritz-inspired"),
+    static let bundled: [PieceSetOption] = [
+        .init("cburnett", "Cburnett"),
         .init("alpha", "Alpha"),
         .init("anarcandy", "Anarcandy"), .init("caliente", "Caliente"),
         .init("california", "California"), .init("cardinal", "Cardinal"),
@@ -65,6 +65,30 @@ struct PieceSetOption: Identifiable, Hashable {
         .init("staunty", "Staunty"), .init("tatiana", "Tatiana"),
         .init("totoy", "Totoy"), .init("xkcd", "XKCD")
     ]
+
+    /// Sets the user installed themselves, one folder each under
+    /// `Application Support/Lucent Chess/Pieces/<id>/` holding `wK.svg` … `bP.svg`
+    /// (or .png/.webp). An optional `name.txt` supplies the display name. These
+    /// never ship with the app, so licensed artwork stays on the owner's machine.
+    static let installed: [PieceSetOption] = {
+        guard let entries = try? FileManager.default.contentsOfDirectory(at: installDirectory, includingPropertiesForKeys: [.isDirectoryKey]) else { return [] }
+        return entries.compactMap { folder -> PieceSetOption? in
+            guard (try? folder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { return nil }
+            let id = folder.lastPathComponent
+            guard !id.hasPrefix("."), !bundled.contains(where: { $0.id == id }) else { return nil }
+            let hasKing = ["svg", "webp", "png"].contains { FileManager.default.fileExists(atPath: folder.appendingPathComponent("wK.\($0)").path) }
+            guard hasKing else { return nil }
+            let custom = (try? String(contentsOf: folder.appendingPathComponent("name.txt"), encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return PieceSetOption(id, custom?.isEmpty == false ? custom! : id.capitalized)
+        }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }()
+
+    static let installDirectory: URL = {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory
+        return base.appendingPathComponent("Lucent Chess/Pieces", isDirectory: true)
+    }()
+
+    static let all: [PieceSetOption] = installed + bundled
 
     static func find(_ id: String) -> PieceSetOption { all.first { $0.id == id } ?? all[0] }
 }

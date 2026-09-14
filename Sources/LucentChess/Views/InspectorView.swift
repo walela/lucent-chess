@@ -554,6 +554,13 @@ private struct StyleInspector: View {
                         Text("Piece sets").font(.headline)
                         Spacer()
                         Text("\(PieceSetOption.all.count)").font(.caption).foregroundStyle(.secondary)
+                        Button {
+                            try? FileManager.default.createDirectory(at: PieceSetOption.installDirectory, withIntermediateDirectories: true)
+                            NSWorkspace.shared.open(PieceSetOption.installDirectory)
+                        } label: { Image(systemName: "folder.badge.plus") }
+                        .buttonStyle(.borderless)
+                        .help("Add your own sets: one folder per set containing wK, wQ, wR, wB, wN, wP, bK… as SVG, WebP or PNG. New sets appear after relaunch.")
+                        .accessibilityLabel("Open the folder for your own piece sets")
                     }
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                         ForEach(PieceSetOption.all) { set in

@@ -67,7 +67,7 @@ struct RenderPreview {
         let engine = StockfishService()
         let appearance = AppearanceSettings()
         appearance.boardTheme = BoardThemeOption.find("wood")
-        appearance.pieceSet = PieceSetOption.find(selectedTab == .style ? "fritz-inspired" : "cburnett")
+        appearance.pieceSet = PieceSetOption.find(selectedTab == .style ? "merida" : "cburnett")
         if let study = library.selectedStudy {
             study.goToEnd()
             engine.startAndAnalyze(study.currentPosition)
