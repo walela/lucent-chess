@@ -25,10 +25,14 @@ import Foundation
             let start=Date();let result=try await library.page(request)
             print("PGN \(label): \(Date().timeIntervalSince(start)) s, \(result.count) matches")
             let again=Date();_ = try await library.page(request)
-            print("PGN \(label) cached page: \(Date().timeIntervalSince(again)) s")
+            print("PGN \(label) prepared page: \(Date().timeIntervalSince(again)) s")
         }
-        let q=try SQLConnection(catalog.positionCacheURL).prepare("SELECT max(skipped) FROM searches WHERE complete=1")
-        _ = try q.next();print("Maximum skipped PGN games: \(q.int(0))")
+        for source in try InteractiveCatalogService.state(catalog).sources where source.kind=="pgn" {
+            let marker=InteractiveCatalogService.root(catalog).appendingPathComponent("Positions/"+source.id+"/complete.txt")
+            let fields=try String(contentsOf:marker,encoding:.utf8).split(whereSeparator: \.isWhitespace)
+            guard fields.count==2,let incomplete=Int(fields[1]) else {throw CatalogError.message("Invalid PGN preparation marker")}
+            print("Incomplete PGN games: \(incomplete)")
+        }
     }
 }
 private extension MoveNode {
