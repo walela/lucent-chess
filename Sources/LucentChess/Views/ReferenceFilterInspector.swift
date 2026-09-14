@@ -136,9 +136,9 @@ private struct ReferencePositionResults: View {
     @State private var selectedGameID: UUID?
     @State private var games: [ChessStudy] = []
     @State private var count = 0
-    @State private var cursors: [CatalogCursor?] = [nil]
     @State private var nextCursor: CatalogCursor?
     @State private var loading = true
+    @State private var loadingMore = false
     @State private var message = "Searching this position…"
     @State private var error: String?
     @State private var cancelled = false
@@ -147,7 +147,8 @@ private struct ReferencePositionResults: View {
     @State private var activeSearch: UUID?
     @State private var tree: OpeningTree?
     @State private var treeLoading = false
-    @State private var treeTask: Task<Void, Never>?
+    @State private var treeTasks: [Task<Void, Never>] = []
+    @State private var pendingTreePages = 0
     @State private var tableSort: [KeyPathComparator<ReferenceGameRow>]
 
     init(query: ReferencePositionQuery, study: ChessStudy, sortField: Binding<GameSortField>, ascending: Binding<Bool>) {
@@ -158,12 +159,12 @@ private struct ReferencePositionResults: View {
         _tableSort = State(initialValue: Self.comparators(for: query.sort, ascending: query.ascending))
     }
 
+    /// The first page. Further pages reuse it with the last cursor.
     private var request: CatalogRequest {
         var request = CatalogRequest()
         request.folder = query.folder
         request.contentRevision = query.version
         request.filter.boardFEN = query.fen
-        request.cursor = cursors.last ?? nil
         request.revision = retry
         request.sort = query.sort.rawValue
         request.ascending = query.ascending
@@ -172,11 +173,6 @@ private struct ReferencePositionResults: View {
     }
 
     private var rows: [ReferenceGameRow] { games.map(ReferenceGameRow.init) }
-
-    private var pageLabel: String {
-        let start = (cursors.count - 1) * DatabaseCatalog.pageSize + 1
-        return "\(start.formatted())–\((start + games.count - 1).formatted()) of \(count.formatted())"
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -190,7 +186,7 @@ private struct ReferencePositionResults: View {
             footer
         }
         .task(id: request) { await search() }
-        .onDisappear { activeSearch = nil; searchTask?.cancel(); treeTask?.cancel() }
+        .onDisappear { activeSearch = nil; searchTask?.cancel(); treeTasks.forEach { $0.cancel() } }
         .onChange(of: tableSort) { _, order in
             guard let first = order.first, let field = Self.field(for: first) else { return }
             if sortField != field || ascending != (first.order == .forward) {
@@ -210,9 +206,9 @@ private struct ReferencePositionResults: View {
             HStack(spacing: 7) {
                 Text("Moves").font(.system(size: 12, weight: .semibold))
                 if let tree, !loading {
-                    Text("\(tree.analysed.formatted()) of \(games.count.formatted()) listed")
+                    Text(tree.analysed >= count ? "all \(count.formatted()) games" : "\(tree.analysed.formatted()) of \(count.formatted()) games")
                         .font(.system(size: 10).monospacedDigit()).foregroundStyle(.secondary)
-                        .help(treeSummary(tree))
+                        .help(treeSummary(tree) + (tree.analysed < count ? " · Scroll the games list to include more." : ""))
                 }
                 Spacer(minLength: 2)
                 if treeLoading { ProgressView().controlSize(.mini) }
@@ -265,19 +261,20 @@ private struct ReferencePositionResults: View {
                 gamesTable
             }
 
-            if !loading && count > DatabaseCatalog.pageSize {
+            if !loading && error == nil && !cancelled && games.count < count {
                 Divider()
-                HStack {
-                    Button { cursors.removeLast() } label: { Image(systemName: "chevron.left") }
-                        .disabled(cursors.count == 1).accessibilityLabel("Previous matching games")
+                HStack(spacing: 6) {
+                    if loadingMore { ProgressView().controlSize(.mini) }
+                    Text("\(games.count.formatted()) of \(count.formatted()) loaded")
+                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                     Spacer()
-                    Text(pageLabel).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                    Spacer()
-                    Button { if let nextCursor { cursors.append(nextCursor) } } label: { Image(systemName: "chevron.right") }
-                        .disabled(nextCursor == nil).accessibilityLabel("Next matching games")
+                    if !loadingMore, nextCursor != nil {
+                        Button("Load more") { loadMore() }
+                            .buttonStyle(.borderless).font(.caption)
+                    }
                 }
-                .buttonStyle(.borderless)
-                .padding(.horizontal, 14).padding(.vertical, 7)
+                .padding(.horizontal, 14).padding(.vertical, 6)
+                .accessibilityElement(children: .combine)
             }
         }
     }
@@ -286,6 +283,8 @@ private struct ReferencePositionResults: View {
         Table(rows, selection: $selectedGameID, sortOrder: $tableSort) {
             TableColumn("White", value: \.white) { row in
                 PlayerCell(name: row.white, elo: row.game.whiteElo)
+                    // Rows are created lazily; reaching one of the last rows fetches the next page.
+                    .onAppear { if games.suffix(40).contains(where: { $0.id == row.id }) { loadMore() } }
             }
             .width(min: 96)
             TableColumn("Black", value: \.black) { row in
@@ -311,7 +310,6 @@ private struct ReferencePositionResults: View {
         }
         .tableStyle(.inset)
         .alternatingRowBackgrounds(.enabled)
-        .id(cursors.count)
         .accessibilityLabel("Games matching the current board")
     }
 
@@ -402,18 +400,18 @@ private struct ReferencePositionResults: View {
     private func cancel() {
         activeSearch = nil
         searchTask?.cancel()
-        treeTask?.cancel()
-        loading = false
+        treeTasks.forEach { $0.cancel() }; treeTasks = []
+        loading = false; loadingMore = false
         cancelled = true
     }
 
     @MainActor private func search() async {
         searchTask?.cancel()
-        treeTask?.cancel()
+        treeTasks.forEach { $0.cancel() }; treeTasks = []
         let captured = request
         let token = UUID()
         activeSearch = token
-        games = []; count = 0; nextCursor = nil; tree = nil; treeLoading = false
+        games = []; count = 0; nextCursor = nil; tree = nil; treeLoading = false; loadingMore = false; pendingTreePages = 0
         loading = true; error = nil; cancelled = false
         message = "Preparing the selected database, then finding this position."
         let work = Task { @MainActor in
@@ -427,7 +425,7 @@ private struct ReferencePositionResults: View {
                 guard activeSearch == token else { return }
                 games = page.games; count = page.count; nextCursor = page.next
                 loading = false
-                buildTree(for: page.games, token: token)
+                extendTree(with: page.games, token: token)
             } catch is CancellationError { }
             catch {
                 guard activeSearch == token else { return }
@@ -439,9 +437,36 @@ private struct ReferencePositionResults: View {
         await withTaskCancellationHandler { await work.value } onCancel: { work.cancel() }
     }
 
-    @MainActor private func buildTree(for listed: [ChessStudy], token: UUID) {
-        guard let catalog = library.catalog, !listed.isEmpty else { tree = OpeningTree(); return }
-        treeLoading = true
+    /// Appends the next page in the same order; the list scrolls continuously.
+    @MainActor private func loadMore() {
+        guard !loading, !loadingMore, error == nil, !cancelled, let cursor = nextCursor, let token = activeSearch else { return }
+        loadingMore = true
+        var captured = request
+        captured.cursor = cursor
+        Task { @MainActor in
+            do {
+                let page = try await library.page(captured)
+                guard activeSearch == token else { return }
+                let known = Set(games.map(\.id))
+                let fresh = page.games.filter { !known.contains($0.id) }
+                games += fresh; nextCursor = page.next
+                loadingMore = false
+                extendTree(with: fresh, token: token)
+            } catch is CancellationError { }
+            catch {
+                guard activeSearch == token else { return }
+                loadingMore = false
+                nextCursor = nil
+                message = error.localizedDescription
+            }
+        }
+    }
+
+    /// Folds one page of games into the Moves table off the main thread.
+    @MainActor private func extendTree(with listed: [ChessStudy], token: UUID) {
+        guard let catalog = library.catalog else { tree = tree ?? OpeningTree(); return }
+        guard !listed.isEmpty else { if tree == nil { tree = OpeningTree() }; return }
+        pendingTreePages += 1; treeLoading = true
         let fen = query.fen
         let task = Task { @MainActor in
             let worker = Task.detached(priority: .userInitiated) {
@@ -450,15 +475,17 @@ private struct ReferencePositionResults: View {
             do {
                 let loaded = try await withTaskCancellationHandler { try await worker.value } onCancel: { worker.cancel() }
                 guard activeSearch == token else { return }
-                tree = loaded.tree
+                if var current = tree { current.merge(loaded.tree); tree = current } else { tree = loaded.tree }
             } catch is CancellationError { }
             catch {
                 guard activeSearch == token else { return }
-                tree = OpeningTree()
+                if tree == nil { tree = OpeningTree() }
             }
-            if activeSearch == token { treeLoading = false }
+            guard activeSearch == token else { return }
+            pendingTreePages = max(0, pendingTreePages - 1)
+            treeLoading = pendingTreePages > 0
         }
-        treeTask = task
+        treeTasks.append(task)
     }
 }
 

@@ -27,6 +27,21 @@ struct OpeningTree: Sendable {
     /// Listed games whose moves could not be read.
     var unreadable = 0
     var isEmpty: Bool { rows.isEmpty && ended == 0 }
+
+    /// Folds a further page of games into this summary.
+    mutating func merge(_ other: OpeningTree) {
+        var byMove = Dictionary(uniqueKeysWithValues: rows.map { ($0.uci, $0) })
+        for row in other.rows {
+            if var existing = byMove[row.uci] {
+                existing.games += row.games; existing.whiteWins += row.whiteWins; existing.draws += row.draws
+                existing.blackWins += row.blackWins; existing.eloSum += row.eloSum; existing.eloCount += row.eloCount
+                existing.latestYear = max(existing.latestYear, row.latestYear)
+                byMove[row.uci] = existing
+            } else { byMove[row.uci] = row }
+        }
+        rows = byMove.values.sorted { $0.games != $1.games ? $0.games > $1.games : $0.san < $1.san }
+        analysed += other.analysed; ended += other.ended; unreadable += other.unreadable
+    }
 }
 
 /// Builds the continuation table for the games currently listed in the
