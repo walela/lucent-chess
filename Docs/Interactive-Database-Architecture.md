@@ -1,7 +1,7 @@
 # Interactive reference databases
 
-Status: implemented and automatically validated for 1.20.0, 14 September 2026.
-The final visible UI smoke check was blocked by the locked Mac.
+Status: implemented, automatically validated, and visibly checked in installed
+1.20.0 (48), 14 September 2026.
 Baseline: `01c28d0`, 11,757,636 catalog games on this Mac (16 GiB RAM, 8 CPUs).
 
 ## Decision
@@ -303,8 +303,29 @@ No completed-result cache or database replay was used to answer these queries.
 The original target of sub-100 ms warm p95 for the complete board-to-page path
 has **not** been met: the measured service p95 is 151 ms, and the UI adds debounce
 and rendering. This still replaces minute-scale scans with roughly tenths of a
-second. No cold-cache p95 or rendered-UI latency is claimed; the Mac locked before
-the final visible check.
+second. No cold-cache p95 or precisely instrumented rendered-UI latency is claimed.
+
+The installed app was relaunched and its About panel verified as **1.20.0 (48)**.
+The visible smoke check exercised all eight column headers in both directions
+against all 11,757,636 games, page 201–400, and a combined player/White Elo/year
+filter (509 matches). Every sort had populated rows and no busy indicator at the
+first accessibility observation after clicking. Click-through-observation times
+were 0.78–1.04 s; these include UI automation settling and accessibility capture,
+so they are not precise app latency measurements.
+
+The inline reference inspector followed Praggnanandhaa–Nakamura through plies
+13, 12, 11, 10, 9, 8, and 0, with Mega match counts 1, 71, 58, 50, 455, 2,375,
+and 11,734,395 respectively. Stepping through the boards produced populated
+results at the first observation (0.92–1.24 s including automation); the first
+inspector opening took 2.44 s including automation. Reference pagination showed
+201–400 of 11,734,395. Switching to Candidates 2026 returned its 56 starting
+positions and the original game at ply 13. The UI was also checked visually.
+
+The single Mega result at 7.Ne5, Kona–Chassard, is a verified transposition:
+its preview shows 1.Nf3 h6 2.g3 Nf6 3.d4 e6 4.Bg2 Be7 5.c4 O-O 6.Nc3 d5
+7.Ne5, reaching the same pieces and side to move as the working game's different
+move order. The preview opened at that position; closing it preserved the
+working game and ply. Mega's 4,481 incomplete-coverage warning remained visible.
 
 ## Validation and reproduction
 
