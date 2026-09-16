@@ -36,8 +36,8 @@ struct OpeningTreeTable: View {
             }
             .width(min: 42, ideal: 48, max: 64)
             .alignment(.trailing)
-            TableColumn("Score") { row in ScoreCell(row: row) }
-                .width(min: 78, ideal: 92)
+                    TableColumn("Score") { row in ScoreCell(row: row) }
+                        .width(min: 96, ideal: 120)
             TableColumn("Elo Ø") { row in
                 Text(row.averageElo.map { String($0) } ?? "—")
                     .font(.system(size: 11).monospacedDigit())
@@ -85,24 +85,33 @@ private struct ScoreCell: View {
 
     var body: some View {
         let decided = max(1, row.whiteWins + row.draws + row.blackWins)
-        HStack(spacing: 7) {
+        HStack(spacing: 8) {
             Text("\(Int(row.score.rounded()))%")
                 .font(.system(size: 11, weight: .medium).monospacedDigit())
-                .frame(width: 32, alignment: .trailing)
+                .lineLimit(1).fixedSize()
+                .frame(minWidth: 36, alignment: .trailing)
             GeometryReader { geometry in
-                HStack(spacing: 1) {
-                    segment(row.whiteWins, of: decided, width: geometry.size.width, color: Color(white: 0.96))
-                    segment(row.draws, of: decided, width: geometry.size.width, color: Color(white: 0.62))
-                    segment(row.blackWins, of: decided, width: geometry.size.width, color: Color(white: 0.24))
+                // White / draw / Black, in the piece colours. The white segment is pure
+                // white so it reads against the table; the hairline separators and the
+                // outline keep a 100% row from looking like an empty track.
+                HStack(spacing: 0) {
+                    segment(row.whiteWins, of: decided, width: geometry.size.width, color: .white)
+                    if row.whiteWins > 0 && row.draws + row.blackWins > 0 { divider }
+                    segment(row.draws, of: decided, width: geometry.size.width, color: Color(white: 0.66))
+                    if row.draws > 0 && row.blackWins > 0 { divider }
+                    segment(row.blackWins, of: decided, width: geometry.size.width, color: Color(white: 0.16))
                 }
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(.primary.opacity(0.18), lineWidth: 0.5))
+                .background(Color(white: 0.66))
+                .clipShape(RoundedRectangle(cornerRadius: 2.5, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 2.5, style: .continuous).stroke(.primary.opacity(0.45), lineWidth: 0.75))
             }
-            .frame(height: 6)
+            .frame(height: 9)
         }
         .help("White wins \(row.whiteWins), draws \(row.draws), Black wins \(row.blackWins)")
         .accessibilityLabel("White scores \(Int(row.score.rounded())) percent")
     }
+
+    private var divider: some View { Color.primary.opacity(0.45).frame(width: 0.75) }
 
     private func segment(_ value: Int, of total: Int, width: CGFloat, color: Color) -> some View {
         color.frame(width: max(0, width * CGFloat(value) / CGFloat(total)))
