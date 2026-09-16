@@ -30,6 +30,7 @@ final class LibraryStore: ObservableObject {
     func requestReferencePosition(_ fen: String) {
         var filter = referenceFilter
         filter.boardFEN = fen
+        filter.mask = nil
         requestReferenceSearch(filter, result: referenceResult)
     }
     func requestReferenceSearch(_ filter: CatalogFilter, result: String) {
@@ -39,6 +40,7 @@ final class LibraryStore: ObservableObject {
         referenceSearchRevision += 1
     }
     @Published var referencePreviewFEN = ""
+    @Published var referencePreviewMask: PositionSearchMask? = nil
     @Published var catalogRevision = 0
     @Published var collectionVersions: [String:String] = [:]
     @Published var recentGameCount = 0

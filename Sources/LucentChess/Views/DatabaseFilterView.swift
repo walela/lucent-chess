@@ -35,27 +35,32 @@ struct DatabaseFilterView: View {
             }
             Divider()
             HStack {
-                Text("Board position").font(.headline)
+                Text("Position").font(.headline)
                 Spacer()
-                Button("Set up board…") { drawingBoard=true }
-                Button("Use current game") { filter.boardFEN=currentPositionFEN ?? library.selectedStudy?.currentPosition.fen ?? "" }.disabled(currentPositionFEN == nil && library.selectedStudy==nil)
-                if !filter.boardFEN.isEmpty { Button("Remove") {filter.boardFEN=""} }
+                Button(filter.mask == nil ? "Position search…" : "Edit position search…") { drawingBoard=true }
+                Button("Use current game") { filter.mask=nil;filter.boardFEN=currentPositionFEN ?? library.selectedStudy?.currentPosition.fen ?? "" }.disabled(currentPositionFEN == nil && library.selectedStudy==nil)
+                if filter.hasPosition { Button("Remove") {filter.boardFEN="";filter.mask=nil} }
             }
-            TextField("Optional FEN — paste a position or set up a board",text:$filter.boardFEN).textFieldStyle(.roundedBorder).font(.system(.callout,design:.monospaced))
-            Text("Board search matches the exact pieces and side to move anywhere in the main line, including transpositions. Castling rights, en passant and move clocks are ignored. Variations are excluded in this first pass.").font(.caption).foregroundStyle(.secondary)
-            if !filter.boardFEN.isEmpty {
-                Text("The first search scans moves in the filtered games; it can take time on a large database. Progress and cancellation are available, and completed results are cached.").font(.caption).foregroundStyle(.secondary)
+            if let mask=filter.mask {
+                Text(mask.summary).font(.callout.monospacedDigit()).lineLimit(3).fixedSize(horizontal:false,vertical:true)
+                Text("Positional fragment: matches any main-line position containing these pieces, regardless of the rest of the board. Every game in scope is scanned once and the result is cached.").font(.caption).foregroundStyle(.secondary)
+            } else {
+                TextField("Optional FEN — paste a position, or define a fragment with Position search",text:$filter.boardFEN).textFieldStyle(.roundedBorder).font(.system(.callout,design:.monospaced))
+                Text("An exact position matches the pieces and side to move anywhere in the main line, including transpositions; castling rights, en passant and clocks are ignored. Use Position search for fragments, jokers, mirroring and move windows.").font(.caption).foregroundStyle(.secondary)
             }
             if let error { Text(error).foregroundStyle(.red).font(.callout) }
             HStack {
                 Button("Clear all") { filter=CatalogFilter();bounds=Array(repeating:"",count:6);result="all";error=nil }
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button(filter.boardFEN.isEmpty ? "Apply filters" : "Search games",action:submit).keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
+                Button(filter.hasPosition ? "Search games" : "Apply filters",action:submit).keyboardShortcut(.defaultAction).buttonStyle(.borderedProminent)
             }
         }.padding(24).frame(width:620)
         .sheet(isPresented:$drawingBoard) {
-            PositionSetupView(initialPosition:ChessPosition(fen:filter.boardFEN),usePosition:{ position in filter.boardFEN=position.fen })
+            PositionSearchMaskView(initialMask:filter.mask,initialFEN:filter.boardFEN,currentPositionFEN:currentPositionFEN ?? library.selectedStudy?.currentPosition.fen) { mask in
+                // A complete position with a side to move is answered from the exact index.
+                if let fen=mask.exactFEN { filter.boardFEN=fen;filter.mask=nil } else { filter.boardFEN="";filter.mask=mask }
+            }
         }
     }
     private func range(_ label:String,offset:Int) -> some View {

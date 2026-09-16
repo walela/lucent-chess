@@ -121,6 +121,10 @@ enum InteractiveCatalogService {
                     else if let games = item["games"] as? Int { message = "Preparing database: \(games.formatted()) games" }
                     else if let done = item["prepared"] as? Int { message = "Preparing positions: \(done.formatted()) games" }
                     else if let end = item["end"] as? Int { message = "Preparing positions: \(end.formatted()) games" }
+                    else if let scanned = item["scanned"] as? Int, let total = item["total"] as? Int {
+                        let matches = (item["matches"] as? Int).map { " · \($0.formatted()) found" } ?? ""
+                        message = "Searching positions: \(scanned.formatted()) of \(total.formatted()) games\(matches)"
+                    }
                     if !message.isEmpty && message != reported { reported = message; progress(message) }
                 }
             }
@@ -246,6 +250,47 @@ enum InteractiveCatalogService {
         }
     }
 
+    /// Positional fragment searches have no index: every main line of the
+    /// source is replayed once per distinct mask (about 15 s for 11.7 million
+    /// CBH games on eight cores) and the game bitmap is cached under the mask's
+    /// key, tied to the exact position index whose ordinals it shares.
+    static func prepareFragment(catalog: DatabaseCatalog, source: CatalogSource, mask: PositionSearchMask, progress: @escaping @Sendable (String) -> Void) throws -> URL {
+        let directory=root(catalog).appendingPathComponent("Fragments/"+mask.cacheKey,isDirectory:true)
+        let positions=root(catalog).appendingPathComponent("Positions/"+source.id,isDirectory:true)
+        let bits=directory.appendingPathComponent(source.id+".bits"),stampFile=directory.appendingPathComponent(source.id+".stamp")
+        let stamp=try String(contentsOf:positions.appendingPathComponent("source.txt"),encoding:.utf8)
+        try singleFlight(bits.path,progress:progress) { update in
+            if FileManager.default.fileExists(atPath:bits.path),(try? String(contentsOf:stampFile,encoding:.utf8))==stamp {return}
+            try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
+            let temp=FileManager.default.temporaryDirectory.appendingPathComponent("lucent-fragment-\(UUID().uuidString)",isDirectory:true)
+            try FileManager.default.createDirectory(at:temp,withIntermediateDirectories:true)
+            defer {try? FileManager.default.removeItem(at:temp)}
+            let request=try requestFile(mask.nativeRequest,in:temp)
+            let partial=directory.appendingPathComponent(source.id+".partial")
+            try? FileManager.default.removeItem(at:partial)
+            update("Searching \(source.name) for the position…")
+            try run([source.kind=="cbh" ? "--scan-cbh-fragment" : "--scan-pgn-fragment",source.path,positions.path,request.path,partial.path],progress:update)
+            try? FileManager.default.removeItem(at:bits)
+            try FileManager.default.moveItem(at:partial,to:bits)
+            try stamp.write(to:stampFile,atomically:true,encoding:.utf8)
+            pruneFragments(keeping:directory)
+        }
+        return directory
+    }
+
+    /// Bitmaps are small (1.5 MB per 11.7 million games); keep the most recent masks.
+    private static func pruneFragments(keeping current: URL) {
+        let parent=current.deletingLastPathComponent()
+        guard let directories=try? FileManager.default.contentsOfDirectory(at:parent,includingPropertiesForKeys:[.contentModificationDateKey]) else {return}
+        let prior=directories.filter {$0 != current}.sorted {
+            ((try? $0.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate) ?? .distantPast) > ((try? $1.resourceValues(forKeys:[.contentModificationDateKey]).contentModificationDate) ?? .distantPast)
+        }
+        for directory in prior.dropFirst(47) {
+            gate.lock();let busy=preparing.contains {$0.hasPrefix(directory.path)};gate.unlock()
+            if !busy {try? FileManager.default.removeItem(at:directory)}
+        }
+    }
+
     struct NativeTreeRow: Decodable { let uci: String; let games, whiteWins, draws, blackWins: Int; let eloSum: Int64; let eloCount: Int; let latestYear: Int }
     struct NativeTree: Decodable { let games: Int; let skipped: Int; let rows: [NativeTreeRow]; let ended: Int }
 
@@ -283,7 +328,7 @@ enum InteractiveCatalogService {
             try catalog.prepareLocalHeaders()
             try catalog.prepareLocalRatings()
         }
-        if !request.filter.boardFEN.isEmpty {
+        if request.filter.hasPosition {
             try singleFlight(catalog.url.path+":localPositions",progress:progress) {update in try catalog.prepareLocalPositions(progress:update)}
         }
         let initial=try state(catalog)
@@ -298,12 +343,20 @@ enum InteractiveCatalogService {
             defer {try? FileManager.default.removeItem(at:temp)}
             var parameters=try object(request,positionRoot:root(catalog).appendingPathComponent("Positions"))
             parameters["overrides"]=try catalog.importedOverrides()
-            let query=try requestFile(parameters,in:temp)
+            var query=try requestFile(parameters,in:temp)
             let output=temp.appendingPathComponent("result.json")
-            if !request.filter.boardFEN.isEmpty {
+            if request.filter.hasPosition {
                 try run(["--catalog-source-scope",metadata.path,query.path,output.path])
                 let scope=try JSONDecoder().decode([String].self,from:Data(contentsOf:output))
                 for source in initial.sources where scope.contains(source.id) {try preparePositions(catalog:catalog,source:source,progress:progress)}
+                if let mask=request.filter.mask {
+                    for source in initial.sources where scope.contains(source.id) {
+                        parameters["fragmentRoot"]=try prepareFragment(catalog:catalog,source:source,mask:mask,progress:progress).path
+                    }
+                    // Nothing in scope: the native side skips every source group and reads no bitmap.
+                    if parameters["fragmentRoot"]==nil {parameters["fragmentRoot"]=temp.path}
+                    query=try requestFile(parameters,in:temp)
+                }
             }
             try Task.checkCancellation()
             try run(["--query-catalog-metadata",metadata.path,query.path,output.path])

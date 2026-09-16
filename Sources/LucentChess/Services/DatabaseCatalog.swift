@@ -54,6 +54,7 @@ final class DatabaseCatalog: @unchecked Sendable {
     private let cacheLock = NSLock()
     private var countCache: [CatalogCountKey:Int] = [:]
     private var textCountCache: [String:Int] = [:]
+    private var localMaskCache: [String:String] = [:]
     private struct CatalogCountKey: Hashable { let request: CatalogRequest; let version: String }
 
 
@@ -234,7 +235,7 @@ final class DatabaseCatalog: @unchecked Sendable {
         let count: Int
         if let cachedCount { count=cachedCount }
         else if request.positionSearchKey != nil { count=textMatches ?? 0 }
-        else if let textMatches, !request.filter.hasRanges, request.filter.boardFEN.isEmpty, request.positionSearchKey == nil, !request.unfiled, !request.recent, request.result == "all", request.file == "all" {
+        else if let textMatches, !request.filter.hasRanges, !request.filter.hasPosition, request.positionSearchKey == nil, !request.unfiled, !request.recent, request.result == "all", request.file == "all" {
             count = textMatches
         } else if !request.localOnly && !request.filter.hasHeaders && request.positionSearchKey == nil && !request.recent && request.result == "all" && request.file == "all" && tokens.isEmpty {
             let counts = try counts()
@@ -299,6 +300,29 @@ final class DatabaseCatalog: @unchecked Sendable {
         if request.localOnly && !request.filter.boardFEN.isEmpty {
             conditions.append("id IN (SELECT game_id FROM local_positions WHERE board=?)")
             values.append(.text(try CatalogFilter.boardKey(request.filter.boardFEN)))
+        }
+        if request.localOnly, let mask = request.filter.mask {
+            // Saved and edited games are few; test every main-line board they
+            // reach against the mask (placement, side and mirrors; the move
+            // window and persistence apply to imported games and the preview).
+            // Legacy imports live here too (over a million rows), so match on the
+            // stored text with compiled masks and remember the result per library version.
+            let key = mask.cacheKey + "|" + (try contentVersion())
+            var ids = cacheLock.withLock { localMaskCache[key] }
+            if ids == nil {
+                let variants = mask.compiled()
+                let rows = try db.prepare("SELECT board,game_id FROM local_positions")
+                var matched = Set<String>()
+                while try rows.next() {
+                    let id = rows.text(1)
+                    if matched.contains(id) { continue }
+                    if PositionSearchMask.matches(boardText: rows.text(0), variants: variants) { matched.insert(id) }
+                }
+                ids = String(decoding: try JSONEncoder().encode(Array(matched)), as: UTF8.self)
+                cacheLock.withLock { if localMaskCache.count > 16 { localMaskCache.removeAll(keepingCapacity: true) }; localMaskCache[key] = ids }
+            }
+            conditions.append("id IN (SELECT value FROM json_each(?))")
+            values.append(.text(ids!))
         }
         if let folder = request.folder { conditions.append("folder=?"); values.append(.text(folder)) }
         if request.unfiled { conditions.append("folder IS NULL") }

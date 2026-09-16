@@ -455,7 +455,7 @@ struct GameDashboard: View {
                         Text("Choose a collection…").tag("")
                         ForEach(library.folders) { folder in Text("\(folder.name) (\(library.gameCount(in:folder).formatted()))").tag(folder.id.uuidString) }
                     }
-                    Button("Use current board") { filter.boardFEN=library.selectedStudy?.currentPosition.fen ?? "";pageCursors=[nil] }.disabled(library.selectedStudy==nil)
+                    Button("Use current board") { filter.mask=nil;filter.boardFEN=library.selectedStudy?.currentPosition.fen ?? "";pageCursors=[nil] }.disabled(library.selectedStudy==nil)
                 }
                 Text("Reference results open in a separate preview. Your working game stays open.").font(.caption).foregroundStyle(.secondary)
             }
@@ -509,7 +509,8 @@ struct GameDashboard: View {
                     if searchProgress == "Search cancelled." { Button("Retry search") { searchAttempt += 1 } }
                 }
             }
-            if !filter.boardFEN.isEmpty { Text("Board filter: exact pieces and side to move · main line only").font(.caption).foregroundStyle(.secondary) }
+            if let mask=filter.mask { Text("Position search: \(mask.summary) · main line only").font(.caption.monospacedDigit()).foregroundStyle(.secondary).lineLimit(2) }
+            else if !filter.boardFEN.isEmpty { Text("Board filter: exact pieces and side to move · main line only").font(.caption).foregroundStyle(.secondary) }
             let tableShape = RoundedRectangle(cornerRadius: 12, style: .continuous)
             GeometryReader { geometry in
                 ScrollView(.horizontal) {
@@ -561,7 +562,7 @@ struct GameDashboard: View {
     }
 
     private func openResult(_ game: ChessStudy) {
-        if referenceMode { library.referencePreviewFEN=filter.boardFEN }
+        if referenceMode { library.referencePreviewFEN=filter.boardFEN;library.referencePreviewMask=filter.mask }
         openGame(game)
     }
 

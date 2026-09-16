@@ -493,6 +493,19 @@ inline std::vector<uint64_t> lookup(const fs::path& directory, const Key& key, u
     if (observedSkipped != skipped) throw std::runtime_error("Inconsistent position index counts.");
     return bits;
 }
+// Reads a game bitmap written by query() or a fragment scan.
+inline std::vector<uint64_t> readBitmap(const fs::path& path, uint32_t& skipped) {
+    auto text = readText(path);
+    if (text.size() < 32 || text.compare(0, 8, "LCBIT001") != 0) throw std::runtime_error("Invalid position search result.");
+    auto p = reinterpret_cast<const uint8_t*>(text.data());
+    uint64_t count = number(p + 8, 8), skippedCount = number(p + 16, 8), words = number(p + 24, 8);
+    if (words > (uint64_t(UINT32_MAX) + 63) / 64 || text.size() != 32 + words * 8 || skippedCount > UINT32_MAX) throw std::runtime_error("Invalid position search result.");
+    std::vector<uint64_t> bits(static_cast<size_t>(words), 0); uint64_t observed = 0;
+    for (size_t w = 0; w < bits.size(); ++w) { bits[w] = number(p + 32 + w * 8, 8); observed += std::popcount(bits[w]); }
+    if (observed != count) throw std::runtime_error("Invalid position search result.");
+    skipped = uint32_t(skippedCount);
+    return bits;
+}
 inline void query(const fs::path& directory, const std::string& fen, const fs::path& output) {
     auto started = std::chrono::steady_clock::now(); uint32_t skipped = 0;
     auto bits = lookup(directory, fromFEN(fen), skipped); uint64_t count = 0;

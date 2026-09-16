@@ -3,6 +3,7 @@ import SwiftUI
 struct ReferenceGameSelection: Hashable, Codable {
     let gameID: UUID
     let boardFEN: String
+    var mask: PositionSearchMask? = nil
 }
 
 struct ReferencePreviewActions {
@@ -49,7 +50,13 @@ struct ReferenceGamePreview: View {
                 let transfer = try await withTaskCancellationHandler { try await worker.value } onCancel: { worker.cancel() }
                 let loaded = transfer.study
                 try Task.checkCancellation()
-                if let board = try? CatalogFilter.boardKey(selection.boardFEN) {
+                if let mask = selection.mask {
+                    // Jump to the first main-line ply where the fragment holds.
+                    var nodes: [MoveNode] = []; var node: MoveNode? = loaded.root
+                    while let current = node { nodes.append(current); node = current.children.first }
+                    let positions = nodes.map { ChessPosition(fen: $0.positionFEN) ?? ChessPosition() }
+                    if let ply = mask.firstMatch(in: positions), ply < nodes.count { loaded.select(nodes[ply]); matchedNodeID = nodes[ply].id }
+                } else if let board = try? CatalogFilter.boardKey(selection.boardFEN) {
                     var node: MoveNode? = loaded.root
                     while let current = node {
                         if current.positionFEN.split(separator: " ").prefix(2).joined(separator: " ") == board {

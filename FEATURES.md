@@ -48,6 +48,7 @@ The complete feature list. For the short version, see the [README](README.md).
 ## Board
 
 - Provides a separate position editor with piece placement and erasing, FEN import/copy, board reset/flip, side to move, castling rights, en passant, and move counters. Invalid setups are explained before a new game can be created.
+- Searches databases by positional fragment with a search mask: Look for, Or and Exclude boards, any-colour jokers and an empty-square marker, several pieces per square, right-click for the opposite colour, horizontal/vertical mirroring, a first/last move window and a minimum length in plies. Every main line in scope is scanned natively once per mask and cached; complete positions use the exact index.
 - Supports click-to-move, drag-to-move, promotion, castling, en passant, board flipping, coordinates, move hints, and keyboard navigation.
 - Applies moves and navigation jumps immediately, without an automatic piece transition getting between the board and the score.
 - Includes 41 bundled piece sets and all 25 current Lichess board themes, plus custom square colors, piece scaling, and your own piece sets dropped into `Application Support/Lucent Chess/Pieces`.

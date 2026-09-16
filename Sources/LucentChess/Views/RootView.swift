@@ -132,7 +132,7 @@ struct RootView: View {
     }
 
     private func open(_ study: ChessStudy) {
-        if referenceMode { openWindow(id:AppWindowID.referenceGame,value:ReferenceGameSelection(gameID:study.id,boardFEN:library.referencePreviewFEN));return }
+        if referenceMode { openWindow(id:AppWindowID.referenceGame,value:ReferenceGameSelection(gameID:study.id,boardFEN:library.referencePreviewFEN,mask:library.referencePreviewMask));return }
         Task { if await library.openGame(study) {openWindow(id:AppWindowID.game)} }
     }
 

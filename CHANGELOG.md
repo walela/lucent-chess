@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.20.0 — 2026-09-14
+
+- Prepares an exact position index and a metadata snapshot per imported database once, then answers board searches and header sorts from them: 11.7 million games sort in tens of milliseconds and the starting position resolves in well under a second without decoding games.
+- Redesigns the game workspace around a **Reference** tab. A **Moves** table lists every continuation played from the current board across the whole reference database with game count, White's score bar and average Elo; clicking a row plays it. Castling and en passant continuations are included, and transpositions count.
+- Adds a **Position search** mask modelled on database search masks: Look for, Or and Exclude boards, any-white/any-black jokers and an empty-square marker, several pieces per square on the Or and Exclude boards, right-click for the opposite colour, horizontal and vertical mirroring, a first/last move window and a minimum length in plies. Fragments are matched natively across every main line in scope (about 9–15 s for 11.7 million games, cached per mask) and opening a result jumps to the first matching position. A complete position with a side to move still answers from the exact index.
+- Lists matching games in a database-style table (White, Elo, Black, Elo, Result, Event, Year) that scrolls continuously and sorts from any header through the backend.
+- Keeps the previous position's results on screen, dimmed, while the next position loads; caches recently visited positions; shows preparation progress only when a search genuinely takes long.
+- Replaces the editable player fields in the notation pane with a read-only game header; clicking it opens Details, where every field remains editable.
+- Adds user-installed piece sets: drop a folder of `wK…bP` SVG, WebP or PNG files into `Application Support/Lucent Chess/Pieces` and it appears in Appearance. Removes the placeholder "Fritz-inspired" set.
+- Fixes board-theme tiles in Appearance that stopped taking clicks in a wider inspector.
+
+A game counts for a continuation when its main line contains both the current position and the resulting one, so a handful of games that reach both by another route are included. Prepared indexes are stored under Application Support and rebuild automatically when a source database changes.
+
 ## 1.18.1 — 2026-09-13
 
 - Opens collections with more than 100 games in a dedicated window, reusing that window on subsequent clicks. Smaller collections remain in the library preview.

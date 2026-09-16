@@ -478,9 +478,11 @@ inline std::vector<uint64_t> positionMatches(const fs::path& dir,const Snapshot&
         const auto& info=found->second;bool cbh=info.get("kind")=="cbh";
         fs::path positions=fs::path(request.get("positionRoot"))/name;
         if(!readText(positions/"source.txt").starts_with(sourceStamp(info.get("path"),cbh)))throw std::runtime_error("Source positions need preparation or the source changed.");
-        uint32_t sourceSkipped=0;auto sourceBits=lookup(positions,key,sourceSkipped);skipped+=sourceSkipped;
+        // Fragment searches arrive as one scanned bitmap per source (ordinals as in the index).
+        uint32_t sourceSkipped=0;auto sourceBits=request.has("fragmentRoot")?readBitmap(fs::path(request.get("fragmentRoot"))/(name+".bits"),sourceSkipped):lookup(positions,key,sourceSkipped);skipped+=sourceSkipped;
         std::unique_ptr<CatalogMappedFile> ranges;
         uint64_t sourceCount=0;std::istringstream(readText(positions/"complete.txt"))>>sourceCount;
+        if(sourceBits.size()!=(sourceCount+63)/64)throw std::runtime_error("Position search result does not cover this source.");
         if(cbh){auto size=fs::file_size(info.get("path"));if(size<46 || sourceCount!=(size-46)/46)throw std::runtime_error("Position index does not cover this source.");}
         else{ranges=std::make_unique<CatalogMappedFile>((positions/"records.bin").string());if(ranges->size%16 || sourceCount!=ranges->size/16)throw std::runtime_error("Invalid PGN position record map.");}
         uint64_t matches=0;for(auto word:sourceBits)matches+=std::popcount(word);
@@ -499,7 +501,7 @@ inline std::vector<uint64_t> positionMatches(const fs::path& dir,const Snapshot&
     return bits;
 }
 inline std::vector<uint64_t> positionMatches(const fs::path& dir,const Snapshot& snapshot,const JSONValues& request,uint32_t& skipped){
-    return positionMatches(dir,snapshot,request,fromFEN(request.get("board")),skipped);
+    return positionMatches(dir,snapshot,request,request.has("board")?fromFEN(request.get("board")):Key{},skipped);
 }
 
 // The continuation table for one board over every imported game in scope. A
@@ -551,7 +553,7 @@ inline void queryMetadata(const fs::path& dir,const fs::path& requestPath,const 
     size_t order=0;for(size_t i=0;i<orderCount;++i)if(request.get("sort")==orderNames[i])order=i;
     bool ascending=request.get("ascending")=="1";uint32_t skipped=0;
     std::vector<uint64_t> bits;
-    if(request.has("board"))bits=positionMatches(dir,snapshot,request,skipped);
+    if(request.has("board")||request.has("fragmentRoot"))bits=positionMatches(dir,snapshot,request,skipped);
     else {bits.assign((uint64_t(snapshot.count)+63)/64,UINT64_MAX);if(snapshot.count%64)bits.back()=(uint64_t(1)<<(snapshot.count%64))-1;}
     auto scopeAdditions=applyOverrides(dir,snapshot,request,bits);
     using Masks=std::vector<std::vector<uint64_t>>;
